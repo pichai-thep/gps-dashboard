@@ -65,5 +65,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 
         'dev.auth' => \App\Http\Middleware\DevTokenAuth::class,
+        'gps' => \App\Http\Middleware\ResolveGpsConnection::class,
     ];
 }

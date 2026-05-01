@@ -61,33 +61,99 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $userId = (int) str_replace('dev-token-', '', $token);
+        $authUserId = (int) str_replace('dev-token-', '', $token);
 
-        $user = DB::connection('auth_db')
+        $authUser = DB::connection('auth_db')
             ->table('users')
-            ->where('id', $userId)
+            ->where('id', $authUserId)
             ->where('active', 1)
             ->first();
 
-        if (!$user) {
+        if (!$authUser) {
             return response()->json([
                 'message' => 'Unauthenticated',
             ], 401);
         }
 
+//        $gpsConnection = $authUser->server_name;
+
+        $gpsConnection = $request->attributes->get('gps_connection');
+
+        $gpsUser = DB::connection($gpsConnection)
+            ->table('user')
+            ->where('login', $authUser->login)
+            ->first();
+
+        if (!$gpsUser) {
+            return response()->json([
+                'message' => 'GPS user not found',
+            ], 404);
+        }
+
+        $customers = DB::connection($gpsConnection)
+            ->table('customer_user as cu')
+            ->join('customer as c', 'c.customer_id', '=', 'cu.customer_customer_id')
+            ->where('cu.user_user_id', $gpsUser->user_id)
+            ->select('c.*')
+            ->get();
+
+        if ($customers->isEmpty()) {
+            return response()->json([
+                'message' => 'Customer not found',
+            ], 404);
+        }
+
+        $customer = $customers->first();
+
         $roles = DB::connection('auth_db')
             ->table('group_role_user as gru')
             ->join('group_role as gr', 'gr.id', '=', 'gru.group_role_id')
-            ->where('gru.users_id', $user->id)
-            ->pluck('gr.group_role_name')
-            ->values();
+            ->where('gru.users_id', $authUser->id)
+            ->pluck('gr.group_role_name');
 
         return response()->json([
             'user' => [
-                'id' => $user->id,
-                'username' => $user->login,
-                'server_name' => $user->server_name,
+                'id' => $authUser->id,
+                'gps_user_id' => $gpsUser->user_id,
+                'username' => $authUser->login,
+                'email' => $gpsUser->email ?? $authUser->email ?? null,
+                'server_name' => $authUser->server_name,
                 'roles' => $roles,
+            ],
+
+            'customer' => [
+                'id' => $customer->customer_id,
+                'name' => $customer->customer_name,
+                'map_api' => $customer->map_api,
+            ],
+
+            'customers' => $customers->map(fn ($item) => [
+                'id' => $item->customer_id,
+                'name' => $item->customer_name,
+                'map_api' => $item->map_api,
+            ])->values(),
+
+            'features' => [
+                'station' => (bool) $customer->station_show,
+                'poi' => (bool) $customer->poi_show,
+                'zone' => (bool) $customer->zone_show,
+                'overSpeedReport' => (bool) $customer->over_speed_report,
+                'summaryReport' => (bool) $customer->summary_report,
+                'canbus' => (bool) $customer->enable_canbus,
+                'engineCut' => (bool) $customer->enable_engine_cut,
+                'fuel' => (bool) $customer->enable_fuel_chk,
+                'battery' => (bool) $customer->enable_batt_mont,
+                'passenger' => (bool) $customer->enable_passenger,
+                'geocoding' => (bool) $customer->enable_geocoding,
+                'attendance' => (bool) $customer->enable_attendance,
+                'fare' => (bool) $customer->enable_fare_cal,
+                'temperature' => (bool) $customer->show_temp,
+            ],
+
+            'config' => [
+                'fuelUnit' => $customer->fuel_unit_as,
+                'mapApi' => $customer->map_api,
+                'showInfoWindow' => (bool) $customer->show_infowindow,
             ],
         ]);
     }
