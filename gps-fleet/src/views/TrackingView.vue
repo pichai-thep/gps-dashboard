@@ -24,16 +24,38 @@
               :class="{ active: selectedVehicleId === getVehicleKey(vehicle) }"
               @click="selectVehicle(vehicle)"
           >
-            <div class="vehicle-info">
-              <span>{{ vehicle.plate_no }}</span>
-              <span class="vehicle-meta">
-                Speed: {{ vehicle.speed ?? 0 }} km/h
-                Fuel: {{ formatFuel(vehicle.fuel) }}
-              </span>
-              <span class="vehicle-meta">
-                {{ formatGpsTime(vehicle.gps_time) }}
-              </span>
+<!--            <div class="vehicle-info">-->
+<!--              <span>{{ vehicle.plate_no }}</span>-->
+<!--              <span class="vehicle-meta">-->
+<!--                Speed: {{ vehicle.speed ?? 0 }} km/h-->
+<!--                Fuel: {{ formatFuel(vehicle.fuel) }}-->
+<!--              </span>-->
+<!--              <span class="vehicle-meta">-->
+<!--                {{ formatGpsTime(vehicle.gps_time) }}-->
+<!--              </span>-->
 
+<!--            </div>-->
+
+            <div class="vehicle-info">
+              <strong>{{ vehicle.plate_no }}</strong>
+
+              <span>{{ vehicle.location || '-' }}</span>
+
+              <div class="vehicle-stats">
+                <span>🚗 {{ vehicle.speed ?? 0 }} km/h</span>
+                <span>⛽ {{ formatFuel(vehicle.fuel) }}
+                  <div class="fuel-bar">
+                    <div
+                        class="fuel-fill"
+                        :style="{ width: (vehicle.fuel ?? 0) + '%' }"
+                    ></div>
+                  </div>
+                </span>
+              </div>
+
+              <small class="gps-time">
+                🕒 {{ formatGpsTime(vehicle.gps_time) }}
+              </small>
             </div>
 
           <Tag
@@ -241,5 +263,38 @@ function formatFuel(value?: number | string | null): string {
   font-size: 14px;
 }
 
+.vehicle-stats {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--p-text-muted-color);
+}
+
+.vehicle-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gps-time {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.fuel-bar {
+  height: 4px;
+  background: var(--p-surface-700);
+  border-radius: 4px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.fuel-fill {
+  height: 100%;
+  background: #22c55e;
+}
 
 </style>
