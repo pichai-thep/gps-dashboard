@@ -54,8 +54,19 @@
             </div>
 
             <div class="user-text">
-              <div class="user-name">{{ user?.name || 'User' }}</div>
+              <div class="user-name">{{ user?.server_name || 'unknown server' }} / {{ user?.username || 'User' }}</div>
+
+
+<!--              <div class="user-name">-->
+<!--                {{ user?.name || user?.username || 'User' }}-->
+<!--              </div>-->
+
+<!--              <div class="user-role">-->
+<!--                {{ user?.server_name || 'unknown server' }}-->
+<!--              </div>-->
+
               <div class="user-role">{{ user?.role || 'admin' }}</div>
+
             </div>
           </div>
 
