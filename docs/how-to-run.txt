@@ -7,5 +7,7 @@ php artisan serve --port=8000
 cd gps-fleet
 npm run dev
 
+ถ้า apple block
+# xattr -dr com.apple.quarantine node_modules
 
 git remote add origin git@github.com:pichai-thep/gps-dashboard.git

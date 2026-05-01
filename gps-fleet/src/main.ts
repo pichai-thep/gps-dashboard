@@ -21,3 +21,5 @@ createApp(App)
         ripple: true,
     })
     .mount('#app')
+
+console.log('APP START')
