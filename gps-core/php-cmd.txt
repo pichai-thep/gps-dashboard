@@ -1,0 +1,34 @@
+php artisan config:clear
+php artisan cache:clear
+
+หลังเพิ่ม middleware
+php artisan optimize:clear
+
+test code
+% php artisan tinker
+
+Run Server
+% php artisan serve --host=127.0.0.1 --port=8000
+
+install php8.2
+% brew install php@8.2
+% brew unlink php
+% brew link php@8.2 --force --overwrite
+
+% php -v
+% which php
+fix path php
+% nano ~/.zshrc
+export PATH="/opt/homebrew/opt/php@8.2/bin:/opt/homebrew/opt/php@8.2/sbin:$PATH"
+
+change php version in this file. and reload terminal
+
+reload
+% source ~/.zshrc
+
+% php artisan --version
+
+
+mysql> CREATE USER 'myroot'@'127.0.0.1' IDENTIFIED BY 'iahcchai';
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'myroot'@'127.0.0.1' WITH GRANT OPTION;
+mysql> FLUSH PRIVILEGES;

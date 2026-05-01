@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+
+# IDE
+.idea
+.vscode
+
+# -----------------
+# Laravel (gps-core)
+# -----------------
+/gps-core/vendor/
+/gps-core/node_modules/
+/gps-core/public/build/
+/gps-core/public/hot
+/gps-core/storage/*.key
+/gps-core/storage/logs/
+/gps-core/storage/framework/cache/
+/gps-core/storage/framework/sessions/
+/gps-core/storage/framework/views/
+/gps-core/bootstrap/cache/*.php
+/gps-core/.env
+
+# -----------------
+# Vue SPA (gps-fleet)
+# -----------------
+/gps-fleet/node_modules/
+/gps-fleet/dist/
+/gps-fleet/.env
+
+# Logs
+*.log
+
+# Misc
+*.swp
