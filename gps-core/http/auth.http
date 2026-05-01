@@ -3,22 +3,22 @@ POST http://127.0.0.1:8000/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "mcap",
+    "username": "gpsthaistar",
     "password": "1234"
 }
 
 ### Me
 GET http://127.0.0.1:8000/api/auth/me
-Authorization: Bearer dev-token-3450
+Authorization: Bearer dev-token-20960
 
 ### Logout
 POST http://127.0.0.1:8000/api/auth/logout
-Authorization: Bearer dev-token-3450
+Authorization: Bearer dev-token-20960
 
 ### Current Tracking
 GET http://127.0.0.1:8000/api/tracking/current
-Authorization: Bearer dev-token-16799
+Authorization: Bearer dev-token-20960
 
 ### Current Tracking
 GET http://127.0.0.1:8000/api/tracking/current
-Authorization: Bearer dev-token-16564
+Authorization: Bearer dev-token-20960

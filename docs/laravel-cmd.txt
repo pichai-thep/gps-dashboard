@@ -1,0 +1,10 @@
+mkdir -p storage/framework/cache
+mkdir -p storage/framework/sessions
+mkdir -p storage/framework/views
+mkdir -p bootstrap/cache
+
+chmod -R 775 storage bootstrap/cache
+
+php artisan config:clear
+php artisan cache:clear
+php artisan key:generate

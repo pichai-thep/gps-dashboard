@@ -30,7 +30,7 @@ class TrackingController extends Controller
             $user->login,   // _login
             -1,              // _customer_group_id
             'plate_no',     // _sortby
-            'desc',         // _direction
+            'asc',         // _direction
             null,             // _keyword
             0,            // _is_dltSynch
             -1,             // _status (all)

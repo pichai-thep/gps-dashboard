@@ -1,29 +1,71 @@
 <template>
   <div class="layout">
-    <aside class="sidebar">
-      <div class="logo">GPS Fleet</div>
+    <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+      <div class="sidebar-header">
+        <div v-if="!sidebarCollapsed" class="logo">GPS Fleet</div>
+
+        <Button
+            icon="pi pi-bars"
+            text
+            rounded
+            severity="secondary"
+            @click="sidebarCollapsed = !sidebarCollapsed"
+        />
+      </div>
 
       <nav class="menu">
-        <RouterLink to="/" class="menu-item">Dashboard</RouterLink>
-        <RouterLink to="/tracking" class="menu-item">Tracking</RouterLink>
-        <RouterLink to="/history" class="menu-item">History</RouterLink>
-        <RouterLink to="/notifications" class="menu-item">Notifications</RouterLink>
+        <RouterLink to="/" class="menu-item">
+          <i class="pi pi-chart-line"></i>
+          <span v-if="!sidebarCollapsed">Dashboard</span>
+        </RouterLink>
+
+        <RouterLink to="/tracking" class="menu-item">
+          <i class="pi pi-map"></i>
+          <span v-if="!sidebarCollapsed">Tracking</span>
+        </RouterLink>
+
+        <RouterLink to="/history" class="menu-item">
+          <i class="pi pi-history"></i>
+          <span v-if="!sidebarCollapsed">History</span>
+        </RouterLink>
+
+        <RouterLink to="/notifications" class="menu-item">
+          <i class="pi pi-bell"></i>
+          <span v-if="!sidebarCollapsed">Notifications</span>
+        </RouterLink>
       </nav>
     </aside>
 
     <div class="main">
       <header class="topbar">
-        <div>
-          <strong>Fleet Command Center</strong>
-          <div class="sub">fleet.gpsthaistar.com</div>
+        <div class="topbar-title">
+          <div class="topbar-logo">GF</div>
+
+          <div>
+            <div class="topbar-heading">GPS Fleet</div>
+            <div class="topbar-subtitle">{{ currentPageTitle }}</div>
+          </div>
         </div>
 
-        <Button
-            label="Logout"
-            icon="pi pi-sign-out"
-            severity="secondary"
-            @click="logout"
-        />
+        <div class="user-section">
+          <div class="user-info">
+            <div class="avatar">
+              {{ userInitial }}
+            </div>
+
+            <div class="user-text">
+              <div class="user-name">{{ user?.name || 'User' }}</div>
+              <div class="user-role">{{ user?.role || 'admin' }}</div>
+            </div>
+          </div>
+
+          <Button
+              label="Logout"
+              icon="pi pi-sign-out"
+              severity="secondary"
+              @click="logout"
+          />
+        </div>
       </header>
 
       <main class="content">
@@ -34,14 +76,33 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import Button from 'primevue/button'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
-console.log('DASHBOARD LAYOUT MOUNTED')
+const user = computed(() => auth.user)
+
+const userInitial = computed(() => {
+  return user.value?.name?.charAt(0)?.toUpperCase() || 'U'
+})
+
+const sidebarCollapsed = ref(true)
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
+
+const currentPageTitle = computed(() => {
+  const map: Record<string, string> = {
+    '/': 'Dashboard',
+    '/tracking': 'Live Tracking',
+    '/history': 'History',
+    '/notifications': 'Notifications',
+  }
+
+  return map[route.path] || 'Fleet Command Center'
+})
 
 async function logout() {
   await auth.logout()
@@ -53,19 +114,39 @@ async function logout() {
 .layout {
   display: flex;
   min-height: 100vh;
+  background: #020617;
 }
 
 .sidebar {
   width: 240px;
-  background: var(--p-surface-900);
-  border-right: 1px solid var(--p-surface-700);
-  padding: 20px;
+  flex-shrink: 0;
+  padding: 16px;
+  overflow: hidden;
+  background: #111827;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  transition: width 0.2s ease;
+}
+
+.sidebar.collapsed {
+  width: 72px;
+  padding: 16px 10px;
+}
+
+.sidebar-header {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .logo {
   font-size: 20px;
   font-weight: 800;
-  margin-bottom: 24px;
+  color: #fff;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .menu {
@@ -75,15 +156,30 @@ async function logout() {
 }
 
 .menu-item {
-  padding: 12px;
-  border-radius: 10px;
-  color: var(--p-text-color);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-radius: 12px;
+  color: #e5e7eb;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .menu-item {
+  justify-content: center;
+  padding: 0;
 }
 
 .menu-item:hover,
 .menu-item.router-link-active {
-  background: var(--p-surface-800);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.menu-item i {
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
 .main {
@@ -91,31 +187,99 @@ async function logout() {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0; /* 👈 สำคัญมาก */
+  min-height: 0;
 }
 
 .topbar {
   height: 72px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid var(--p-surface-700);
-  background: var(--p-surface-900);
+  justify-content: space-between;
+  padding: 0 24px;
+  background: #0f172a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
+  z-index: 10;
 }
 
-.sub {
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  color: #052e16;
+  background: linear-gradient(135deg, #34d399, #22c55e);
+}
+
+.topbar-heading {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.topbar-subtitle {
+  margin-top: 4px;
+  color: #9ca3af;
   font-size: 12px;
-  color: var(--p-text-muted-color);
 }
 
 .content {
   flex: 1;
-  padding: 16px;
-  background: var(--p-surface-950);
+  display: flex;
   min-width: 0;
-  min-height: 0; /* 👈 สำคัญ */
+  min-height: 0;
   overflow: hidden;
-  display: flex; /* 👈 เพิ่ม */
+  padding: 16px;
+  background: #020617;
 }
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #052e16;
+  background: linear-gradient(135deg, #34d399, #22c55e);
+}
+
+.user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.user-name {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.user-role {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
 </style>

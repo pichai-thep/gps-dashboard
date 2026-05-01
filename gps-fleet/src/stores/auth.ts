@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import api from '../services/api'
 
-type AuthUser = {
+export type AuthUser = {
     id: number | string
     name?: string
     username?: string
     email?: string
+    role?: string
 }
 
 type LoginResponse = {
