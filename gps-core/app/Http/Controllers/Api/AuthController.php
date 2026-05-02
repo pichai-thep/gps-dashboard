@@ -38,6 +38,8 @@ class AuthController extends Controller
             ->pluck('gr.group_role_name')
             ->values();
 
+        $dbHost = config("database.connections.$gpsConnection.host");
+
         return [
             'user' => [
                 'id' => $authUser->id,
@@ -46,6 +48,8 @@ class AuthController extends Controller
                 'email' => $gpsUser->email ?? $authUser->email ?? null,
                 'server_name' => $authUser->server_name,
                 'roles' => $roles,
+                'gps_connection' => $gpsConnection,
+                'db_host' => $dbHost,
             ],
 
             'customer' => [

@@ -28,7 +28,7 @@ import XYZ from 'ol/source/XYZ'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
 import { fromLonLat } from 'ol/proj'
-import { Fill, Icon, Stroke, Style, Text } from 'ol/style'
+import { Circle, Fill, Stroke, Style } from 'ol/style'
 import 'ol/ol.css'
 
 import {
@@ -37,9 +37,9 @@ import {
   mapProviders,
   saveMapProvider,
   type MapProviderKey,
-} from '@/config/mapProviders'
+} from '../config/mapProviders'
 
-import type { Vehicle, VehicleStatus } from '@/types/fleet'
+import type { Vehicle, VehicleStatus } from '../types/fleet'
 
 const props = defineProps<{
   vehicles: Vehicle[]
@@ -86,44 +86,12 @@ function getVehicleColor(status: VehicleStatus): string {
   }[status]
 }
 
-function getVehicleKey(vehicle: Vehicle): string {
-  return String(vehicle.vehicle_id || vehicle.id || vehicle.plate_no)
-}
-
-function createVehicleStyle(vehicle: Vehicle, isSelected = false): Style {
-  const color = getVehicleColor(vehicle.status)
-
+function createVehicleStyle(status: VehicleStatus): Style {
   return new Style({
-    image: new Icon({
-      src: '/icons/truck.png',
-      scale: isSelected ? 0.85 : 0.68,
-      anchor: [0.5, 0.5],
-      rotation: vehicle.heading ? (Number(vehicle.heading) * Math.PI) / 180 : 0,
-    }),
-
-    text: new Text({
-      text: vehicle.plate_no || '',
-      offsetY: -24,
-      font: '700 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      fill: new Fill({
-        color: isSelected ? color : '#ffffff',
-      }),
-      stroke: new Stroke({
-        color: '#020617',
-        width: 4,
-      }),
-      backgroundFill: isSelected
-          ? new Fill({
-            color: 'rgba(15, 23, 42, 0.85)',
-          })
-          : undefined,
-      backgroundStroke: isSelected
-          ? new Stroke({
-            color,
-            width: 1,
-          })
-          : undefined,
-      padding: isSelected ? [3, 6, 3, 6] : [0, 0, 0, 0],
+    image: new Circle({
+      radius: 8,
+      fill: new Fill({ color: getVehicleColor(status) }),
+      stroke: new Stroke({ color: '#ffffff', width: 3 }),
     }),
   })
 }
@@ -136,16 +104,12 @@ function renderVehicles() {
   props.vehicles.forEach((vehicle) => {
     if (vehicle.lat === null || vehicle.lng === null) return
 
-    const isSelected =
-        Boolean(props.focusVehicleId) &&
-        getVehicleKey(vehicle) === props.focusVehicleId
-
     const feature = new Feature({
       geometry: new Point(fromLonLat([Number(vehicle.lng), Number(vehicle.lat)])),
       vehicle,
     })
 
-    feature.setStyle(createVehicleStyle(vehicle, isSelected))
+    feature.setStyle(createVehicleStyle(vehicle.status))
     vehicleSource?.addFeature(feature)
   })
 }
@@ -160,29 +124,44 @@ function changeProvider() {
   saveMapProvider(selectedProvider.value)
 }
 
+function getVehicleKey(vehicle: Vehicle): string {
+  return String(
+      vehicle.vehicle_id ||
+      vehicle.id ||
+      vehicle.plate_no
+  )
+}
+
 function focusVehicle(vehicleId?: string | null) {
+  console.log('FOCUS VEHICLE ID', vehicleId)
+
   if (!map || !vehicleSource || !vehicleId) return
 
   const feature = vehicleSource.getFeatures().find((item) => {
     const vehicle = item.get('vehicle') as Vehicle | undefined
-    return vehicle ? getVehicleKey(vehicle) === vehicleId : false
+    if (!vehicle) return false
+
+    return getVehicleKey(vehicle) === vehicleId
   })
+
+  console.log('FOCUS FEATURE', feature)
 
   if (!feature) return
 
   const geometry = feature.getGeometry()
   if (!geometry) return
 
-  renderVehicles()
-
   map.getView().animate({
     center: geometry.getCoordinates(),
-    zoom: 16,
+    zoom: 15,
     duration: 400,
   })
 }
 
 onMounted(async () => {
+
+  console.log('FLEET MAP MOUNTED')
+
   await nextTick()
 
   if (!mapEl.value) return
@@ -233,8 +212,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+
 .map-shell {
-  flex: 1;
+  flex: 1;              /* 👈 เปลี่ยนจาก height */
   min-height: 0;
   position: relative;
   overflow: hidden;

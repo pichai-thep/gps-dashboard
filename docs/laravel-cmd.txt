@@ -8,3 +8,5 @@ chmod -R 775 storage bootstrap/cache
 php artisan config:clear
 php artisan cache:clear
 php artisan key:generate
+
+php artisan config:cache

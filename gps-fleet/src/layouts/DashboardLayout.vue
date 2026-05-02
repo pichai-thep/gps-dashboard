@@ -59,8 +59,9 @@
               </div>
 
               <div class="user-role">
-                {{ roleName }}
+                host: {{ gpsConnection }} ({{ dbHost }}) role: {{ roleName }}
               </div>
+
             </div>
           </div>
 
@@ -86,6 +87,7 @@ import Button from 'primevue/button'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+
 const sidebarCollapsed = ref(true)
 
 const router = useRouter()
@@ -104,6 +106,14 @@ const serverName = computed(() => {
 
 const roleName = computed(() => {
   return user.value?.roles?.join(', ') || user.value?.role || 'user'
+})
+
+const gpsConnection = computed(() => {
+  return user.value?.gps_connection || '-'
+})
+
+const dbHost = computed(() => {
+  return user.value?.db_host || '-'
 })
 
 const userInitial = computed(() => {

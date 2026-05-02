@@ -11,3 +11,16 @@ npm run dev
 # xattr -dr com.apple.quarantine node_modules
 
 git remote add origin git@github.com:pichai-thep/gps-dashboard.git
+
+
+
+เช็กค่าจริงด้วย tinker
+รัน:
+
+php artisan tinker
+แล้วพิมพ์:
+config('database.connections.gps5.host')
+
+php artisan optimize:clear
+php artisan config:clear
+php artisan cache:clear

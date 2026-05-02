@@ -10,6 +10,8 @@ export type AuthUser = {
     server_name?: string
     role?: string
     roles?: string[]
+    gps_connection?: string
+    db_host?: string
 }
 
 export type Customer = {

@@ -87,32 +87,42 @@ class TrackingController extends Controller
     {
         $speed = (float) ($row->speed ?? 0);
         $gpsStatus = strtoupper((string) ($row->gps_status ?? ''));
-
-        // ใช้ received_time / received_date เป็นตัวเช็ค offline
-        $receivedTimeRaw = $row->received_date ?? null;
-
         $isAccOn = $this->resolveAcc($row);
 
         if ($gpsStatus === 'V') {
             return 'no_gps';
         }
 
-        if ($receivedTimeRaw) {
-            try {
-                $receivedTime = Carbon::parse($receivedTimeRaw);
+        $receivedTimeRaw = $row->received_date ?? null;
 
-                if ($receivedTime->greaterThan(now()->addMinutes(10))) {
-                    return 'offline';
-                }
-
-                if ($receivedTime->lessThan(now()->subMinutes(10))) {
-                    return 'offline';
-                }
-            } catch (\Exception $e) {
-                return 'offline';
-            }
+        if (!$receivedTimeRaw) {
+            return 'no_gps';
         }
 
+        try {
+            // ✅ บังคับ timezone ไทย
+            $receivedTime = Carbon::parse($receivedTimeRaw, 'Asia/Bangkok');
+            $now = now('Asia/Bangkok');
+
+            $diffMinutes = $receivedTime->diffInMinutes($now);
+
+            // 🔥 debug ดูค่าจริง
+            // logger()->info("GPS TIME DIFF", [
+            //     'received' => $receivedTime,
+            //     'now' => $now,
+            //     'diff' => $diffMinutes
+            // ]);
+
+            // ✅ offline ถ้าเกิน 30 นาที
+            if ($diffMinutes > 30) {
+                return 'offline';
+            }
+
+        } catch (\Exception $e) {
+            return 'offline';
+        }
+
+        // 🚗 logic ปกติ
         if ($speed > 5) {
             return 'running';
         }

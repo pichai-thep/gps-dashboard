@@ -19,6 +19,7 @@
             placeholder="Username"
             class="w-full p-inputtext-sm"
             autocomplete="username"
+
         />
 
         <InputText
@@ -56,8 +57,8 @@ import { useAuthStore } from '../stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 
-const username = ref('')
-const password = ref('')
+const username = ref('gpsthaistar')
+const password = ref('1234')
 const loading = ref(false)
 const error = ref('')
 

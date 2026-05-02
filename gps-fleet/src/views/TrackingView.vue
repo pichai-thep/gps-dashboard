@@ -53,9 +53,12 @@
           </template>
         </Column>
 
-        <Column header="ST" style="width: 48px">
+        <Column header="ST" style="width: 60px">
           <template #body="slotProps">
-            <span :class="['status-dot', slotProps.data.status]"></span>
+            {{ slotProps.data.status }}
+            <i
+                :class="['pi', getStatusIcon(slotProps.data.status), 'status-icon']"
+            ></i>
           </template>
         </Column>
 
@@ -91,7 +94,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import FleetMap from '@/components/FleetMap.vue'
-import type { Vehicle } from '@/types/fleet'
+import type {Vehicle, VehicleStatus} from '@/types/fleet'
 import { getCurrentTracking } from '@/services/tracking'
 import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
@@ -189,6 +192,17 @@ function formatGpsTimeCompact(value?: string | null): string {
     hour12: false,
   }).format(date)
 }
+
+function getStatusIcon(status: VehicleStatus) {
+  return {
+    running: 'pi-play-circle',
+    idle: 'pi-pause-circle',
+    parking: 'pi-stop-circle',
+    offline: 'pi-times-circle',
+    no_gps: 'pi-exclamation-circle',
+  }[status] || 'pi-circle'
+}
+
 </script>
 
 <style scoped>
@@ -380,6 +394,30 @@ function formatGpsTimeCompact(value?: string | null): string {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+.status-icon {
+  font-size: 16px;
+}
+
+/* color แยกตาม status */
+.pi-play-circle {
+  color: #22c55e;
+}
+
+.pi-pause-circle {
+  color: #f59e0b;
+}
+
+.pi-stop-circle {
+  color: #64748b;
+}
+
+.pi-times-circle {
+  color: #ef4444;
+}
+
+.pi-exclamation-circle {
+  color: #8b5cf6;
 }
 
 :deep(.p-datatable-table-container) {
