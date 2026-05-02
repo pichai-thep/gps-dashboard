@@ -12,6 +12,7 @@ class TrackingController extends Controller
     public function current(Request $request)
     {
         $user = $request->attributes->get('auth_user');
+        $groupId = (int) $request->query('group_id', -1);
         $connection = $request->attributes->get('gps_connection');
 
         if (!$connection) {
@@ -33,7 +34,7 @@ class TrackingController extends Controller
 
         $stmt->execute([
             $user->login,
-            -1,
+            $groupId,
             'plate_no',
             'asc',
             null,
@@ -71,6 +72,7 @@ class TrackingController extends Controller
                     'driver_license_no' => $row->track3,
                     'acc_on' => $this->resolveAcc($row),
                     'sequen_no' => isset($row->sequen_no) ? (int) $row->sequen_no : null,
+                    'icon' => $row->icon_path,
                 ];
             })->values(),
         ]);
@@ -142,4 +144,52 @@ class TrackingController extends Controller
         return 'parking';
     }
 
+    public function groups(Request $request)
+    {
+        $connection = $request->attributes->get('gps_connection');
+        $authUser = $request->attributes->get('auth_user');
+
+        // 👉 รับจาก frontend
+        $customerId = (int) $request->query('customer_id');
+
+        // 🔥 ตรวจสิทธิ์ user ก่อน (สำคัญมาก)
+        $gpsUser = DB::connection($connection)
+            ->table('user')
+            ->where('login', $authUser->login)
+            ->first();
+
+        if (!$gpsUser) {
+            return response()->json([
+                'message' => 'GPS user not found',
+            ], 404);
+        }
+
+        $allowedCustomerIds = DB::connection($connection)
+            ->table('customer_user')
+            ->where('user_user_id', $gpsUser->user_id)
+            ->pluck('customer_customer_id')
+            ->toArray();
+
+        // ❌ ถ้าไม่มีสิทธิ์
+        if (!in_array($customerId, $allowedCustomerIds)) {
+            return response()->json([
+                'message' => 'Unauthorized customer_id',
+            ], 403);
+        }
+
+        // ✅ query group ตาม customer_id
+        $groups = DB::connection($connection)
+            ->table('customer_group')
+            ->where('customer_id', $customerId)
+            ->select([
+                'customer_group_id as id',
+                'customer_group_name as name',
+            ])
+            ->orderBy('customer_group_name')
+            ->get();
+
+        return response()->json([
+            'groups' => $groups,
+        ]);
+    }
 }

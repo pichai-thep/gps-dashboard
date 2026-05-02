@@ -18,14 +18,14 @@
 /gps-core/storage/framework/sessions/
 /gps-core/storage/framework/views/
 /gps-core/bootstrap/cache/*.php
-/gps-core/.env
+#/gps-core/.env
 
 # -----------------
 # Vue SPA (gps-fleet)
 # -----------------
 /gps-fleet/node_modules/
 /gps-fleet/dist/
-/gps-fleet/.env
+#/gps-fleet/.env
 
 # Logs
 *.log

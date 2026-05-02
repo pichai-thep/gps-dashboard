@@ -15,4 +15,6 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::get('/tracking/current', [TrackingController::class, 'current']);
+    Route::get('/tracking/groups', [TrackingController::class, 'groups']);
 });
+

@@ -18,5 +18,6 @@ export type Vehicle = {
     gps_time?: string | null
     last_seen_at?: string | null
     fuel?: number | string | null
+    icon?: string
 }
 

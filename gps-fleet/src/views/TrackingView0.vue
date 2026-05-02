@@ -1,9 +1,7 @@
 <template>
   <div class="tracking-page">
-    <!-- LEFT: VEHICLE LIST -->
     <aside class="vehicle-panel">
       <div class="panel-header">
-
         <Message v-if="error" severity="error" class="m-3">
           {{ error }}
         </Message>
@@ -13,7 +11,7 @@
         </div>
 
         <h2>Current Tracking</h2>
-        <p>{{ vehicles.length }} vehicles</p>
+        <p>{{ filteredVehicles.length }} / {{ vehicles.length }} vehicles</p>
       </div>
 
       <div class="control-bar">
@@ -24,6 +22,7 @@
             optionValue="value"
             placeholder="All status"
             showClear
+            class="status-filter"
         >
           <template #option="slotProps">
             <div class="status-option">
@@ -35,46 +34,52 @@
 
         <InputText
             v-model="search"
-            placeholder="Search by plate/imei"
+            placeholder="Search plate/imei"
+            class="search-input"
         />
       </div>
 
       <DataTable
           :value="filteredVehicles"
           scrollable
-          scrollHeight="calc(100vh - 280px)"
+          scrollHeight="calc(100vh - 310px)"
           class="vehicle-table"
           selectionMode="single"
           @row-click="onRowClick"
       >
-        <!-- index -->
-        <Column header="#" style="width: 50px">
+        <Column header="#" style="width: 44px">
           <template #body="slotProps">
-            {{ slotProps.index + 1 }}
+            <span class="row-index">{{ slotProps.index + 1 }}</span>
           </template>
         </Column>
 
-        <!-- status -->
-        <Column header="ST" style="width: 70px">
+        <Column header="ST" style="width: 60px">
           <template #body="slotProps">
-            <span :class="['status-dot', slotProps.data.status]"></span>
+            <i
+                :class="['pi', getStatusIcon(slotProps.data.status), 'status-icon']"
+            ></i>{{ slotProps.data.status }}
           </template>
         </Column>
 
-        <!-- plate -->
-        <Column field="plate_no" header="Plate" sortable />
-
-        <!-- time -->
-        <Column header="Time" sortable>
+        <Column field="plate_no" header="Plate" sortable>
           <template #body="slotProps">
-            {{ formatGpsTime(slotProps.data.gps_time) }}
+            <div class="plate-cell">
+              <strong>{{ slotProps.data.plate_no }}</strong>
+              <small>{{ slotProps.data.speed ?? 0 }} km/h</small>
+            </div>
+          </template>
+        </Column>
+
+        <Column header="Time" sortable style="width: 92px">
+          <template #body="slotProps">
+            <div class="time-cell">
+              {{ formatGpsTimeCompact(slotProps.data.gps_time) }}
+            </div>
           </template>
         </Column>
       </DataTable>
-
     </aside>
 
-    <!-- RIGHT: MAP -->
     <section class="map-area">
       <FleetMap
           :vehicles="vehicles"
@@ -87,10 +92,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import Tag from 'primevue/tag'
-import FleetMap from '../components/FleetMap.vue'
-import type { Vehicle, VehicleStatus } from '../types/fleet.ts'
-import { getCurrentTracking } from '../services/tracking.js'
+import FleetMap from '@/components/FleetMap.vue'
+import type {Vehicle, VehicleStatus} from '@/types/fleet'
+import { getCurrentTracking } from '@/services/tracking'
 import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -103,6 +107,14 @@ const search = ref('')
 const statusFilter = ref<string | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+const statusOptions = [
+  { label: 'Running', value: 'running' },
+  { label: 'Idle', value: 'idle' },
+  { label: 'Parking', value: 'parking' },
+  { label: 'Offline', value: 'offline' },
+  { label: 'No GPS', value: 'no_gps' },
+]
 
 const filteredVehicles = computed(() => {
   return vehicles.value.filter((vehicle) => {
@@ -120,75 +132,56 @@ const filteredVehicles = computed(() => {
   })
 })
 
-const statusOptions = [
-  { label: 'Running', value: 'running' },
-  { label: 'Idle', value: 'idle' },
-  { label: 'Parking', value: 'parking' },
-  { label: 'Offline', value: 'offline' },
-  { label: 'No GPS', value: 'no_gps' },
-]
 
 let pollingTimer: number | null = null
+let isLoading = false
 
 async function loadVehicles() {
-  console.log('LOAD VEHICLES CALLED')
+  if (isLoading) return
+
+  const token = localStorage.getItem('gps_fleet_token')
+  if (!token) return
 
   try {
-    loading.value = true
-    error.value = null
+    isLoading = true
     vehicles.value = await getCurrentTracking()
-    console.log('VEHICLES LOADED', vehicles.value)
   } catch (e) {
     console.error('LOAD VEHICLES ERROR', e)
-    error.value = 'Cannot load tracking data'
-    vehicles.value = []
   } finally {
-    loading.value = false
+    isLoading = false
   }
 }
 
-onMounted(async () => {
-  console.log('TRACKING ON MOUNTED')
-
-  await loadVehicles()
+onMounted(() => {
+  loadVehicles()
 
   pollingTimer = window.setInterval(() => {
-    loadVehicles()
-  }, 30_000)
+    if (!document.hidden) {
+      loadVehicles()
+    }
+  }, 30000)
 })
 
 onBeforeUnmount(() => {
   if (pollingTimer) {
-    window.clearInterval(pollingTimer)
+    clearInterval(pollingTimer)
   }
 })
 
-function onRowClick(event: any) {
-  const vehicle = event.data
-  selectVehicle(vehicle)
+
+function onRowClick(event: { data: Vehicle }) {
+  selectVehicle(event.data)
 }
 
 function getVehicleKey(vehicle: Vehicle): string {
-  return String(
-      vehicle.vehicle_id ||
-      vehicle.id ||
-      vehicle.plate_no
-  )
+  return String(vehicle.vehicle_id || vehicle.id || vehicle.plate_no)
 }
+
 function selectVehicle(vehicle: Vehicle) {
   selectedVehicleId.value = getVehicleKey(vehicle)
 }
 
-function statusSeverity(status: VehicleStatus) {
-  return {
-    running: 'success',
-    idle: 'warn',
-    parking: 'secondary',
-    offline: 'danger',
-    no_gps: 'contrast',
-  }[status] || 'secondary'
-}
-function formatGpsTime(value?: string | null): string {
+function formatGpsTimeCompact(value?: string | null): string {
   if (!value) return '-'
 
   const date = new Date(value)
@@ -198,169 +191,106 @@ function formatGpsTime(value?: string | null): string {
   }
 
   return new Intl.DateTimeFormat('th-TH', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
     hour12: false,
   }).format(date)
 }
 
-function formatFuel(value?: number | string | null): string {
-  if (value === null || value === undefined || value === '') return '-'
-
-  return `${value}%`
+function getStatusIcon(status: VehicleStatus) {
+  return {
+    running: 'pi-play-circle',
+    idle: 'pi-pause-circle',
+    parking: 'pi-stop-circle',
+    offline: 'pi-times-circle',
+    no_gps: 'pi-exclamation-circle',
+  }[status] || 'pi-circle'
 }
 
 </script>
 
 <style scoped>
-body {
-  background: #020617; /* 👈 เข้มขึ้น */
-}
-
 .tracking-page {
-  flex: 1;              /* 👈 เปลี่ยนจาก height calc */
+  flex: 1;
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 420px minmax(0, 1fr);
   gap: 16px;
-  min-height: 0;        /* 👈 สำคัญ */
+  min-width: 0;
+  min-height: 0;
 }
 
 .vehicle-panel {
-  background: #111827;
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4); /* 👈 สำคัญ */
-}
-
-.panel-header h2 {
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.panel-header p {
-  color: #9ca3af;
-}
-
-.vehicle-list {
-  flex: 1;
+  height: 100%;
+  min-width: 0;
   min-height: 0;
-  overflow-y: auto;
-  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #111827;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
 .panel-header {
-  padding: 18px;
-  border-bottom: 1px solid var(--p-surface-700);
+  flex-shrink: 0;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .panel-header h2 {
   margin: 0;
-  font-size: 20px;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
 }
 
 .panel-header p {
-  margin: 4px 0 0;
-  color: var(--p-text-muted-color);
-}
-
-.vehicle-item {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--p-text-color);
-  text-align: left;
-  cursor: pointer;
-}
-
-.vehicle-item:hover,
-.vehicle-item.active {
-  background: var(--p-surface-800);
-  border-color: var(--p-surface-600);
-}
-
-.vehicle-item strong,
-.vehicle-item span {
-  display: block;
-}
-
-.vehicle-item span {
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--p-text-muted-color);
-}
-
-.map-area {
-  min-width: 0;
-  height: 100%;
-  display: flex;        /* 👈 เพิ่ม */
-}
-
-@media (max-width: 960px) {
-  .tracking-page {
-    grid-template-columns: 1fr;
-  }
-}
-
-.loading-text {
-  padding: 12px 18px;
-  color: var(--p-text-muted-color);
+  margin: 6px 0 0;
+  color: #9ca3af;
   font-size: 14px;
 }
 
-.vehicle-stats {
-  display: flex;
+.loading-text {
+  margin-bottom: 10px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.control-bar {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
   gap: 10px;
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--p-text-muted-color);
+  padding: 12px;
+  background: #0b1220;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.vehicle-stats span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.gps-time {
-  display: block;
-  margin-top: 4px;
-  font-size: 11px;
-  opacity: 0.8;
-}
-
-.fuel-bar {
-  height: 4px;
-  background: var(--p-surface-700);
-  border-radius: 4px;
-  margin-top: 4px;
-  overflow: hidden;
-}
-
-.fuel-fill {
-  height: 100%;
-  background: #22c55e;
+.status-filter,
+.search-input {
+  min-width: 0;
+  width: 100%;
 }
 
 .vehicle-table {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+
+.row-index {
+  color: #334155;
+  font-weight: 600;
 }
 
 .status-dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
   display: inline-block;
+  border-radius: 999px;
 }
 
 .status-dot.running {
@@ -383,32 +313,87 @@ body {
   background: #e5e7eb;
 }
 
-.control-bar {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  border-bottom: 1px solid var(--p-surface-700);
-}
-
 .status-option {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.vehicle-panel {
-  height: 100%;
-  min-height: 0;
+.plate-cell {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 18px;
-  border: 1px solid var(--p-surface-700);
-  background: var(--p-surface-900);
-  overflow: hidden;
+  gap: 2px;
 }
 
-.control-bar {
-  flex-shrink: 0;
+.plate-cell strong {
+  max-width: 140px;
+  overflow: hidden;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plate-cell small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.time-cell {
+  width: 80px;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.map-area {
+  min-width: 0;
+  height: 100%;
+  display: flex;
+}
+
+:deep(.p-datatable) {
+  height: 100%;
+  font-size: 13px;
+}
+
+:deep(.p-datatable-table-container) {
+  flex: 1;
+  min-height: 0;
+}
+
+:deep(.p-datatable-thead > tr > th) {
+  padding: 10px 12px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+  background: #fff;
+}
+
+:deep(.p-datatable-tbody > tr) {
+  cursor: pointer;
+}
+
+:deep(.p-datatable-tbody > tr > td) {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+:deep(.p-datatable-tbody > tr:hover) {
+  background: #f1f5f9;
+}
+
+@media (max-width: 1100px) {
+  .tracking-page {
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+
+  .control-bar {
+    grid-template-columns: 1fr;
+  }
 }
 
 .vehicle-table {
@@ -416,5 +401,38 @@ body {
   min-height: 0;
   overflow: hidden;
 }
+.status-icon {
+  font-size: 16px;
+}
 
+/* color แยกตาม status */
+.pi-play-circle {
+  color: #22c55e;
+}
+
+.pi-pause-circle {
+  color: #f59e0b;
+}
+
+.pi-stop-circle {
+  color: #64748b;
+}
+
+.pi-times-circle {
+  color: #ef4444;
+}
+
+.pi-exclamation-circle {
+  color: #8b5cf6;
+}
+
+:deep(.p-datatable-table-container) {
+  overflow-y: auto !important;
+}
+
+@media (max-width: 960px) {
+  .tracking-page {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
