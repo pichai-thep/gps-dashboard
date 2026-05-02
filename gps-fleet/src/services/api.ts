@@ -25,7 +25,11 @@ let isRedirecting = false
 api.interceptors.response.use(
     (res) => res,
     (err) => {
-        if (err.response?.status === 401 && !isRedirecting) {
+        const status = err.response?.status
+        const url = err.config?.url || ''
+
+        // ❌ อย่าจับ login
+        if (status === 401 && !isRedirecting && !url.includes('/auth/login')) {
             isRedirecting = true
 
             localStorage.removeItem('gps_fleet_token')
