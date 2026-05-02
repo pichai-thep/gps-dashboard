@@ -19,6 +19,3 @@ Authorization: Bearer dev-token-20960
 GET http://127.0.0.1:8000/api/tracking/current
 Authorization: Bearer dev-token-20960
 
-### Current Tracking
-GET http://127.0.0.1:8000/api/tracking/current
-Authorization: Bearer dev-token-20960

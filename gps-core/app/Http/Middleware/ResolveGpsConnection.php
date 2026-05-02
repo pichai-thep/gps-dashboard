@@ -32,8 +32,23 @@ class ResolveGpsConnection
             ], 401);
         }
 
-        // 🔥 เก็บไว้ใน request
-        $request->attributes->set('gps_connection', $this->resolveGpsConnection($authUser->server_name));
+        $gpsConnection = $this->resolveGpsConnection($authUser->server_name ?? null);
+
+        if (!$gpsConnection) {
+            return response()->json([
+                'message' => 'Invalid GPS server',
+                'server_name' => $authUser->server_name ?? null,
+            ], 422);
+        }
+
+        if (!config("database.connections.$gpsConnection")) {
+            return response()->json([
+                'message' => 'GPS database connection is not configured',
+                'gps_connection' => $gpsConnection,
+            ], 500);
+        }
+
+        $request->attributes->set('gps_connection', $gpsConnection);
         $request->attributes->set('auth_user', $authUser);
 
         return $next($request);

@@ -7,87 +7,15 @@ use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    private function buildAuthContext($authUser, string $gpsConnection): array
     {
-        $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string',
-        ]);
-
-        $user = DB::connection('auth_db')
-            ->table('users')
-            ->where('login', $request->username)
-            ->where('active', 1)
-            ->first();
-
-        if (!$user) {
-            return response()->json([
-                'message' => 'User not found',
-            ], 401);
-        }
-
-        // 🔥 password check (รองรับหลายแบบ)
-        if (!$this->checkPassword($request->password, $user->pwd)) {
-            return response()->json([
-                'message' => 'Invalid password',
-            ], 401);
-        }
-
-        // ⚡ ดึง role
-        $roles = DB::connection('auth_db')
-            ->table('group_role_user as gru')
-            ->join('group_role as gr', 'gr.id', '=', 'gru.group_role_id')
-            ->where('gru.users_id', $user->id)
-            ->pluck('gr.group_role_name');
-
-        return response()->json([
-            'token' => 'dev-token-' . $user->id,
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->login,
-                'server_name' => $user->server_name,
-                'roles' => $roles,
-            ],
-        ]);
-    }
-
-    public function me(Request $request)
-    {
-        $token = $request->bearerToken();
-
-        if (!$token || !str_starts_with($token, 'dev-token-')) {
-            return response()->json([
-                'message' => 'Unauthenticated',
-            ], 401);
-        }
-
-        $authUserId = (int) str_replace('dev-token-', '', $token);
-
-        $authUser = DB::connection('auth_db')
-            ->table('users')
-            ->where('id', $authUserId)
-            ->where('active', 1)
-            ->first();
-
-        if (!$authUser) {
-            return response()->json([
-                'message' => 'Unauthenticated',
-            ], 401);
-        }
-
-//        $gpsConnection = $authUser->server_name;
-
-        $gpsConnection = $request->attributes->get('gps_connection');
-
         $gpsUser = DB::connection($gpsConnection)
             ->table('user')
             ->where('login', $authUser->login)
             ->first();
 
         if (!$gpsUser) {
-            return response()->json([
-                'message' => 'GPS user not found',
-            ], 404);
+            abort(404, 'GPS user not found');
         }
 
         $customers = DB::connection($gpsConnection)
@@ -98,9 +26,7 @@ class AuthController extends Controller
             ->get();
 
         if ($customers->isEmpty()) {
-            return response()->json([
-                'message' => 'Customer not found',
-            ], 404);
+            abort(404, 'Customer not found');
         }
 
         $customer = $customers->first();
@@ -109,9 +35,10 @@ class AuthController extends Controller
             ->table('group_role_user as gru')
             ->join('group_role as gr', 'gr.id', '=', 'gru.group_role_id')
             ->where('gru.users_id', $authUser->id)
-            ->pluck('gr.group_role_name');
+            ->pluck('gr.group_role_name')
+            ->values();
 
-        return response()->json([
+        return [
             'user' => [
                 'id' => $authUser->id,
                 'gps_user_id' => $gpsUser->user_id,
@@ -155,7 +82,64 @@ class AuthController extends Controller
                 'mapApi' => $customer->map_api,
                 'showInfoWindow' => (bool) $customer->show_infowindow,
             ],
+        ];
+    }
+
+    public function login(Request $request)
+    {
+        $request->validate([
+            'username' => 'required|string',
+            'password' => 'required|string',
         ]);
+
+        $user = DB::connection('auth_db')
+            ->table('users')
+            ->where('login', $request->username)
+            ->where('active', 1)
+            ->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found',
+            ], 401);
+        }
+
+        if (!$this->checkPassword($request->password, $user->pwd)) {
+            return response()->json([
+                'message' => 'Invalid password',
+            ], 401);
+        }
+
+        return response()->json([
+            'token' => 'dev-token-' . $user->id,
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->login,
+                'server_name' => $user->server_name,
+            ],
+        ]);
+    }
+
+    public function me(Request $request)
+    {
+        $gpsConnection = $request->attributes->get('gps_connection');
+        $authUser = $request->attributes->get('auth_user');
+
+        if (!$authUser) {
+            return response()->json([
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
+        if (!$gpsConnection) {
+            return response()->json([
+                'message' => 'GPS connection not resolved',
+            ], 500);
+        }
+
+        return response()->json(
+            $this->buildAuthContext($authUser, $gpsConnection)
+        );
     }
 
     public function logout()

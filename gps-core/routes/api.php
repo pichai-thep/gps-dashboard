@@ -5,16 +5,14 @@ use App\Http\Controllers\Api\TrackingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
-
     Route::post('/login', [AuthController::class, 'login']);
 
-    Route::middleware(['dev.auth','gps'])->group(function () {
+    Route::middleware(['dev.auth', 'gps'])->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
     });
-
 });
 
-Route::middleware(['dev.auth','gps'])->group(function () {
+Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::get('/tracking/current', [TrackingController::class, 'current']);
 });

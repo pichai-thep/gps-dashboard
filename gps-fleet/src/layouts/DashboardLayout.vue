@@ -54,19 +54,13 @@
             </div>
 
             <div class="user-text">
-              <div class="user-name">{{ user?.server_name || 'unknown server' }} / {{ user?.username || 'User' }}</div>
+              <div class="user-name">
+                {{ serverName }} / {{ userName }}
+              </div>
 
-
-<!--              <div class="user-name">-->
-<!--                {{ user?.name || user?.username || 'User' }}-->
-<!--              </div>-->
-
-<!--              <div class="user-role">-->
-<!--                {{ user?.server_name || 'unknown server' }}-->
-<!--              </div>-->
-
-              <div class="user-role">{{ user?.role || 'admin' }}</div>
-
+              <div class="user-role">
+                {{ roleName }}
+              </div>
             </div>
           </div>
 
@@ -90,19 +84,31 @@
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-
-const user = computed(() => auth.user)
-
-const userInitial = computed(() => {
-  return user.value?.name?.charAt(0)?.toUpperCase() || 'U'
-})
+import { useAuthStore } from '@/stores/auth'
 
 const sidebarCollapsed = ref(true)
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+
+const user = computed(() => auth.user)
+
+const userName = computed(() => {
+  return user.value?.name || user.value?.username || 'User'
+})
+
+const serverName = computed(() => {
+  return user.value?.server_name || 'unknown-server'
+})
+
+const roleName = computed(() => {
+  return user.value?.roles?.join(', ') || user.value?.role || 'user'
+})
+
+const userInitial = computed(() => {
+  return userName.value.charAt(0).toUpperCase()
+})
 
 const currentPageTitle = computed(() => {
   const map: Record<string, string> = {
@@ -263,6 +269,10 @@ async function logout() {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .avatar {
@@ -271,7 +281,7 @@ async function logout() {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-weight: 700;
+  font-weight: 800;
   color: #052e16;
   background: linear-gradient(135deg, #34d399, #22c55e);
 }
@@ -285,12 +295,13 @@ async function logout() {
 .user-name {
   color: #fff;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .user-role {
-  font-size: 11px;
+  margin-top: 4px;
   color: #9ca3af;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
-
 </style>

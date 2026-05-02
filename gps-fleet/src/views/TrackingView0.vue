@@ -16,43 +16,62 @@
         <p>{{ vehicles.length }} vehicles</p>
       </div>
 
-      <div class="vehicle-list">
-          <button
-              v-for="vehicle in vehicles"
-              :key="getVehicleKey(vehicle)"
-              class="vehicle-item"
-              :class="{ active: selectedVehicleId === getVehicleKey(vehicle) }"
-              @click="selectVehicle(vehicle)"
-          >
-            <div class="vehicle-info">
-              <strong>{{ vehicle.plate_no }}</strong>
-
-              <span>{{ vehicle.location || '-' }}</span>
-
-              <div class="vehicle-stats">
-                <span>🚗 {{ vehicle.speed ?? 0 }} km/h</span>
-                <span>⛽ {{ formatFuel(vehicle.fuel) }}
-                  <div class="fuel-bar">
-                    <div
-                        class="fuel-fill"
-                        :style="{ width: (vehicle.fuel ?? 0) + '%' }"
-                    ></div>
-                  </div>
-                </span>
-              </div>
-
-              <small class="gps-time">
-                🕒 {{ formatGpsTime(vehicle.gps_time) }}
-              </small>
+      <div class="control-bar">
+        <Dropdown
+            v-model="statusFilter"
+            :options="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="All status"
+            showClear
+        >
+          <template #option="slotProps">
+            <div class="status-option">
+              <span :class="['status-dot', slotProps.option.value]"></span>
+              {{ slotProps.option.label }}
             </div>
+          </template>
+        </Dropdown>
 
-          <Tag
-              :value="vehicle.status"
-              :severity="statusSeverity(vehicle.status)"
-          />
-        </button>
+        <InputText
+            v-model="search"
+            placeholder="Search by plate/imei"
+        />
       </div>
-      
+
+      <DataTable
+          :value="filteredVehicles"
+          scrollable
+          scrollHeight="calc(100vh - 280px)"
+          class="vehicle-table"
+          selectionMode="single"
+          @row-click="onRowClick"
+      >
+        <!-- index -->
+        <Column header="#" style="width: 50px">
+          <template #body="slotProps">
+            {{ slotProps.index + 1 }}
+          </template>
+        </Column>
+
+        <!-- status -->
+        <Column header="ST" style="width: 70px">
+          <template #body="slotProps">
+            <span :class="['status-dot', slotProps.data.status]"></span>
+          </template>
+        </Column>
+
+        <!-- plate -->
+        <Column field="plate_no" header="Plate" sortable />
+
+        <!-- time -->
+        <Column header="Time" sortable>
+          <template #body="slotProps">
+            {{ formatGpsTime(slotProps.data.gps_time) }}
+          </template>
+        </Column>
+      </DataTable>
+
     </aside>
 
     <!-- RIGHT: MAP -->
@@ -67,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import Tag from 'primevue/tag'
 import FleetMap from '../components/FleetMap.vue'
 import type { Vehicle, VehicleStatus } from '../types/fleet.ts'
@@ -75,11 +94,39 @@ import { getCurrentTracking } from '../services/tracking.js'
 import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import Dropdown from 'primevue/dropdown'
+import InputText from 'primevue/inputtext'
 
 const selectedVehicleId = ref<string | null>(null)
 const vehicles = ref<Vehicle[]>([])
+const search = ref('')
+const statusFilter = ref<string | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+const filteredVehicles = computed(() => {
+  return vehicles.value.filter((vehicle) => {
+    const keyword = search.value.trim().toLowerCase()
+
+    const matchSearch =
+        !keyword ||
+        vehicle.plate_no?.toLowerCase().includes(keyword) ||
+        String(vehicle.vehicle_id || '').toLowerCase().includes(keyword)
+
+    const matchStatus =
+        !statusFilter.value || vehicle.status === statusFilter.value
+
+    return matchSearch && matchStatus
+  })
+})
+
+const statusOptions = [
+  { label: 'Running', value: 'running' },
+  { label: 'Idle', value: 'idle' },
+  { label: 'Parking', value: 'parking' },
+  { label: 'Offline', value: 'offline' },
+  { label: 'No GPS', value: 'no_gps' },
+]
 
 let pollingTimer: number | null = null
 
@@ -115,6 +162,11 @@ onBeforeUnmount(() => {
     window.clearInterval(pollingTimer)
   }
 })
+
+function onRowClick(event: any) {
+  const vehicle = event.data
+  selectVehicle(vehicle)
+}
 
 function getVehicleKey(vehicle: Vehicle): string {
   return String(
@@ -161,6 +213,10 @@ function formatFuel(value?: number | string | null): string {
 </script>
 
 <style scoped>
+body {
+  background: #020617; /* 👈 เข้มขึ้น */
+}
+
 .tracking-page {
   flex: 1;              /* 👈 เปลี่ยนจาก height calc */
   display: grid;
@@ -170,14 +226,21 @@ function formatFuel(value?: number | string | null): string {
 }
 
 .vehicle-panel {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  border-radius: 18px;
-  border: 1px solid var(--p-surface-700);
-  background: var(--p-surface-900);
-  overflow: hidden;
+  background: #111827;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4); /* 👈 สำคัญ */
+}
+
+.panel-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.panel-header p {
+  color: #9ca3af;
 }
 
 .vehicle-list {
@@ -286,6 +349,72 @@ function formatFuel(value?: number | string | null): string {
 .fuel-fill {
   height: 100%;
   background: #22c55e;
+}
+
+.vehicle-table {
+  flex: 1;
+  min-height: 0;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.running {
+  background: #22c55e;
+}
+
+.status-dot.idle {
+  background: #f59e0b;
+}
+
+.status-dot.parking {
+  background: #64748b;
+}
+
+.status-dot.offline {
+  background: #ef4444;
+}
+
+.status-dot.no_gps {
+  background: #e5e7eb;
+}
+
+.control-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--p-surface-700);
+}
+
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vehicle-panel {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  border: 1px solid var(--p-surface-700);
+  background: var(--p-surface-900);
+  overflow: hidden;
+}
+
+.control-bar {
+  flex-shrink: 0;
+}
+
+.vehicle-table {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 </style>
