@@ -133,35 +133,42 @@ const filteredVehicles = computed(() => {
   })
 })
 
+
 let pollingTimer: number | null = null
+let isLoading = false
 
 async function loadVehicles() {
+  if (isLoading) return
+
+  const token = localStorage.getItem('gps_fleet_token')
+  if (!token) return
+
   try {
-    loading.value = true
-    error.value = null
+    isLoading = true
     vehicles.value = await getCurrentTracking()
   } catch (e) {
     console.error('LOAD VEHICLES ERROR', e)
-    error.value = 'Cannot load tracking data'
-    vehicles.value = []
   } finally {
-    loading.value = false
+    isLoading = false
   }
 }
 
-onMounted(async () => {
-  await loadVehicles()
+onMounted(() => {
+  loadVehicles()
 
   pollingTimer = window.setInterval(() => {
-    loadVehicles()
-  }, 30_000)
+    if (!document.hidden) {
+      loadVehicles()
+    }
+  }, 30000)
 })
 
 onBeforeUnmount(() => {
   if (pollingTimer) {
-    window.clearInterval(pollingTimer)
+    clearInterval(pollingTimer)
   }
 })
+
 
 function onRowClick(event: { data: Vehicle }) {
   selectVehicle(event.data)

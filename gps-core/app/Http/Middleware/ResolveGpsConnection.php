@@ -51,6 +51,13 @@ class ResolveGpsConnection
         $request->attributes->set('gps_connection', $gpsConnection);
         $request->attributes->set('auth_user', $authUser);
 
+        logger()->info('GPS CONNECTION RESOLVED', [
+            'server_name' => $authUser->server_name ?? null,
+            'gps_connection' => $gpsConnection,
+            'db_host' => config("database.connections.$gpsConnection.host"),
+            'db_port' => config("database.connections.$gpsConnection.port"),
+        ]);
+
         return $next($request);
     }
 

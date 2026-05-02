@@ -20,17 +20,17 @@ api.interceptors.request.use((config) => {
     return config
 })
 
+let isRedirecting = false
+
 api.interceptors.response.use(
     (res) => res,
     (err) => {
-        if (err.response?.status === 401 && !isRedirectingToLogin) {
-            isRedirectingToLogin = true
+        if (err.response?.status === 401 && !isRedirecting) {
+            isRedirecting = true
 
             localStorage.removeItem('gps_fleet_token')
 
-            if (router.currentRoute.value.path !== '/login') {
-                router.push('/login')
-            }
+            window.location.href = '/login'
         }
 
         return Promise.reject(err)

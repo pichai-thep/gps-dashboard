@@ -58,8 +58,11 @@
                 {{ serverName }} / {{ userName }}
               </div>
 
+<!--              <div class="user-role">-->
+<!--                host: {{ gpsConnection }} ({{ dbHost }}) role: {{ roleName }}-->
+<!--              </div>-->
               <div class="user-role">
-                host: {{ gpsConnection }} ({{ dbHost }}) role: {{ roleName }}
+                {{ gpsConnection }} ({{ dbEndpoint }}) · {{ roleName }}
               </div>
 
             </div>
@@ -82,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -114,6 +117,13 @@ const gpsConnection = computed(() => {
 
 const dbHost = computed(() => {
   return user.value?.db_host || '-'
+})
+
+const dbEndpoint = computed(() => {
+  const host = user.value?.db_host || '-'
+  const port = user.value?.db_port
+
+  return port ? `${host}:${port}` : host
 })
 
 const userInitial = computed(() => {

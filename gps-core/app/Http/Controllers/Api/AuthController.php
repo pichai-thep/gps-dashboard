@@ -9,6 +9,9 @@ class AuthController extends Controller
 {
     private function buildAuthContext($authUser, string $gpsConnection): array
     {
+        $dbHost = config("database.connections.$gpsConnection.host");
+        $dbPort = config("database.connections.$gpsConnection.port");
+
         $gpsUser = DB::connection($gpsConnection)
             ->table('user')
             ->where('login', $authUser->login)
@@ -47,9 +50,10 @@ class AuthController extends Controller
                 'username' => $authUser->login,
                 'email' => $gpsUser->email ?? $authUser->email ?? null,
                 'server_name' => $authUser->server_name,
-                'roles' => $roles,
                 'gps_connection' => $gpsConnection,
                 'db_host' => $dbHost,
+                'db_port' => $dbPort,
+                'roles' => $roles,
             ],
 
             'customer' => [

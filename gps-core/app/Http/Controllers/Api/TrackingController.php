@@ -12,8 +12,7 @@ class TrackingController extends Controller
     public function current(Request $request)
     {
         $user = $request->attributes->get('auth_user');
-
-        $connection = $this->resolveGpsConnection($user->server_name);
+        $connection = $request->attributes->get('gps_connection');
 
         if (!$connection) {
             return response()->json([
@@ -24,20 +23,29 @@ class TrackingController extends Controller
 
 //        echo "user: $user->login\n";
 
-        $rows = DB::connection($connection)->select("
-        CALL sp_current_track_kw5(?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ", [
-            $user->login,   // _login
-            -1,              // _customer_group_id
-            'plate_no',     // _sortby
-            'asc',         // _direction
-            null,             // _keyword
-            0,            // _is_dltSynch
-            -1,             // _status (all)
-            0,              // offset
-            100             // limit
+        DB::purge($connection);
+        DB::reconnect($connection);
+        $pdo = DB::connection($connection)->getPdo();
+
+        $stmt = $pdo->prepare("
+            CALL sp_current_track_kw5(?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ");
+
+        $stmt->execute([
+            $user->login,
+            -1,
+            'plate_no',
+            'asc',
+            null,
+            0,
+            -1,
+            0,
+            100,
         ]);
 
+        $rows = $stmt->fetchAll(\PDO::FETCH_OBJ);
+
+        $stmt->closeCursor();
 
 
 //        return response()->json([
@@ -132,20 +140,6 @@ class TrackingController extends Controller
         }
 
         return 'parking';
-    }
-
-    private function resolveGpsConnection(?string $serverName): ?string
-    {
-        return match (strtolower(trim((string) $serverName))) {
-            'server5', 'gps5' => 'gps5',
-            'server10', 'gps10' => 'gps10',
-            'server13', 'gps13' => 'gps13',
-            'server14', 'gps14' => 'gps14',
-            'server16', 'gps16' => 'gps16',
-            'server19', 'gps19' => 'gps19',
-            'server20', 'gps20' => 'gps20',
-            default => null,
-        };
     }
 
 }
