@@ -19,24 +19,46 @@
 
 
     <div class="map-actions">
-      <button type="button" @click.stop="zoomIn">+</button>
-      <button type="button" @click.stop="zoomOut">−</button>
-      <button type="button" @click.stop="fitAllVehicles">
+      <button title="Zoom in" type="button" @click.stop="zoomIn">+</button>
+      <button title="Zoom out" type="button" @click.stop="zoomOut">−</button>
+      <button type="button" @click.stop="fitAllVehicles" title="Fit all vehicles">
         <i class="pi pi-map-marker"></i>
       </button>
       <button
+          title="Follow Vehicle"
           type="button"
           :class="{ active: followVehicle }"
           @click.stop="followVehicle = !followVehicle"
       >
         <i class="pi pi-send"></i>
       </button>
+
+      <button
+          title="Show Popup"
+          type="button"
+          :class="{ active: showPopup }"
+          @click.stop="togglePopup"
+      >
+        <i class="pi pi-info-circle"></i>
+      </button>
+
     </div>
 
     <!-- 🔥 POPUP -->
-    <div ref="popupEl" class="map-popup" v-show="selectedVehicle">
+    <div ref="popupEl" class="map-popup" v-show="showPopup && selectedVehicle">
+
       <div class="popup-title">
         {{ selectedVehicle?.plate_no }}
+      </div>
+
+      <div class="popup-row">
+        <span>IMEI</span>
+        <strong>{{ selectedVehicle?.imei }}</strong>
+      </div>
+
+      <div class="popup-row">
+        <span>acc_state</span>
+        <strong>{{ selectedVehicle?.acc_state }}</strong>
       </div>
 
       <div class="popup-row">
@@ -50,13 +72,18 @@
       </div>
 
       <div class="popup-row">
-        <span>Fuel</span>
+        <span>Fuel left(%)</span>
         <strong>{{ selectedVehicle?.fuel_left ?? '-' }}</strong>
       </div>
 
       <div class="popup-row">
-        <span>GPS</span>
+        <span>GPS Time</span>
         <strong>{{ selectedVehicle?.gps_time ?? '-' }}</strong>
+      </div>
+
+      <div class="popup-row">
+        <span>Updated</span>
+        <strong>{{ selectedVehicle?.received_time ?? '-' }}</strong>
       </div>
 
       <div class="popup-row">
@@ -115,13 +142,6 @@ const selectedProvider = computed<MapProviderKey>(() => {
 
 const selectedLayer = ref<MapLayerType>('default')
 
-// const layerOptions = [
-//   { label: 'Default', value: 'default' },
-//   { label: 'Road', value: 'road' },
-//   { label: 'Satellite', value: 'satellite' },
-//   { label: 'Hybrid', value: 'hybrid' },
-// ]
-
 const layerOptions = computed(() => {
   if (selectedProvider.value === 'longdo') {
     return [
@@ -138,6 +158,7 @@ const layerOptions = computed(() => {
 })
 
 const followVehicle = ref(true)
+const showPopup = ref(true);
 
 const emit = defineEmits<{
   'vehicle-click': [vehicle: Vehicle]
@@ -222,7 +243,11 @@ onMounted(async () => {
       if (vehicle) {
         followVehicle.value = true
         selectedVehicle.value = vehicle
-        popupOverlay?.setPosition(event.coordinate)
+
+        if (showPopup.value) {
+          popupOverlay?.setPosition(event.coordinate)
+        }
+
         emit('vehicle-click', vehicle)
         found = true
       }
@@ -412,22 +437,28 @@ function focusVehicle(vehicleId?: string | null) {
   if (!map || !vehicleSource || !vehicleId) return
 
   const feature = vehicleSource.getFeatures().find((f) => {
-    const vehicle = f.get('vehicle') as Vehicle | undefined
-    return vehicle ? getVehicleKey(vehicle) === vehicleId : false
+    const v = f.get('vehicle') as Vehicle | undefined
+    return v ? getVehicleKey(v) === vehicleId : false
   })
 
   if (!feature) return
 
   const geometry = feature.getGeometry()
-  if (!geometry) return
+  if (!(geometry instanceof Point)) return
 
-  const vehicle = feature.get('vehicle') as Vehicle
+  const vehicle = feature.get('vehicle') as Vehicle | undefined
+  if (!vehicle) return
+
+  const coords = geometry.getCoordinates()
 
   selectedVehicle.value = vehicle
-  popupOverlay?.setPosition(geometry.getCoordinates())
+
+  if (showPopup.value) {
+    popupOverlay?.setPosition(coords)
+  }
 
   map.getView().animate({
-    center: geometry.getCoordinates(),
+    center: coords,
     zoom: 16,
     duration: 400,
   })
@@ -474,20 +505,49 @@ function fitAllVehicles() {
   })
 }
 
+function cleanDriverText(value?: string | null): string {
+  return String(value || '')
+      .replace(/\^/g, ' ')
+      .replace(/%/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+}
+
 function formatDriverName(value?: string | null): string {
   if (!value) return '-'
 
-  const parts = value.split('$')
+  const parts = value.split('$').map(cleanDriverText)
 
-  const lastname = parts[0]?.replace('^', '').trim() || ''
-  const firstname = parts[1]?.trim() || ''
-  const prefix = parts[2]?.trim() || ''
+  const lastname = parts[0] || ''
+  const firstname = parts[1] || ''
+  const prefix = parts[2] || ''
 
   return [prefix, firstname, lastname].filter(Boolean).join(' ') || '-'
 }
 
 function formatDriverLicense(value?: string | null): string {
   return value?.trim() || '-'
+}
+
+function togglePopup() {
+  showPopup.value = !showPopup.value
+
+  if (!showPopup.value) {
+    popupOverlay?.setPosition(undefined)
+    return
+  }
+
+  if (selectedVehicle.value) {
+    const feature = vehicleSource?.getFeatures().find((f) => {
+      const vehicle = f.get('vehicle') as Vehicle | undefined
+      return vehicle ? getVehicleKey(vehicle) === getVehicleKey(selectedVehicle.value!) : false
+    })
+
+    const geometry = feature?.getGeometry()
+    if (geometry) {
+      popupOverlay?.setPosition(geometry.getCoordinates())
+    }
+  }
 }
 
 watch(
@@ -561,7 +621,7 @@ onBeforeUnmount(() => {
 }
 
 .map-popup {
-  min-width: 220px;
+  min-width: 240px;
   padding: 12px;
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.95);

@@ -45,12 +45,15 @@ class TrackingController extends Controller
 
         $sortColumn = $allowedSort[$sortBy] ?? 'plate_no';
 
+//        -- 0=null, 1:off-line, 2=gps-v, 3=park, 4=acc-on, 5=start, 6=run
         $statusMap = [
-            'running' => 1,
-            'idle' => 2,
+
+            'offline' => 1,
+            'no_gps' => 2,
             'parking' => 3,
-            'offline' => 4,
-            'no_gps' => 5,
+            'acc_on' => 4,
+            'start' => 5,
+            'running' => 6,
         ];
 
         $statusQuery = $request->query('status');
@@ -73,7 +76,7 @@ class TrackingController extends Controller
             $sortColumn,
             $sortDir,
             $keyword,
-            0,
+            null,
             $status,
             $offset,
             $perPage,
@@ -123,7 +126,7 @@ class TrackingController extends Controller
                 'icon' => $row->icon_path ?? 'bus',
                 'driver_name' => $row->driver_name ?? null,
                 'driver_phone' => $row->driver_phone ?? null,
-                'acc_on' => $this->resolveAcc($row),
+                'acc_state' => $this->resolveAcc($row),
                 'sequen_no' => isset($row->sequen_no) ? (int) $row->sequen_no : null,
                 'dlt_synch' => $row->dlt_synch,
                 'track1' => $row->track1 ?? null,
@@ -213,17 +216,10 @@ class TrackingController extends Controller
         $speed = (float) ($row->speed ?? 0);
         $gpsStatus = strtoupper((string) ($row->gps_status ?? ''));
         $isAccOn = $this->resolveAcc($row);
-
-        if ($gpsStatus === 'V') {
-            return 'no_gps';
-        }
+        $engine_volt = $row->engine_volt ?? 0;
+        $ext_power = $row->ext_power ?? 0;
 
         $receivedTimeRaw = $row->received_date ?? null;
-
-        if (!$receivedTimeRaw) {
-            return 'no_gps';
-        }
-
         try {
             $receivedTime = Carbon::parse($receivedTimeRaw, 'Asia/Bangkok');
             $now = now('Asia/Bangkok');
@@ -235,14 +231,23 @@ class TrackingController extends Controller
             return 'offline';
         }
 
-        if ($speed > 5) {
-            return 'running';
+        if ($gpsStatus === 'V') {
+            return 'no_gps';
         }
 
         if ($isAccOn) {
-            return 'idle';
+            if ($speed > 0) {
+                return 'start';
+            }else{
+                if ($ext_power > $engine_volt){
+                    return 'start';
+                }else {
+                    return 'acc_on';
+                }
+            }
+        }else{
+            return 'parking';
         }
 
-        return 'parking';
     }
 }

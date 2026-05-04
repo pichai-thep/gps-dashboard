@@ -195,7 +195,7 @@ const refreshInterval = ref(30_000)
 const search = ref('')
 
 const page = ref(1)
-const perPage = ref(10)
+const perPage = ref(20)
 const totalRecords = ref(0)
 
 const sortBy = ref('plate_no')
@@ -221,10 +221,11 @@ const groupOptions = ref<VehicleGroup[]>([
 
 const statusOptions = [
   { label: 'Running', value: 'running' },
-  { label: 'Idle', value: 'idle' },
+  { label: 'Start', value: 'start' },
+  { label: 'ACC on', value: 'acc_on' },
   { label: 'Parking', value: 'parking' },
-  { label: 'Offline', value: 'offline' },
   { label: 'No GPS', value: 'no_gps' },
+  { label: 'Offline', value: 'offline' },
 ]
 
 const sortOptions = [
@@ -363,15 +364,12 @@ function formatFuel(value?: number | string | null): string {
 function getStatusIcon(status: VehicleStatus) {
   return {
     running: 'pi-play-circle',
-    idle: 'pi-pause-circle',
+    start: 'pi-pause-circle',   // เหลือง
+    acc_on: 'pi-key',          // ส้ม
     parking: 'pi-stop-circle',
     offline: 'pi-times-circle',
     no_gps: 'pi-exclamation-circle',
   }[status] || 'pi-circle'
-}
-
-function hasDriverCard(vehicle: Vehicle): boolean {
-  return !!vehicle.driver_license_no || !!vehicle.track3
 }
 
 function getDriverCardStatus(vehicle: any): 'ok' | 'missing' | 'hide' {
@@ -429,6 +427,8 @@ onBeforeUnmount(() => {
     window.clearTimeout(searchTimer)
   }
 })
+
+
 </script>
 
 <style scoped>
@@ -523,25 +523,12 @@ onBeforeUnmount(() => {
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
 }
 
-.status-icon.running {
-  color: #22c55e;
-}
-
-.status-icon.idle {
-  color: #f59e0b;
-}
-
-.status-icon.parking {
-  color: #64748b;
-}
-
-.status-icon.offline {
-  color: #ef4444;
-}
-
-.status-icon.no_gps {
-  color: #3b82f6;
-}
+.status-icon.running { color: #22c55e; }   /* เขียว */
+.status-icon.start { color: #facc15; }     /* เหลือง */
+.status-icon.acc_on { color: #f97316; }    /* ส้ม 🔥 */
+.status-icon.parking { color: #64748b; }   /* เทา */
+.status-icon.no_gps { color: #3b82f6; }    /* น้ำเงิน */
+.status-icon.offline { color: #ef4444; }   /* แดง */
 
 .map-area {
   min-width: 0;
