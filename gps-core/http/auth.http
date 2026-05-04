@@ -3,13 +3,13 @@ POST http://127.0.0.1:8000/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "gpsthaistar",
+    "username": "KSJJ",
     "password": "1234"
 }
 
 ### Me
 GET http://127.0.0.1:8000/api/auth/me
-Authorization: Bearer dev-token-20960
+Authorization: Bearer dev-token-15878
 
 ### Logout
 POST http://127.0.0.1:8000/api/auth/logout
@@ -17,7 +17,7 @@ Authorization: Bearer dev-token-20960
 
 ### Current Tracking
 GET http://127.0.0.1:8000/api/tracking/current
-Authorization: Bearer dev-token-20960
+Authorization: Bearer dev-token-15878
 
 
 

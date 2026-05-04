@@ -88,6 +88,7 @@ class AuthController extends Controller
             'config' => [
                 'fuelUnit' => $customer->fuel_unit_as,
                 'mapApi' => $customer->map_api,
+                'mapApi_key' => $customer->map_api_key,
                 'showInfoWindow' => (bool) $customer->show_infowindow,
             ],
         ];

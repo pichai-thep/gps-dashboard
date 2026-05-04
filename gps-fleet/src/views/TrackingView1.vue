@@ -12,8 +12,10 @@
 
         <h2>Current Tracking</h2>
         <p>{{ mapVehicles.length }} / {{ totalRecords }} vehicles on map</p>
+
       </div>
 
+      <!-- 🔥 FILTER BAR -->
       <div class="control-bar">
         <Dropdown
             v-model="refreshInterval"
@@ -65,6 +67,7 @@
         />
       </div>
 
+      <!-- 🔥 TABLE -->
       <DataTable
           :value="vehicles"
           lazy
@@ -86,38 +89,16 @@
           </template>
         </Column>
 
-        <Column header="Status" style="width: 60px">
+        <Column header="ST" style="width: 60px">
           <template #body="slotProps">
             <i
                 :class="[
-                'pi',
-                getStatusIcon(slotProps.data.status),
-                'status-icon',
-                slotProps.data.status,
-              ]"
+          'pi',
+          getStatusIcon(slotProps.data.status),
+          'status-icon',
+          slotProps.data.status
+        ]"
             ></i>
-            {{slotProps.data.status}}
-          </template>
-        </Column>
-
-        <Column header="" style="width: 50px">
-          <template #body="slotProps">
-            <template v-if="getDriverCardStatus(slotProps.data) !== 'hide'">
-
-              <i
-                  :class="[
-                    'pi',
-                    getDriverCardStatus(slotProps.data) === 'ok'
-                      ? 'pi-id-card driver-ok'
-                      : 'pi-id-card driver-missing'
-                  ]"
-                  v-tooltip="
-                getDriverCardStatus(slotProps.data) === 'ok'
-                  ? 'รูดบัตรแล้ว'
-                  : 'ยังไม่รูดบัตร'
-              "
-              ></i>
-            </template>
           </template>
         </Column>
 
@@ -125,15 +106,15 @@
           <template #body="slotProps">
             <div class="plate-cell">
               <strong>{{ slotProps.data.plate_no }}</strong>
-              <span class="time-cell">
+              <small>
                 Speed: {{ slotProps.data.speed ?? 0 }} km/h
-                <br>Fuel: {{ formatFuel(slotProps.data.fuel_left) }}
-              </span>
+                · Fuel: {{ formatFuel(slotProps.data.fuel_left) }}
+              </small>
             </div>
           </template>
         </Column>
 
-        <Column header="GPSTime" style="width: 110px">
+        <Column header="Time" style="width: 110px">
           <template #body="slotProps">
             <div class="time-cell">
               {{ formatGpsTimeCompact(slotProps.data.gps_time) }}
@@ -155,6 +136,7 @@
       </DataTable>
     </aside>
 
+    <!-- 🔥 MAP -->
     <section class="map-area">
       <FleetMap
           :vehicles="mapVehicles"
@@ -166,53 +148,60 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-
-import Button from 'primevue/button'
-import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
-import Dropdown from 'primevue/dropdown'
-import InputText from 'primevue/inputtext'
-import Message from 'primevue/message'
-
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import FleetMap from '@/components/FleetMap.vue'
+import Button from 'primevue/button'
+import Dropdown from 'primevue/dropdown'
+import Message from 'primevue/message'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import InputText from 'primevue/inputtext'
 import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+
 import {
   getCurrentTracking,
   getVehicleGroups,
   type VehicleGroup,
 } from '@/services/tracking'
+
 import type { Vehicle, VehicleStatus } from '@/types/fleet'
 
-const auth = useAuthStore()
+/* ================= STATE ================= */
 
 const vehicles = ref<Vehicle[]>([])
 const selectedVehicleId = ref<string | null>(null)
 
 const selectedGroupId = ref<number | string>(-1)
 const statusFilter = ref<string | null>(null)
-const refreshInterval = ref(30_000)
+const refreshInterval = ref(30000)
 const search = ref('')
-
-const page = ref(1)
-const perPage = ref(10)
-const totalRecords = ref(0)
-
-const sortBy = ref('plate_no')
-const sortDir = ref<'asc' | 'desc'>('asc')
 
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+/* 👁 hidden */
 const hiddenVehicleKeys = ref<Set<string>>(new Set())
 
-let pollingTimer: number | null = null
-let searchTimer: number | null = null
-let isLoading = false
+// const mapVehicles = computed(() => {
+//   return filteredVehicles.value.filter(
+//       (v) => !hiddenVehicleKeys.value.has(getVehicleKey(v))
+//   )
+// })
+
+const mapVehicles = computed(() => {
+  return vehicles.value.filter(
+      (v) => !hiddenVehicleKeys.value.has(getVehicleKey(v))
+  )
+})
+
+/* ================= OPTIONS ================= */
 
 const refreshOptions = [
-  { label: '10 sec', value: 10_000 },
-  { label: '30 sec', value: 30_000 },
-  { label: '1 min', value: 60_000 },
+  { label: '10 sec', value: 10000 },
+  { label: '30 sec', value: 30000 },
+  { label: '1 min', value: 60000 },
 ]
 
 const groupOptions = ref<VehicleGroup[]>([
@@ -227,6 +216,12 @@ const statusOptions = [
   { label: 'No GPS', value: 'no_gps' },
 ]
 
+const page = ref(1)
+const perPage = ref(20)
+const totalRecords = ref(0)
+const sortBy = ref('plate_no')
+const sortDir = ref<'asc' | 'desc'>('asc')
+
 const sortOptions = [
   { label: 'Plate', value: 'plate_no' },
   { label: 'Time', value: 'gps_time' },
@@ -239,106 +234,31 @@ const sortDirOptions = [
   { label: 'ASC', value: 'asc' },
   { label: 'DESC', value: 'desc' },
 ]
+/* ================= COMPUTED ================= */
 
-const mapVehicles = computed(() => {
+const filteredVehicles = computed(() => {
   return vehicles.value.filter((vehicle) => {
-    return !hiddenVehicleKeys.value.has(getVehicleKey(vehicle))
+    const keyword = search.value.trim().toLowerCase()
+
+    const matchSearch =
+        !keyword ||
+        vehicle.plate_no?.toLowerCase().includes(keyword) ||
+        String(vehicle.vehicle_id || '').toLowerCase().includes(keyword)
+
+    const matchStatus =
+        !statusFilter.value || vehicle.status === statusFilter.value
+
+    return matchSearch && matchStatus
   })
 })
+const visibleVehicles = computed(() => {
+  return filteredVehicles.value.filter(
+      (v) => !hiddenVehicleKeys.value.has(getVehicleKey(v))
+  )
+})
 
-async function loadVehicles() {
-  if (isLoading) return
+/* ================= FUNCTIONS ================= */
 
-  try {
-    isLoading = true
-    loading.value = true
-    error.value = null
-
-    const response = await getCurrentTracking({
-      page: page.value,
-      per_page: perPage.value,
-      group_id: selectedGroupId.value,
-      status: statusFilter.value,
-      search: search.value,
-      sort_by: sortBy.value,
-      sort_dir: sortDir.value,
-    })
-
-    vehicles.value = response.vehicles
-    totalRecords.value = response.meta.total
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || 'โหลดข้อมูลไม่ได้'
-    vehicles.value = []
-    totalRecords.value = 0
-  } finally {
-    isLoading = false
-    loading.value = false
-  }
-}
-
-async function loadGroups() {
-  try {
-    const customerId = auth.customer?.id
-
-    if (!customerId) {
-      groupOptions.value = [{ id: -1, name: 'All Group' }]
-      return
-    }
-
-    const groups = await getVehicleGroups(customerId)
-    groupOptions.value = [{ id: -1, name: 'All Group' }, ...groups]
-  } catch (e) {
-    console.error('LOAD GROUPS ERROR', e)
-    groupOptions.value = [{ id: -1, name: 'All Group' }]
-  }
-}
-
-function startPolling() {
-  if (pollingTimer) {
-    window.clearInterval(pollingTimer)
-  }
-
-  pollingTimer = window.setInterval(() => {
-    if (!document.hidden) {
-      loadVehicles()
-    }
-  }, refreshInterval.value)
-}
-
-function onPage(event: any) {
-  page.value = event.page + 1
-  perPage.value = event.rows
-  loadVehicles()
-}
-
-function onRowClick(event: { data: Vehicle }) {
-  selectVehicle(event.data)
-}
-
-function selectVehicle(vehicle: Vehicle) {
-  selectedVehicleId.value = getVehicleKey(vehicle)
-}
-
-function getVehicleKey(vehicle: Vehicle): string {
-  return String(vehicle.vehicle_id || vehicle.id || vehicle.plate_no)
-}
-
-function isVehicleVisible(vehicle: Vehicle): boolean {
-  return !hiddenVehicleKeys.value.has(getVehicleKey(vehicle))
-}
-
-function toggleVehicleVisible(vehicle: Vehicle) {
-  const key = getVehicleKey(vehicle)
-  const next = new Set(hiddenVehicleKeys.value)
-
-  if (next.has(key)) {
-    next.delete(key)
-  } else {
-    next.add(key)
-  }
-
-  hiddenVehicleKeys.value = next
-}
 
 function formatGpsTimeCompact(value?: string | null): string {
   if (!value) return '-'
@@ -360,6 +280,30 @@ function formatFuel(value?: number | string | null): string {
   return `${value}%`
 }
 
+function getVehicleKey(vehicle: Vehicle): string {
+  return String(vehicle.vehicle_id || vehicle.id || vehicle.plate_no)
+}
+
+function isVehicleVisible(vehicle: Vehicle): boolean {
+  return !hiddenVehicleKeys.value.has(getVehicleKey(vehicle))
+}
+
+function toggleVehicleVisible(vehicle: Vehicle) {
+  const key = getVehicleKey(vehicle)
+  const next = new Set(hiddenVehicleKeys.value)
+
+  next.has(key) ? next.delete(key) : next.add(key)
+  hiddenVehicleKeys.value = next
+}
+
+function selectVehicle(vehicle: Vehicle) {
+  selectedVehicleId.value = getVehicleKey(vehicle)
+}
+
+function onRowClick(event: { data: Vehicle }) {
+  selectVehicle(event.data)
+}
+
 function getStatusIcon(status: VehicleStatus) {
   return {
     running: 'pi-play-circle',
@@ -370,29 +314,89 @@ function getStatusIcon(status: VehicleStatus) {
   }[status] || 'pi-circle'
 }
 
-function hasDriverCard(vehicle: Vehicle): boolean {
-  return !!vehicle.driver_license_no || !!vehicle.track3
+/* ================= API ================= */
+
+let pollingTimer: number | null = null
+let isLoading = false
+
+async function loadVehicles() {
+  if (isLoading) return
+
+  try {
+    isLoading = true
+    loading.value = true
+    error.value = null
+
+    const res = await getCurrentTracking({
+      page: page.value,
+      per_page: perPage.value,
+      group_id: selectedGroupId.value,
+      status: statusFilter.value,
+      search: search.value,
+      sort_by: sortBy.value,
+      sort_dir: sortDir.value,
+    })
+
+    vehicles.value = res.vehicles
+    totalRecords.value = res.meta.total
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || 'โหลดข้อมูลไม่ได้'
+    vehicles.value = []
+  } finally {
+    isLoading = false
+    loading.value = false
+  }
 }
 
-function getDriverCardStatus(vehicle: any): 'ok' | 'missing' | 'hide' {
-  const dlt_synch = Number(vehicle.dlt_synch ?? 0)
-  const track3 = String(vehicle.track3 ?? '').trim()
+async function loadGroups() {
+  try {
+    const customerId = auth.customer?.id
 
-  if (dlt_synch === 0) return 'hide'
+    console.log('CUSTOMER ID', customerId)
 
-  if (dlt_synch === 1 && track3.length > 0) return 'ok'
+    if (!customerId) return
 
-  return 'missing'
+    const groups = await getVehicleGroups(customerId)
+
+    console.log('GROUPS', groups)
+
+    groupOptions.value = [{ id: -1, name: 'All Group' }, ...groups]
+  } catch (e) {
+    console.error('LOAD GROUPS ERROR', e)
+  }
 }
+
+function onPage(event: any) {
+  page.value = event.page + 1
+  perPage.value = event.rows
+  loadVehicles()
+}
+
+/* ================= POLLING ================= */
+
+function startPolling() {
+  if (pollingTimer) clearInterval(pollingTimer)
+
+  pollingTimer = window.setInterval(() => {
+    if (!document.hidden) loadVehicles()
+  }, refreshInterval.value)
+}
+
+/* ================= WATCH ================= */
 
 watch(
     [selectedGroupId, statusFilter, sortBy, sortDir],
     () => {
       page.value = 1
-      selectedVehicleId.value = null
       loadVehicles()
     }
 )
+
+watch(refreshInterval, () => {
+  startPolling()
+})
+
+let searchTimer: number | null = null
 
 watch(search, () => {
   if (searchTimer) {
@@ -401,14 +405,11 @@ watch(search, () => {
 
   searchTimer = window.setTimeout(() => {
     page.value = 1
-    selectedVehicleId.value = null
     loadVehicles()
   }, 300)
 })
 
-watch(refreshInterval, () => {
-  startPolling()
-})
+/* ================= LIFECYCLE ================= */
 
 onMounted(async () => {
   if (!auth.customer) {
@@ -421,17 +422,24 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (pollingTimer) {
-    window.clearInterval(pollingTimer)
-  }
-
-  if (searchTimer) {
-    window.clearTimeout(searchTimer)
-  }
+  if (pollingTimer) clearInterval(pollingTimer)
 })
 </script>
 
 <style scoped>
+.panel-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.panel-header p {
+  margin: 6px 0 0;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
 .tracking-page {
   flex: 1;
   display: grid;
@@ -452,21 +460,7 @@ onBeforeUnmount(() => {
   background: #111827;
 }
 
-.panel-header h2 {
-  margin: 0;
-  color: #fff;
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.panel-header p {
-  margin: 6px 0 0;
-  color: #9ca3af;
-  font-size: 14px;
-}
-
 .control-bar {
-  flex-shrink: 0;
   display: grid;
   grid-template-columns: 100px 1fr 120px;
   gap: 10px;
@@ -511,36 +505,42 @@ onBeforeUnmount(() => {
   font-size: 9px;
 }
 
+.status-icon {
+  font-size: 18px;
+}
+
+/* 🔥 สีตาม requirement */
+
+.status-icon.running {
+  color: #22c55e; /* เขียว */
+}
+
+.status-icon.idle {
+  color: #f59e0b; /* เหลือง */
+}
+
+.status-icon.parking {
+  color: #64748b; /* เทา */
+}
+
+.status-icon.offline {
+  color: #ef4444; /* แดง */
+}
+
+.status-icon.no_gps {
+  color: #3b82f6; /* น้ำเงิน */
+}
+
+.status-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
+}
+
 .time-cell {
   width: 90px;
   color: #334155;
   font-size: 12px;
   line-height: 1.25;
-}
-
-.status-icon {
-  font-size: 18px;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
-}
-
-.status-icon.running {
-  color: #22c55e;
-}
-
-.status-icon.idle {
-  color: #f59e0b;
-}
-
-.status-icon.parking {
-  color: #64748b;
-}
-
-.status-icon.offline {
-  color: #ef4444;
-}
-
-.status-icon.no_gps {
-  color: #3b82f6;
 }
 
 .map-area {
@@ -549,12 +549,20 @@ onBeforeUnmount(() => {
   display: flex;
 }
 
-.driver-ok {
-  color: #22c55e; /* เขียว */
+.control-bar {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 100px 1fr 120px;
+  gap: 10px;
+  padding: 12px;
+  background: #0b1220;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.driver-missing {
-  color: #ef4444; /* แดง */
+.search-input {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
 }
 
 :deep(.p-datatable-table-container) {

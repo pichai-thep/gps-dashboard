@@ -19,5 +19,8 @@ export type Vehicle = {
     last_seen_at?: string | null
     fuel?: number | string | null
     icon?: string
+    dlt_synch: boolean
+    track1?: string
+    track3?: string
 }
 

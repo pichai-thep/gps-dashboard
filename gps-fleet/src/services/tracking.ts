@@ -6,12 +6,34 @@ export type VehicleGroup = {
     name: string
 }
 
-// export async function getVehicleGroups(): Promise<VehicleGroup[]> {
-//     const res = await api.get<{ groups: VehicleGroup[] }>('/tracking/groups')
-//     return res.data.groups || []
-// }
+export type TrackingMeta = {
+    page: number
+    per_page: number
+    total: number
+    last_page: number
+    has_next_page: boolean
+    sort_by: string
+    sort_dir: 'asc' | 'desc'
+}
 
-export async function getVehicleGroups(customerId: number | string): Promise<VehicleGroup[]> {
+export type TrackingResponse = {
+    vehicles: Vehicle[]
+    meta: TrackingMeta
+}
+
+export type TrackingParams = {
+    page: number
+    per_page: number
+    group_id?: number | string
+    status?: string | null
+    search?: string
+    sort_by?: string
+    sort_dir?: 'asc' | 'desc'
+}
+
+export async function getVehicleGroups(
+    customerId: number | string
+): Promise<VehicleGroup[]> {
     const res = await api.get<{ groups: VehicleGroup[] }>('/tracking/groups', {
         params: {
             customer_id: customerId,
@@ -22,13 +44,11 @@ export async function getVehicleGroups(customerId: number | string): Promise<Veh
 }
 
 export async function getCurrentTracking(
-    groupId: number | string = -1
-): Promise<Vehicle[]> {
-    const res = await api.get<{ vehicles: Vehicle[] }>('/tracking/current', {
-        params: {
-            group_id: groupId,
-        },
+    params: TrackingParams
+): Promise<TrackingResponse> {
+    const res = await api.get<TrackingResponse>('/tracking/current', {
+        params,
     })
 
-    return res.data.vehicles || []
+    return res.data
 }

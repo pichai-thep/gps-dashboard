@@ -2,15 +2,35 @@
   <div class="map-shell">
     <div ref="mapEl" class="map"></div>
 
-    <div class="map-control">
+    <div class="map-provider-label">
+      {{ providerLabel }}
+    </div>
+
+
+    <div class="map-control" v-if="selectedProvider == 'google'">
       <Dropdown
-          v-model="selectedProvider"
-          :options="providerOptions"
+          v-model="selectedLayer"
+          :options="layerOptions"
           option-label="label"
           option-value="value"
           class="w-full"
-          @change="changeProvider"
       />
+    </div>
+
+
+    <div class="map-actions">
+      <button type="button" @click.stop="zoomIn">+</button>
+      <button type="button" @click.stop="zoomOut">−</button>
+      <button type="button" @click.stop="fitAllVehicles">
+        <i class="pi pi-map-marker"></i>
+      </button>
+      <button
+          type="button"
+          :class="{ active: followVehicle }"
+          @click.stop="followVehicle = !followVehicle"
+      >
+        <i class="pi pi-send"></i>
+      </button>
     </div>
 
     <!-- 🔥 POPUP -->
@@ -38,6 +58,18 @@
         <span>GPS</span>
         <strong>{{ selectedVehicle?.gps_time ?? '-' }}</strong>
       </div>
+
+      <div class="popup-row">
+        <span>ชื่อ</span>
+        <strong>{{ formatDriverName(selectedVehicle?.track1) }}</strong>
+      </div>
+
+      <div class="popup-row">
+        <span>ใบขับขี่</span>
+        <strong>{{ formatDriverLicense(selectedVehicle?.track3) }}</strong>
+      </div>
+
+
     </div>
   </div>
 </template>
@@ -57,28 +89,61 @@ import Point from 'ol/geom/Point'
 import { fromLonLat } from 'ol/proj'
 import { Fill, Icon, Stroke, Style, Text } from 'ol/style'
 import Overlay from 'ol/Overlay'
+import { defaults as defaultControls } from 'ol/control'
+import { boundingExtent } from 'ol/extent'
+import { useAuthStore } from '@/stores/auth'
+
 
 import {
   DEFAULT_MAP_PROVIDER,
-  getSavedMapProvider,
   mapProviders,
-  saveMapProvider,
+  type MapLayerType,
   type MapProviderKey,
 } from '@/config/mapProviders'
 
 import type { Vehicle, VehicleStatus } from '@/types/fleet'
-
 const props = defineProps<{
   vehicles: Vehicle[]
   focusVehicleId?: string | null
 }>()
+
+const auth = useAuthStore()
+
+const selectedProvider = computed<MapProviderKey>(() => {
+  return resolveMapProvider(auth.config?.mapApi)
+})
+
+const selectedLayer = ref<MapLayerType>('default')
+
+// const layerOptions = [
+//   { label: 'Default', value: 'default' },
+//   { label: 'Road', value: 'road' },
+//   { label: 'Satellite', value: 'satellite' },
+//   { label: 'Hybrid', value: 'hybrid' },
+// ]
+
+const layerOptions = computed(() => {
+  if (selectedProvider.value === 'longdo') {
+    return [
+      { label: 'Default', value: 'default' },
+      { label: 'Road', value: 'road' },
+    ]
+  }
+
+  return [
+    { label: 'Default', value: 'default' },
+    { label: 'Satellite', value: 'satellite' },
+    { label: 'Hybrid', value: 'hybrid' },
+  ]
+})
+
+const followVehicle = ref(true)
 
 const emit = defineEmits<{
   'vehicle-click': [vehicle: Vehicle]
 }>()
 
 const mapEl = ref<HTMLDivElement | null>(null)
-const selectedProvider = ref<MapProviderKey>(getSavedMapProvider())
 
 let map: Map | null = null
 let baseLayer: TileLayer<XYZ> | null = null
@@ -89,6 +154,16 @@ const popupEl = ref<HTMLDivElement | null>(null)
 const selectedVehicle = ref<Vehicle | null>(null)
 let popupOverlay: Overlay | null = null
 
+function resolveMapProvider(value?: string | null): MapProviderKey {
+  const mapApi = String(value || '').toLowerCase()
+  if (mapApi === '' ) return 'osm'
+  if (mapApi === 'google' || mapApi === 'googleMap') return 'google'
+  if (mapApi === 'longdo') return 'longdo'
+  if (mapApi === 'osm' || mapApi === 'openstreetmap') return 'osm'
+
+  return DEFAULT_MAP_PROVIDER
+}
+
 const providerOptions = computed(() =>
     Object.entries(mapProviders).map(([value, provider]) => ({
       value: value as MapProviderKey,
@@ -96,15 +171,109 @@ const providerOptions = computed(() =>
     }))
 )
 
-function createBaseLayer(providerKey: MapProviderKey): TileLayer<XYZ> {
+const providerLabel = computed(() => {
+  return `${selectedProvider.value.toUpperCase()} • ${selectedLayer.value}`
+})
+
+onMounted(async () => {
+  await nextTick()
+
+  if (!mapEl.value) return
+
+  baseLayer = createBaseLayer(selectedProvider.value, selectedLayer.value)
+  vehicleSource = new VectorSource()
+
+  const vehicleLayer = new VectorLayer({
+    source: vehicleSource,
+  })
+
+  map = new Map({
+    target: mapEl.value,
+    controls: defaultControls({
+      zoom: false,
+      rotate: false,
+      attribution: false,
+    }),
+    layers: [baseLayer, vehicleLayer],
+    view: new View({
+      center: fromLonLat([100.5018, 13.7563]),
+      zoom: 6,
+    }),
+  })
+
+  // 🔥 init popup
+  if (popupEl.value) {
+    popupOverlay = new Overlay({
+      element: popupEl.value,
+      positioning: 'bottom-center',
+      offset: [0, -20],
+    })
+
+    map.addOverlay(popupOverlay)
+  }
+
+  // 🔥 click marker
+  map.on('singleclick', (event) => {
+    let found = false
+
+    map?.forEachFeatureAtPixel(event.pixel, (feature) => {
+      const vehicle = feature.get('vehicle') as Vehicle
+
+      if (vehicle) {
+        followVehicle.value = true
+        selectedVehicle.value = vehicle
+        popupOverlay?.setPosition(event.coordinate)
+        emit('vehicle-click', vehicle)
+        found = true
+      }
+
+    })
+
+    if (!found) {
+      selectedVehicle.value = null
+      popupOverlay?.setPosition(undefined)
+    }
+  })
+
+  renderVehicles()
+})
+
+// function createBaseLayer(providerKey: MapProviderKey): TileLayer<XYZ> {
+//   const provider = mapProviders[providerKey] || mapProviders[DEFAULT_MAP_PROVIDER]
+//
+//   return new TileLayer({
+//     source: new XYZ({
+//       url: provider.url,
+//       attributions: provider.attributions,
+//       crossOrigin: 'anonymous',
+//     }),
+//   })
+// }
+
+function createTileSource(providerKey: MapProviderKey, layer: MapLayerType): XYZ {
   const provider = mapProviders[providerKey] || mapProviders[DEFAULT_MAP_PROVIDER]
 
+  const url =
+      typeof provider.url === 'function'
+          ? provider.url(auth.config?.mapApi_key, layer)
+          : provider.url
+
+  console.log('CREATE TILE SOURCE', {
+    providerKey,
+    layer,
+    url,
+  })
+
+  return new XYZ({
+    url,
+    attributions: provider.attributions,
+    crossOrigin: 'anonymous',
+  })
+}
+
+function createBaseLayer(providerKey: MapProviderKey, layer: MapLayerType): TileLayer<XYZ> {
   return new TileLayer({
-    source: new XYZ({
-      url: provider.url,
-      attributions: provider.attributions,
-      crossOrigin: 'anonymous',
-    }),
+    source: createTileSource(providerKey, layer),
   })
 }
 
@@ -168,23 +337,6 @@ function getVehicleIcon(vehicle: Vehicle): string {
   return `/cars/${carType}/${getDirectionName(vehicle.heading)}.png`
 }
 
-function getDirectionIcon(heading?: number | string | null): string {
-  const deg = Number(heading ?? 0)
-
-  if (Number.isNaN(deg)) return '/cars/bus/run.png'
-
-  const normalized = ((deg % 360) + 360) % 360
-
-  if (normalized >= 337.5 || normalized < 22.5) return '/cars/bus/run-n.png'
-  if (normalized < 67.5) return '/cars/bus/run-en.png'
-  if (normalized < 112.5) return '/cars/bus/run-e.png'
-  if (normalized < 157.5) return '/cars/bus/run-es.png'
-  if (normalized < 202.5) return '/cars/bus/run-s.png'
-  if (normalized < 247.5) return '/cars/bus/run-ws.png'
-  if (normalized < 292.5) return '/cars/bus/run-w.png'
-  return '/cars/bus/run-wn.png'
-}
-
 function createVehicleStyle(vehicle: Vehicle, isSelected = false): Style {
   const color = getVehicleColor(vehicle.status)
   // const icon_path = vehicle.
@@ -244,14 +396,15 @@ function renderVehicles() {
   })
 }
 
-function changeProvider() {
-  if (!map) return
+function changeLayer() {
+  if (!map || !baseLayer) return
 
-  const nextLayer = createBaseLayer(selectedProvider.value)
-  map.getLayers().setAt(0, nextLayer)
-  baseLayer = nextLayer
+  const source = createTileSource(selectedProvider.value, selectedLayer.value)
 
-  saveMapProvider(selectedProvider.value)
+  baseLayer.setSource(source)
+  source.refresh()
+
+  console.log('LAYER CHANGED', selectedProvider.value, selectedLayer.value)
 }
 
 // 🔥 focus + popup
@@ -259,8 +412,8 @@ function focusVehicle(vehicleId?: string | null) {
   if (!map || !vehicleSource || !vehicleId) return
 
   const feature = vehicleSource.getFeatures().find((f) => {
-    const v = f.get('vehicle') as Vehicle | undefined
-    return v ? getVehicleKey(v) === vehicleId : false
+    const vehicle = f.get('vehicle') as Vehicle | undefined
+    return vehicle ? getVehicleKey(vehicle) === vehicleId : false
   })
 
   if (!feature) return
@@ -269,6 +422,7 @@ function focusVehicle(vehicleId?: string | null) {
   if (!geometry) return
 
   const vehicle = feature.get('vehicle') as Vehicle
+
   selectedVehicle.value = vehicle
   popupOverlay?.setPosition(geometry.getCoordinates())
 
@@ -279,72 +433,109 @@ function focusVehicle(vehicleId?: string | null) {
   })
 }
 
-onMounted(async () => {
-  await nextTick()
+function zoomIn() {
+  if (!map) return
 
-  if (!mapEl.value) return
+  const view = map.getView()
+  const zoom = view.getZoom() ?? 6
 
-  baseLayer = createBaseLayer(selectedProvider.value)
-  vehicleSource = new VectorSource()
-
-  const vehicleLayer = new VectorLayer({
-    source: vehicleSource,
+  view.animate({
+    zoom: zoom + 1,
+    duration: 200,
   })
+}
 
-  map = new Map({
-    target: mapEl.value,
-    layers: [baseLayer, vehicleLayer],
-    view: new View({
-      center: fromLonLat([100.5018, 13.7563]),
-      zoom: 6,
-    }),
+function zoomOut() {
+  if (!map) return
+
+  const view = map.getView()
+  const zoom = view.getZoom() ?? 6
+
+  view.animate({
+    zoom: zoom - 1,
+    duration: 200,
   })
+}
 
-  // 🔥 init popup
-  if (popupEl.value) {
-    popupOverlay = new Overlay({
-      element: popupEl.value,
-      positioning: 'bottom-center',
-      offset: [0, -20],
-    })
+function fitAllVehicles() {
+  if (!map || !vehicleSource) return
 
-    map.addOverlay(popupOverlay)
-  }
+  const coordinates = vehicleSource
+      .getFeatures()
+      .map((feature) => feature.getGeometry()?.getCoordinates())
+      .filter((item): item is number[] => Array.isArray(item))
 
-  // 🔥 click marker
-  map.on('singleclick', (event) => {
-    let found = false
+  if (!coordinates.length) return
 
-    map?.forEachFeatureAtPixel(event.pixel, (feature) => {
-      const vehicle = feature.get('vehicle') as Vehicle
-
-      if (vehicle) {
-        selectedVehicle.value = vehicle
-        popupOverlay?.setPosition(event.coordinate)
-        emit('vehicle-click', vehicle)
-        found = true
-      }
-    })
-
-    if (!found) {
-      selectedVehicle.value = null
-      popupOverlay?.setPosition(undefined)
-    }
+  map.getView().fit(boundingExtent(coordinates), {
+    padding: [80, 80, 80, 80],
+    duration: 500,
+    maxZoom: 15,
   })
+}
 
-  renderVehicles()
-})
+function formatDriverName(value?: string | null): string {
+  if (!value) return '-'
 
-watch(() => props.vehicles, renderVehicles, { deep: true })
+  const parts = value.split('$')
+
+  const lastname = parts[0]?.replace('^', '').trim() || ''
+  const firstname = parts[1]?.trim() || ''
+  const prefix = parts[2]?.trim() || ''
+
+  return [prefix, firstname, lastname].filter(Boolean).join(' ') || '-'
+}
+
+function formatDriverLicense(value?: string | null): string {
+  return value?.trim() || '-'
+}
 
 watch(
     () => props.focusVehicleId,
     async (vehicleId) => {
       await nextTick()
       renderVehicles()
-      focusVehicle(vehicleId)
+
+      if (vehicleId) {
+        focusVehicle(vehicleId)
+      }
     }
 )
+
+watch(
+    () => props.vehicles,
+    async () => {
+      await nextTick()
+      renderVehicles()
+
+      if (props.focusVehicleId && followVehicle.value) {
+        focusVehicle(props.focusVehicleId)
+      }
+    },
+    { deep: true }
+)
+
+watch(selectedLayer, () => {
+  changeLayer()
+})
+
+watch(
+    () => auth.config?.mapApi,
+    () => {
+      if (!map) return
+
+      const nextLayer = createBaseLayer(selectedProvider.value, selectedLayer.value)
+
+      map.getLayers().setAt(0, nextLayer)
+      baseLayer = nextLayer
+    }
+)
+
+watch(selectedProvider, (provider) => {
+  if (provider === 'longdo') {
+    selectedLayer.value = 'default'
+  }
+})
 
 onBeforeUnmount(() => {
   if (map) {
@@ -352,6 +543,8 @@ onBeforeUnmount(() => {
     map = null
   }
 })
+
+
 </script>
 
 <style scoped>
@@ -376,6 +569,23 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
+.map-provider-label {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 20;
+
+  font-size: 11px;
+  color: #cbd5f5;
+
+  background: rgba(15, 23, 42, 0.7);
+  padding: 4px 8px;
+  border-radius: 6px;
+
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
 .popup-title {
   font-weight: 700;
   margin-bottom: 6px;
@@ -392,12 +602,41 @@ onBeforeUnmount(() => {
   top: 16px;
   right: 16px;
   z-index: 20;
-  width: 230px;
+  width: 150px;
   padding: 10px;
   border-radius: 14px;
   background: rgba(15, 23, 42, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(14px);
+}
+
+.map-actions {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-actions button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+}
+
+.map-actions button:hover,
+.map-actions button.active {
+  background: #22c55e;
+  color: #052e16;
 }
 
 </style>

@@ -12,69 +12,184 @@ class TrackingController extends Controller
     public function current(Request $request)
     {
         $user = $request->attributes->get('auth_user');
-        $groupId = (int) $request->query('group_id', -1);
         $connection = $request->attributes->get('gps_connection');
 
         if (!$connection) {
             return response()->json([
                 'message' => 'Unsupported GPS server',
-                'server_name' => $user->server_name,
+                'server_name' => $user->server_name ?? null,
             ], 400);
         }
 
-//        echo "user: $user->login\n";
+        $page = max((int) $request->query('page', 1), 1);
+        $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
+        $offset = ($page - 1) * $perPage;
+
+        $groupId = (int) $request->query('group_id', -1);
+        $keyword = $request->query('search');
+
+        $sortBy = (string) $request->query('sort_by', 'plate_no');
+        $sortDir = strtolower((string) $request->query('sort_dir', 'asc')) === 'desc'
+            ? 'desc'
+            : 'asc';
+
+        $allowedSort = [
+            'plate_no' => 'plate_no',
+            'gps_time' => 'date_sort',
+            'time' => 'date_sort',
+            'speed' => 'speed',
+            'fuel_left' => 'fuel_left',
+            'fuel' => 'fuel_left',
+            'status' => 'status',
+        ];
+
+        $sortColumn = $allowedSort[$sortBy] ?? 'plate_no';
+
+        $statusMap = [
+            'running' => 1,
+            'idle' => 2,
+            'parking' => 3,
+            'offline' => 4,
+            'no_gps' => 5,
+        ];
+
+        $statusQuery = $request->query('status');
+        $status = $statusQuery !== null && $statusQuery !== ''
+            ? ($statusMap[$statusQuery] ?? -1)
+            : -1;
 
         DB::purge($connection);
         DB::reconnect($connection);
+
         $pdo = DB::connection($connection)->getPdo();
 
         $stmt = $pdo->prepare("
             CALL sp_current_track_kw5(?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ");
+        ");
 
         $stmt->execute([
             $user->login,
             $groupId,
-            'plate_no',
-            'asc',
-            null,
+            $sortColumn,
+            $sortDir,
+            $keyword,
             0,
-            -1,
-            0,
-            100,
+            $status,
+            $offset,
+            $perPage,
         ]);
 
         $rows = $stmt->fetchAll(\PDO::FETCH_OBJ);
-
         $stmt->closeCursor();
 
+        $countStmt = $pdo->prepare("
+            CALL sp_current_track_count(?, ?, ?, ?)
+        ");
 
-//        return response()->json([
-//            'count' => count($rows),
-//            'locations' => $rows,
-//        ]);
+        $countStmt->execute([
+            $user->login,
+            $groupId,
+            $keyword,
+            0,
+        ]);
+
+        $countRows = $countStmt->fetchAll(\PDO::FETCH_OBJ);
+        $countStmt->closeCursor();
+
+        $total = 0;
+
+        if (!empty($countRows)) {
+            $total = (int) (
+                $countRows[0]->total ??
+                $countRows[0]->count ??
+                $countRows[0]->total_count ??
+                0
+            );
+        }
+
+        $vehicles = collect($rows)->map(function ($row) {
+            return [
+                'imei' => $row->imei,
+                'plate_no' => $row->plate_no,
+                'lat' => (float) $row->lat,
+                'lng' => (float) $row->lng,
+                'speed' => (float) $row->speed,
+                'gps_time' => $row->date_sort,
+                'received_time' => $row->received_date,
+                'status' => $this->resolveStatus($row),
+                'heading' => (int) ($row->heading ?? 0),
+                'fuel_left' => (float) ($row->fuel_left ?? 0),
+                'icon_path' => $row->icon_path ?? '',
+                'icon' => $row->icon_path ?? 'bus',
+                'driver_name' => $row->driver_name ?? null,
+                'driver_phone' => $row->driver_phone ?? null,
+                'acc_on' => $this->resolveAcc($row),
+                'sequen_no' => isset($row->sequen_no) ? (int) $row->sequen_no : null,
+                'dlt_synch' => $row->dlt_synch,
+                'track1' => $row->track1 ?? null,
+                'track3' => $row->track3 ?? null,
+            ];
+        })->values();
 
         return response()->json([
-            'vehicles' => collect($rows)->map(function ($row) {
-                return [
-                    'imei' => $row->imei,
-                    'plate_no' => $row->plate_no,
-                    'lat' => (float) $row->lat,
-                    'lng' => (float) $row->lng,
-                    'speed' => (float) $row->speed,
-                    'gps_time' => $row->date_sort,
-                    'received_time' => $row->received_date,
-                    'status' => $this->resolveStatus($row),
-                    'heading' => (int) ($row->heading ?? 0),
-                    'fuel_left' => (float) ($row->fuel_left ?? 0),
-                    'icon_path' => $row->icon_path ?? '',
-                    'driver_name' => $row->track1,
-                    'driver_license_no' => $row->track3,
-                    'acc_on' => $this->resolveAcc($row),
-                    'sequen_no' => isset($row->sequen_no) ? (int) $row->sequen_no : null,
-                    'icon' => $row->icon_path,
-                ];
-            })->values(),
+            'vehicles' => $vehicles,
+            'meta' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+                'has_next_page' => $page * $perPage < $total,
+                'sort_by' => $sortBy,
+                'sort_dir' => $sortDir,
+                'group_id' => $groupId,
+                'status' => $statusQuery,
+                'search' => $keyword,
+            ],
+        ]);
+    }
+
+    public function groups(Request $request)
+    {
+        $connection = $request->attributes->get('gps_connection');
+        $authUser = $request->attributes->get('auth_user');
+
+        $customerId = (int) $request->query('customer_id');
+
+        $gpsUser = DB::connection($connection)
+            ->table('user')
+            ->where('login', $authUser->login)
+            ->first();
+
+        if (!$gpsUser) {
+            return response()->json([
+                'message' => 'GPS user not found',
+            ], 404);
+        }
+
+        $allowedCustomerIds = DB::connection($connection)
+            ->table('customer_user')
+            ->where('user_user_id', $gpsUser->user_id)
+            ->pluck('customer_customer_id')
+            ->toArray();
+
+        if (!in_array($customerId, $allowedCustomerIds)) {
+            return response()->json([
+                'message' => 'Unauthorized customer_id',
+            ], 403);
+        }
+
+        $groups = DB::connection($connection)
+            ->table('customer_group')
+            ->where('customer_id', $customerId)
+            ->select([
+                'customer_group_id as id',
+                'customer_group_name as name',
+            ])
+            ->orderBy('customer_group_name')
+            ->get();
+
+        return response()->json([
+            'groups' => $groups,
         ]);
     }
 
@@ -110,29 +225,16 @@ class TrackingController extends Controller
         }
 
         try {
-            // ✅ บังคับ timezone ไทย
             $receivedTime = Carbon::parse($receivedTimeRaw, 'Asia/Bangkok');
             $now = now('Asia/Bangkok');
 
-            $diffMinutes = $receivedTime->diffInMinutes($now);
-
-            // 🔥 debug ดูค่าจริง
-            // logger()->info("GPS TIME DIFF", [
-            //     'received' => $receivedTime,
-            //     'now' => $now,
-            //     'diff' => $diffMinutes
-            // ]);
-
-            // ✅ offline ถ้าเกิน 30 นาที
-            if ($diffMinutes > 30) {
+            if ($receivedTime->diffInMinutes($now) > 30) {
                 return 'offline';
             }
-
         } catch (\Exception $e) {
             return 'offline';
         }
 
-        // 🚗 logic ปกติ
         if ($speed > 5) {
             return 'running';
         }
@@ -142,54 +244,5 @@ class TrackingController extends Controller
         }
 
         return 'parking';
-    }
-
-    public function groups(Request $request)
-    {
-        $connection = $request->attributes->get('gps_connection');
-        $authUser = $request->attributes->get('auth_user');
-
-        // 👉 รับจาก frontend
-        $customerId = (int) $request->query('customer_id');
-
-        // 🔥 ตรวจสิทธิ์ user ก่อน (สำคัญมาก)
-        $gpsUser = DB::connection($connection)
-            ->table('user')
-            ->where('login', $authUser->login)
-            ->first();
-
-        if (!$gpsUser) {
-            return response()->json([
-                'message' => 'GPS user not found',
-            ], 404);
-        }
-
-        $allowedCustomerIds = DB::connection($connection)
-            ->table('customer_user')
-            ->where('user_user_id', $gpsUser->user_id)
-            ->pluck('customer_customer_id')
-            ->toArray();
-
-        // ❌ ถ้าไม่มีสิทธิ์
-        if (!in_array($customerId, $allowedCustomerIds)) {
-            return response()->json([
-                'message' => 'Unauthorized customer_id',
-            ], 403);
-        }
-
-        // ✅ query group ตาม customer_id
-        $groups = DB::connection($connection)
-            ->table('customer_group')
-            ->where('customer_id', $customerId)
-            ->select([
-                'customer_group_id as id',
-                'customer_group_name as name',
-            ])
-            ->orderBy('customer_group_name')
-            ->get();
-
-        return response()->json([
-            'groups' => $groups,
-        ]);
     }
 }
