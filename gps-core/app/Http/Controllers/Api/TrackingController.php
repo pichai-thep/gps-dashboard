@@ -9,6 +9,15 @@ use Illuminate\Support\Facades\DB;
 
 class TrackingController extends Controller
 {
+    private const DEFAULT_STATUS_COUNTS = [
+        'running' => 0,
+        'start' => 0,
+        'acc_on' => 0,
+        'parking' => 0,
+        'no_gps' => 0,
+        'offline' => 0,
+    ];
+
     public function current(Request $request)
     {
         $user = $request->attributes->get('auth_user');
@@ -27,112 +36,71 @@ class TrackingController extends Controller
 
         $groupId = (int) $request->query('group_id', -1);
         $keyword = $request->query('search');
+        $statusQuery = $request->query('status');
 
         $sortBy = (string) $request->query('sort_by', 'plate_no');
         $sortDir = strtolower((string) $request->query('sort_dir', 'asc')) === 'desc'
             ? 'desc'
             : 'asc';
 
-        $allowedSort = [
-            'plate_no' => 'plate_no',
-            'gps_time' => 'date_sort',
-            'time' => 'date_sort',
-            'speed' => 'speed',
-            'fuel_left' => 'fuel_left',
-            'fuel' => 'fuel_left',
-            'status' => 'status',
-        ];
-
-        $sortColumn = $allowedSort[$sortBy] ?? 'plate_no';
-
-//        -- 0=null, 1:off-line, 2=gps-v, 3=park, 4=acc-on, 5=start, 6=run
-        $statusMap = [
-
-            'offline' => 1,
-            'no_gps' => 2,
-            'parking' => 3,
-            'acc_on' => 4,
-            'start' => 5,
-            'running' => 6,
-        ];
-
-        $statusQuery = $request->query('status');
-        $status = $statusQuery !== null && $statusQuery !== ''
-            ? ($statusMap[$statusQuery] ?? -1)
-            : -1;
+        $sortColumn = $this->resolveSortColumn($sortBy);
 
         DB::purge($connection);
         DB::reconnect($connection);
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare("
-            CALL sp_current_track_kw5(?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-
-        $stmt->execute([
+        $rows = $this->fetchCurrentRows(
+            $pdo,
             $user->login,
             $groupId,
             $sortColumn,
             $sortDir,
             $keyword,
-            null,
-            $status,
-            $offset,
-            $perPage,
-        ]);
-
-        $rows = $stmt->fetchAll(\PDO::FETCH_OBJ);
-        $stmt->closeCursor();
-
-        $countStmt = $pdo->prepare("
-            CALL sp_current_track_count(?, ?, ?, ?)
-        ");
-
-        $countStmt->execute([
-            $user->login,
-            $groupId,
-            $keyword,
+            -1,
             0,
-        ]);
+            100000
+        );
 
-        $countRows = $countStmt->fetchAll(\PDO::FETCH_OBJ);
-        $countStmt->closeCursor();
+        $allVehicles = collect($rows)
+            ->map(fn ($row) => $this->transformVehicle($row))
+            ->values();
 
-        $total = 0;
+        $statusCounts = self::DEFAULT_STATUS_COUNTS;
 
-        if (!empty($countRows)) {
-            $total = (int) (
-                $countRows[0]->total ??
-                $countRows[0]->count ??
-                $countRows[0]->total_count ??
-                0
-            );
+        foreach ($allVehicles as $vehicle) {
+            $status = $vehicle['status'];
+
+            if (array_key_exists($status, $statusCounts)) {
+                $statusCounts[$status]++;
+            }
         }
 
-        $vehicles = collect($rows)->map(function ($row) {
-            return [
-                'imei' => $row->imei,
-                'plate_no' => $row->plate_no,
-                'lat' => (float) $row->lat,
-                'lng' => (float) $row->lng,
-                'speed' => (float) $row->speed,
-                'gps_time' => $row->date_sort,
-                'received_time' => $row->received_date,
-                'status' => $this->resolveStatus($row),
-                'heading' => (int) ($row->heading ?? 0),
-                'fuel_left' => (float) ($row->fuel_left ?? 0),
-                'icon_path' => $row->icon_path ?? '',
-                'icon' => $row->icon_path ?? 'bus',
-                'driver_name' => $row->driver_name ?? null,
-                'driver_phone' => $row->driver_phone ?? null,
-                'acc_state' => $this->resolveAcc($row),
-                'sequen_no' => isset($row->sequen_no) ? (int) $row->sequen_no : null,
-                'dlt_synch' => $row->dlt_synch,
-                'track1' => $row->track1 ?? null,
-                'track3' => $row->track3 ?? null,
-            ];
-        })->values();
+        $filteredVehicles = $allVehicles;
+
+        if ($statusQuery !== null && $statusQuery !== '') {
+            $filteredVehicles = $allVehicles
+                ->filter(fn ($vehicle) => $vehicle['status'] === $statusQuery)
+                ->values();
+        }
+
+        $total = $filteredVehicles->count();
+
+        $noDriverCard = (int) $request->query('no_driver_card', 0);
+
+        if ($noDriverCard === 1) {
+            $filteredVehicles = $filteredVehicles
+                ->filter(fn ($vehicle) =>
+                    (int) ($vehicle['dlt_synch'] ?? 0) === 1 &&
+                    (float) ($vehicle['speed'] ?? 0) > 0 &&
+                    ($vehicle['driver_status'] ?? '') === 'missing'
+                )
+                ->values();
+        }
+
+        $vehicles = $filteredVehicles
+            ->slice($offset, $perPage)
+            ->values();
 
         return response()->json([
             'vehicles' => $vehicles,
@@ -147,6 +115,7 @@ class TrackingController extends Controller
                 'group_id' => $groupId,
                 'status' => $statusQuery,
                 'search' => $keyword,
+                'status_counts' => $statusCounts,
             ],
         ]);
     }
@@ -196,6 +165,80 @@ class TrackingController extends Controller
         ]);
     }
 
+    private function fetchCurrentRows(
+        \PDO $pdo,
+        string $login,
+        int $groupId,
+        string $sortColumn,
+        string $sortDir,
+        ?string $keyword,
+        int $status,
+        int $offset,
+        int $perPage
+    ): array {
+        $stmt = $pdo->prepare("
+            CALL sp_current_track_kw5(?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute([
+            $login,
+            $groupId,
+            $sortColumn,
+            $sortDir,
+            $keyword,
+            null,
+            $status,
+            $offset,
+            $perPage,
+        ]);
+
+        $rows = $stmt->fetchAll(\PDO::FETCH_OBJ);
+        $stmt->closeCursor();
+
+        return $rows;
+    }
+
+    private function transformVehicle($row): array
+    {
+        return [
+            'imei' => $row->imei,
+            'plate_no' => $row->plate_no,
+            'lat' => (float) $row->lat,
+            'lng' => (float) $row->lng,
+            'speed' => (float) $row->speed,
+            'gps_time' => $row->date_sort,
+            'received_time' => $row->received_date,
+            'status' => $this->resolveStatus($row),
+            'heading' => (int) ($row->heading ?? 0),
+            'fuel_left' => (float) ($row->fuel_left ?? 0),
+            'icon_path' => $row->icon_path ?? '',
+            'icon' => $row->icon_path ?? 'bus',
+            'driver_name' => $row->driver_name ?? null,
+            'driver_phone' => $row->driver_phone ?? null,
+            'driver_status' => $this->resolveDriverStatus($row),
+            'acc_state' => $this->resolveAcc($row),
+            'sequen_no' => isset($row->sequen_no) ? (int) $row->sequen_no : null,
+            'dlt_synch' => $row->dlt_synch,
+            'track1' => $row->track1 ?? null,
+            'track3' => $row->track3 ?? null,
+        ];
+    }
+
+    private function resolveSortColumn(string $sortBy): string
+    {
+        $allowedSort = [
+            'plate_no' => 'plate_no',
+            'gps_time' => 'date_sort',
+            'time' => 'date_sort',
+            'speed' => 'speed',
+            'fuel_left' => 'fuel_left',
+            'fuel' => 'fuel_left',
+            'status' => 'status',
+        ];
+
+        return $allowedSort[$sortBy] ?? 'plate_no';
+    }
+
     private function resolveAcc($row): bool
     {
         $state = $row->state ?? null;
@@ -211,15 +254,37 @@ class TrackingController extends Controller
         ], true);
     }
 
+    private function resolveDriverStatus($row): string
+    {
+        $dltSynch = (int) ($row->dlt_synch ?? 0);
+        $track1 = trim((string) ($row->track1 ?? ''));
+        $track3 = trim((string) ($row->track3 ?? ''));
+
+        if ($dltSynch === 0) {
+            return 'hide';
+        }
+
+        if ($track1 !== '' && $track3 === '') {
+            return 'no_license';
+        }
+
+        if ($track3 !== '') {
+            return 'ok';
+        }
+
+        return 'missing';
+    }
+
     private function resolveStatus($row): string
     {
         $speed = (float) ($row->speed ?? 0);
         $gpsStatus = strtoupper((string) ($row->gps_status ?? ''));
         $isAccOn = $this->resolveAcc($row);
-        $engine_volt = $row->engine_volt ?? 0;
-        $ext_power = $row->ext_power ?? 0;
+        $engineVolt = (float) ($row->engine_volt ?? 0);
+        $extPower = (float) ($row->ext_power ?? 0);
 
         $receivedTimeRaw = $row->received_date ?? null;
+
         try {
             $receivedTime = Carbon::parse($receivedTimeRaw, 'Asia/Bangkok');
             $now = now('Asia/Bangkok');
@@ -235,19 +300,18 @@ class TrackingController extends Controller
             return 'no_gps';
         }
 
-        if ($isAccOn) {
-            if ($speed > 0) {
-                return 'start';
-            }else{
-                if ($ext_power > $engine_volt){
-                    return 'start';
-                }else {
-                    return 'acc_on';
-                }
-            }
-        }else{
+        if (!$isAccOn) {
             return 'parking';
         }
 
+        if ($speed > 0) {
+            return 'running';
+        }
+
+        if ($extPower > $engineVolt) {
+            return 'start';
+        }
+
+        return 'acc_on';
     }
 }

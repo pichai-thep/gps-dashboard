@@ -12,9 +12,50 @@
 
         <h2>Current Tracking</h2>
         <p>{{ mapVehicles.length }} / {{ totalRecords }} vehicles on map</p>
+
+        <div class="summary-row">
+          <button
+              v-for="item in statusSummaryItems"
+              :key="item.value"
+              type="button"
+              class="summary-item"
+              :class="[item.value, { active: statusFilter === item.value }]"
+              @click="loadByStatus(item.value)"
+          >
+            {{ item.label }} {{ statusCount[item.value] }}
+          </button>
+
+          <button
+              type="button"
+              class="summary-item no-driver-card"
+              :class="{ active: noDriverCardFilter }"
+              @click="toggleNoDriverCardFilter"
+          >
+            ไม่ได้รูดบัตร {{ noDriverCardCount }}
+          </button>
+        </div>
+
       </div>
 
       <div class="control-bar">
+        <Dropdown
+            v-model="selectedGroupId"
+            :options="groupOptions"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Group"
+        />
+
+        <Dropdown
+            :modelValue="statusFilter"
+            :options="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Status"
+            showClear
+            @update:modelValue="setStatusAndLoad"
+        />
+
         <Dropdown
             v-model="refreshInterval"
             :options="refreshOptions"
@@ -23,26 +64,9 @@
             placeholder="Interval"
         />
 
-        <Dropdown
-            v-model="selectedGroupId"
-            :options="groupOptions"
-            optionLabel="name"
-            optionValue="id"
-            placeholder="All Group"
-        />
-
-        <Dropdown
-            v-model="statusFilter"
-            :options="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Status"
-            showClear
-        />
-
         <InputText
             v-model="search"
-            placeholder="Search plate/imei"
+            placeholder="search"
             class="search-input"
         />
 
@@ -67,6 +91,7 @@
 
       <DataTable
           :value="vehicles"
+          :rowClass="getRowClass"
           lazy
           paginator
           :rows="perPage"
@@ -77,46 +102,39 @@
           scrollHeight="calc(100vh - 390px)"
           class="vehicle-table"
           selectionMode="single"
+          tableStyle="width: 100%; table-layout: fixed;"
           @row-click="onRowClick"
           @page="onPage"
       >
-        <Column header="#" style="width: 44px">
+        <Column header="#" style="width: 36px">
           <template #body="slotProps">
             {{ (page - 1) * perPage + slotProps.index + 1 }}
           </template>
         </Column>
 
-        <Column header="Status" style="width: 60px">
+        <Column header="Status" style="width: 105px">
           <template #body="slotProps">
             <i
                 :class="[
-                'pi',
                 getStatusIcon(slotProps.data.status),
                 'status-icon',
                 slotProps.data.status,
               ]"
-            ></i>
-            {{slotProps.data.status}}
-          </template>
-        </Column>
+                :style="getStatusIconStyle(slotProps.data.status, slotProps.data.heading)"
+                v-tooltip="slotProps.data.status"
+            />
 
-        <Column header="" style="width: 50px">
-          <template #body="slotProps">
-            <template v-if="getDriverCardStatus(slotProps.data) !== 'hide'">
+            {{ slotProps.data.status }}
 
+            <template v-if="getDriverStatus(slotProps.data) !== 'hide'">
               <i
                   :class="[
-                    'pi',
-                    getDriverCardStatus(slotProps.data) === 'ok'
-                      ? 'pi-id-card driver-ok'
-                      : 'pi-id-card driver-missing'
-                  ]"
-                  v-tooltip="
-                getDriverCardStatus(slotProps.data) === 'ok'
-                  ? 'รูดบัตรแล้ว'
-                  : 'ยังไม่รูดบัตร'
-              "
-              ></i>
+                  'pi',
+                  getDriverIcon(getDriverStatus(slotProps.data)),
+                  getDriverClass(getDriverStatus(slotProps.data)),
+                ]"
+                  v-tooltip="getDriverTooltip(getDriverStatus(slotProps.data))"
+              />
             </template>
           </template>
         </Column>
@@ -125,31 +143,49 @@
           <template #body="slotProps">
             <div class="plate-cell">
               <strong>{{ slotProps.data.plate_no }}</strong>
+
               <span class="time-cell">
                 Speed: {{ slotProps.data.speed ?? 0 }} km/h
-                <br>Fuel: {{ formatFuel(slotProps.data.fuel_left) }}
+                <br />
+                Fuel: {{ formatFuel(slotProps.data.fuel_left) }}
               </span>
             </div>
           </template>
         </Column>
 
-        <Column header="GPSTime" style="width: 110px">
+        <Column header="GPSTime" style="width: 90px">
           <template #body="slotProps">
-            <div class="time-cell">
+            <div class="time-cell-gps">
               {{ formatGpsTimeCompact(slotProps.data.gps_time) }}
             </div>
           </template>
         </Column>
 
+<!--        <Column header="" style="width: 56px; min-width: 56px; text-align: center">-->
+<!--          <template #body="slotProps">-->
+<!--            <div class="eye-cell">-->
+<!--              <Button-->
+<!--                  text-->
+<!--                  rounded-->
+<!--                  size="small"-->
+<!--                  :icon="isVehicleVisible(slotProps.data) ? 'pi pi-eye' : 'pi pi-eye-slash'"-->
+<!--                  @click.stop="toggleVehicleVisible(slotProps.data)"-->
+<!--              />-->
+<!--            </div>-->
+<!--          </template>-->
+<!--        </Column>-->
+
         <Column header="" style="width: 44px">
           <template #body="slotProps">
-            <Button
-                text
-                rounded
-                size="small"
-                :icon="isVehicleVisible(slotProps.data) ? 'pi pi-eye' : 'pi pi-eye-slash'"
-                @click.stop="toggleVehicleVisible(slotProps.data)"
-            />
+            <div class="eye-cell">
+              <Button
+                  text
+                  rounded
+                  size="small"
+                  :icon="isVehicleVisible(slotProps.data) ? 'pi pi-eye' : 'pi pi-eye-slash'"
+                  @click.stop="toggleVehicleVisible(slotProps.data)"
+              />
+            </div>
           </template>
         </Column>
       </DataTable>
@@ -176,48 +212,30 @@ import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 
 import FleetMap from '@/components/FleetMap.vue'
+import { getCurrentTracking, getVehicleGroups, type VehicleGroup } from '@/services/tracking'
 import { useAuthStore } from '@/stores/auth'
-import {
-  getCurrentTracking,
-  getVehicleGroups,
-  type VehicleGroup,
-} from '@/services/tracking'
 import type { Vehicle, VehicleStatus } from '@/types/fleet'
+
+type StatusCount = Record<VehicleStatus, number>
+const noDriverCardFilter = ref(false)
+type DriverStatus = 'ok' | 'missing' | 'no_license' | 'hide'
 
 const auth = useAuthStore()
 
-const vehicles = ref<Vehicle[]>([])
-const selectedVehicleId = ref<string | null>(null)
-
-const selectedGroupId = ref<number | string>(-1)
-const statusFilter = ref<string | null>(null)
-const refreshInterval = ref(30_000)
-const search = ref('')
-
-const page = ref(1)
-const perPage = ref(20)
-const totalRecords = ref(0)
-
-const sortBy = ref('plate_no')
-const sortDir = ref<'asc' | 'desc'>('asc')
-
-const loading = ref(false)
-const error = ref<string | null>(null)
-const hiddenVehicleKeys = ref<Set<string>>(new Set())
-
-let pollingTimer: number | null = null
-let searchTimer: number | null = null
-let isLoading = false
+const defaultStatusCount: StatusCount = {
+  running: 0,
+  start: 0,
+  acc_on: 0,
+  parking: 0,
+  no_gps: 0,
+  offline: 0,
+}
 
 const refreshOptions = [
   { label: '10 sec', value: 10_000 },
   { label: '30 sec', value: 30_000 },
   { label: '1 min', value: 60_000 },
 ]
-
-const groupOptions = ref<VehicleGroup[]>([
-  { id: -1, name: 'All Group' },
-])
 
 const statusOptions = [
   { label: 'Running', value: 'running' },
@@ -227,6 +245,21 @@ const statusOptions = [
   { label: 'No GPS', value: 'no_gps' },
   { label: 'Offline', value: 'offline' },
 ]
+
+const statusSummaryItems = [
+  { label: 'Running', value: 'running' },
+  { label: 'Start', value: 'start' },
+  { label: 'ACC', value: 'acc_on' },
+  { label: 'Parking', value: 'parking' },
+  { label: 'No GPS', value: 'no_gps' },
+  { label: 'Offline', value: 'offline' },
+] as const
+
+const driverSummaryItems = [
+  { label: 'OK', value: 'ok' },
+  { label: 'No License', value: 'no_license' },
+  { label: 'Missing', value: 'missing' },
+] as const
 
 const sortOptions = [
   { label: 'Plate', value: 'plate_no' },
@@ -241,10 +274,60 @@ const sortDirOptions = [
   { label: 'DESC', value: 'desc' },
 ]
 
+const vehicles = ref<Vehicle[]>([])
+const groupOptions = ref<VehicleGroup[]>([{ id: -1, name: 'All Group' }])
+
+const selectedVehicleId = ref<string | null>(null)
+const selectedGroupId = ref<number | string>(-1)
+const statusFilter = ref<VehicleStatus | null>(null)
+const driverFilter = ref<DriverStatus | null>(null)
+
+const refreshInterval = ref(30_000)
+const search = ref('')
+
+const page = ref(1)
+const perPage = ref(20)
+const totalRecords = ref(0)
+
+const sortBy = ref('plate_no')
+const sortDir = ref<'asc' | 'desc'>('asc')
+
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+const statusCount = ref<StatusCount>({ ...defaultStatusCount })
+const hiddenVehicleKeys = ref<Set<string>>(new Set())
+
+let pollingTimer: number | null = null
+let searchTimer: number | null = null
+let isLoading = false
+
 const mapVehicles = computed(() => {
   return vehicles.value.filter((vehicle) => {
     return !hiddenVehicleKeys.value.has(getVehicleKey(vehicle))
   })
+})
+
+const noDriverCardCount = computed(() => {
+  return vehicles.value.filter(isNoDriverCard).length
+})
+
+const driverCount = computed(() => {
+  const counts = {
+    ok: 0,
+    no_license: 0,
+    missing: 0,
+  }
+
+  for (const vehicle of vehicles.value) {
+    const status = getDriverStatus(vehicle)
+
+    if (status === 'ok' || status === 'no_license' || status === 'missing') {
+      counts[status]++
+    }
+  }
+
+  return counts
 })
 
 async function loadVehicles() {
@@ -260,6 +343,7 @@ async function loadVehicles() {
       per_page: perPage.value,
       group_id: selectedGroupId.value,
       status: statusFilter.value,
+      no_driver_card: noDriverCardFilter.value ? 1 : null,
       search: search.value,
       sort_by: sortBy.value,
       sort_dir: sortDir.value,
@@ -267,10 +351,12 @@ async function loadVehicles() {
 
     vehicles.value = response.vehicles
     totalRecords.value = response.meta.total
+    statusCount.value = response.meta.status_counts ?? { ...defaultStatusCount }
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'โหลดข้อมูลไม่ได้'
     vehicles.value = []
     totalRecords.value = 0
+    statusCount.value = { ...defaultStatusCount }
   } finally {
     isLoading = false
     loading.value = false
@@ -294,6 +380,27 @@ async function loadGroups() {
   }
 }
 
+function resetListState() {
+  page.value = 1
+  selectedVehicleId.value = null
+}
+
+function setStatusAndLoad(status: VehicleStatus | null) {
+  statusFilter.value = status
+  resetListState()
+  loadVehicles()
+}
+
+function loadByStatus(status: VehicleStatus) {
+  setStatusAndLoad(statusFilter.value === status ? null : status)
+}
+
+function loadByDriver(status: DriverStatus) {
+  driverFilter.value = driverFilter.value === status ? null : status
+  resetListState()
+  loadVehicles()
+}
+
 function startPolling() {
   if (pollingTimer) {
     window.clearInterval(pollingTimer)
@@ -311,6 +418,21 @@ function onPage(event: any) {
   perPage.value = event.rows
   loadVehicles()
 }
+
+function isNoDriverCard(vehicle: any): boolean {
+  return (
+      Number(vehicle.dlt_synch ?? 0) === 1 &&
+      Number(vehicle.speed ?? 0) > 0 &&
+      getDriverStatus(vehicle) === 'missing'
+  )
+}
+
+function toggleNoDriverCardFilter() {
+  noDriverCardFilter.value = !noDriverCardFilter.value
+  resetListState()
+  loadVehicles()
+}
+
 
 function onRowClick(event: { data: Vehicle }) {
   selectVehicle(event.data)
@@ -341,6 +463,64 @@ function toggleVehicleVisible(vehicle: Vehicle) {
   hiddenVehicleKeys.value = next
 }
 
+function getRowClass(vehicle: Vehicle) {
+  return {
+    'selected-vehicle-row': selectedVehicleId.value === getVehicleKey(vehicle),
+  }
+}
+
+function getStatusIcon(status: VehicleStatus) {
+  return {
+    running: 'pi pi-arrow-circle-up',
+    start: 'pi pi-arrow-circle-up',
+    acc_on: 'pi pi-key',
+    parking: 'pi pi-stop-circle',
+    no_gps: 'pi pi-exclamation-circle',
+    offline: 'pi pi-exclamation-triangle',
+  }[status] || 'pi pi-circle'
+}
+
+function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
+  const shouldRotate = status === 'running' || status === 'start'
+
+  return {
+    transform: shouldRotate && heading != null
+        ? `rotate(${Number(heading)}deg)`
+        : undefined,
+  }
+}
+
+function getDriverStatus(vehicle: any): DriverStatus {
+  return vehicle.driver_status ?? 'hide'
+}
+
+function getDriverIcon(status: DriverStatus): string {
+  return {
+    ok: 'pi-id-card',
+    missing: 'pi-id-card',
+    no_license: 'pi-exclamation-circle',
+    hide: '',
+  }[status]
+}
+
+function getDriverClass(status: DriverStatus): string {
+  return {
+    ok: 'driver-ok',
+    missing: 'driver-missing',
+    no_license: 'driver-no-license',
+    hide: '',
+  }[status]
+}
+
+function getDriverTooltip(status: DriverStatus): string {
+  return {
+    ok: 'รูดบัตรแล้ว',
+    missing: 'ยังไม่รูดบัตร',
+    no_license: 'ไม่มีใบขับขี่',
+    hide: '',
+  }[status]
+}
+
 function formatGpsTimeCompact(value?: string | null): string {
   if (!value) return '-'
 
@@ -358,39 +538,14 @@ function formatGpsTimeCompact(value?: string | null): string {
 
 function formatFuel(value?: number | string | null): string {
   if (value === null || value === undefined || value === '') return '-'
+
   return `${value}%`
 }
 
-function getStatusIcon(status: VehicleStatus) {
-  return {
-    running: 'pi-play-circle',
-    start: 'pi-pause-circle',   // เหลือง
-    acc_on: 'pi-key',          // ส้ม
-    parking: 'pi-stop-circle',
-    offline: 'pi-times-circle',
-    no_gps: 'pi-exclamation-circle',
-  }[status] || 'pi-circle'
-}
-
-function getDriverCardStatus(vehicle: any): 'ok' | 'missing' | 'hide' {
-  const dlt_synch = Number(vehicle.dlt_synch ?? 0)
-  const track3 = String(vehicle.track3 ?? '').trim()
-
-  if (dlt_synch === 0) return 'hide'
-
-  if (dlt_synch === 1 && track3.length > 0) return 'ok'
-
-  return 'missing'
-}
-
-watch(
-    [selectedGroupId, statusFilter, sortBy, sortDir],
-    () => {
-      page.value = 1
-      selectedVehicleId.value = null
-      loadVehicles()
-    }
-)
+watch([selectedGroupId, sortBy, sortDir], () => {
+  resetListState()
+  loadVehicles()
+})
 
 watch(search, () => {
   if (searchTimer) {
@@ -398,8 +553,7 @@ watch(search, () => {
   }
 
   searchTimer = window.setTimeout(() => {
-    page.value = 1
-    selectedVehicleId.value = null
+    resetListState()
     loadVehicles()
   }, 300)
 })
@@ -427,8 +581,6 @@ onBeforeUnmount(() => {
     window.clearTimeout(searchTimer)
   }
 })
-
-
 </script>
 
 <style scoped>
@@ -452,6 +604,11 @@ onBeforeUnmount(() => {
   background: #111827;
 }
 
+.panel-header {
+  padding: 16px 22px 14px;
+  overflow: visible;
+}
+
 .panel-header h2 {
   margin: 0;
   color: #fff;
@@ -468,7 +625,7 @@ onBeforeUnmount(() => {
 .control-bar {
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: 100px 1fr 120px;
+  grid-template-columns: 1fr 140px 100px;
   gap: 10px;
   padding: 12px;
   background: #0b1220;
@@ -478,20 +635,19 @@ onBeforeUnmount(() => {
 .search-input,
 .sort-filter,
 .sort-dir-filter {
-  min-width: 0;
   width: 100%;
 }
 
 .search-input {
-  grid-column: 1 / -1;
+  grid-column: 1;
 }
 
 .sort-filter {
-  grid-column: 1 / 3;
+  grid-column: 2;
 }
 
 .sort-dir-filter {
-  grid-column: 3 / 4;
+  grid-column: 3;
 }
 
 .vehicle-table {
@@ -503,7 +659,14 @@ onBeforeUnmount(() => {
 .plate-cell {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  min-width: 0;
+}
+
+.plate-cell strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .plate-cell small {
@@ -512,23 +675,234 @@ onBeforeUnmount(() => {
 }
 
 .time-cell {
-  width: 90px;
-  color: #334155;
   font-size: 12px;
+  color: #64748b;
   line-height: 1.25;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;   /* 👈 จำกัด 2 บรรทัด */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.time-cell-gps {
+  font-size: 12px;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.status-summary,
+.driver-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+
+.eye-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eye-cell :deep(.p-button) {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.eye-cell :deep(.p-button .pi) {
+  font-size: 16px;
+}
+
+.summary-item {
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.summary-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+.summary-item.active {
+  outline: 3px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
+.summary-item:not(.active) {
+  opacity: 0.9;
+}
+
+.summary-item.running {
+  background: #16a34a;
+}
+
+.summary-item.start {
+  background: #eab308;
+}
+
+.summary-item.acc_on {
+  background: #f97316;
+}
+
+.summary-item.parking {
+  background: #6b7280;
+}
+
+.summary-item.no_gps {
+  background: #2563eb;
+}
+
+.summary-item.offline {
+  background: #ef4444;
+}
+
+.summary-item.ok {
+  background: #22c55e;
+}
+
+.summary-item.no_license {
+  background: #f59e0b;
+}
+
+.summary-item.missing {
+  background: #ef4444;
 }
 
 .status-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 18px;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
+  font-weight: 500;
+  line-height: 1;
+  filter: saturate(1.35) contrast(1.2) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  transition: transform 0.15s ease;
 }
 
-.status-icon.running { color: #22c55e; }   /* เขียว */
-.status-icon.start { color: #facc15; }     /* เหลือง */
-.status-icon.acc_on { color: #f97316; }    /* ส้ม 🔥 */
-.status-icon.parking { color: #64748b; }   /* เทา */
-.status-icon.no_gps { color: #3b82f6; }    /* น้ำเงิน */
-.status-icon.offline { color: #ef4444; }   /* แดง */
+.status-icon.running {
+  color: #22c55e;
+}
+
+.status-icon.start {
+  color: #aa9000;
+}
+
+.status-icon.acc_on {
+  color: #f97316;
+}
+
+.status-icon.parking {
+  color: #64748b;
+}
+
+.status-icon.no_gps {
+  color: #3b82f6;
+}
+
+.status-icon.offline {
+  color: #ef4444;
+}
+
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.summary-item.no-driver-card {
+  background: #ef4444;
+}
+
+.vehicle-table {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.plate-cell {
+  min-width: 0;
+}
+
+.plate-cell strong {
+  word-break: break-word;
+  line-height: 1.15;
+}
+
+:deep(.p-datatable-table-container) {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+:deep(.p-datatable-table) {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+:deep(.p-datatable-thead > tr > th),
+:deep(.p-datatable-tbody > tr > td) {
+  overflow: visible;
+}
+
+.time-cell {
+  width: auto;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plate-cell {
+  min-width: 0;
+}
+
+.plate-cell strong {
+  display: block;
+  max-width: 100%;
+  word-break: break-word;
+  line-height: 1.15;
+}
+
+.time-cell {
+  width: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:deep(.p-datatable-tbody > tr > td:last-child) {
+  padding-right: 8px;
+}
+
+:deep(.p-button .pi) {
+  font-size: 16px;
+}
+
+:deep(.selected-vehicle-row) {
+  background: #ecfdf5 !important;
+}
+
+:deep(.selected-vehicle-row td) {
+  border-top: 1px solid #22c55e !important;
+  border-bottom: 1px solid #22c55e !important;
+}
 
 .map-area {
   min-width: 0;
@@ -537,14 +911,15 @@ onBeforeUnmount(() => {
 }
 
 .driver-ok {
-  color: #22c55e; /* เขียว */
+  color: #22c55e;
 }
 
 .driver-missing {
-  color: #ef4444; /* แดง */
+  color: #ef4444;
 }
 
-:deep(.p-datatable-table-container) {
-  overflow-y: auto !important;
+.driver-no-license {
+  color: #f59e0b;
 }
+
 </style>

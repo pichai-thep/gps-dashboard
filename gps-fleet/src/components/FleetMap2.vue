@@ -96,23 +96,6 @@
         <strong>{{ formatDriverLicense(selectedVehicle?.track3) }}</strong>
       </div>
 
-      <div class="popup-row">
-        <span>Address</span>
-
-        <button
-            v-if="!selectedAddress"
-            type="button"
-            class="address-link"
-            :disabled="addressLoading"
-            @click.stop="loadSelectedAddress"
-        >
-          {{ addressLoading ? 'Loading...' : 'Show address' }}
-        </button>
-      </div>
-
-      <div v-if="selectedAddress" class="popup-address">
-        {{ selectedAddress }}
-      </div>
 
     </div>
   </div>
@@ -192,10 +175,6 @@ const popupEl = ref<HTMLDivElement | null>(null)
 const selectedVehicle = ref<Vehicle | null>(null)
 let popupOverlay: Overlay | null = null
 
-const addressLoading = ref(false)
-const selectedAddress = ref<string | null>(null)
-const addressCache = ref<Record<string, string>>({})
-
 function resolveMapProvider(value?: string | null): MapProviderKey {
   const mapApi = String(value || '').toLowerCase()
   if (mapApi === '' ) return 'osm'
@@ -264,7 +243,7 @@ onMounted(async () => {
       if (vehicle) {
         followVehicle.value = true
         selectedVehicle.value = vehicle
-        selectedAddress.value = null
+
         if (showPopup.value) {
           popupOverlay?.setPosition(event.coordinate)
         }
@@ -332,6 +311,10 @@ function getVehicleColor(status: VehicleStatus): string {
     no_gps: '#3b82f6',    // น้ำเงิน ✅ แก้
     offline: '#ef4444',   // แดง
   }[status] || '#64748b'
+}
+
+function getVehicleKey(vehicle: Vehicle): string {
+  return String(vehicle.vehicle_id || vehicle.id || vehicle.plate_no)
 }
 
 
@@ -475,7 +458,6 @@ function focusVehicle(vehicleId?: string | null) {
   const coords = geometry.getCoordinates()
 
   selectedVehicle.value = vehicle
-  selectedAddress.value = null
 
   if (showPopup.value) {
     popupOverlay?.setPosition(coords)
@@ -572,71 +554,6 @@ function togglePopup() {
       popupOverlay?.setPosition(geometry.getCoordinates())
     }
   }
-}
-
-function getVehicleKey(vehicle: Vehicle): string {
-  return String(vehicle.vehicle_id || vehicle.id || vehicle.plate_no)
-}
-
-async function loadSelectedAddress() {
-  if (!selectedVehicle.value) return
-
-  const vehicle = selectedVehicle.value
-  const lat = Number(vehicle.lat)
-  const lon = Number(vehicle.lng)
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    selectedAddress.value = 'ไม่พบพิกัด'
-    return
-  }
-
-  const cacheKey = `${lat},${lon}`
-
-  if (addressCache.value[cacheKey]) {
-    selectedAddress.value = addressCache.value[cacheKey]
-    return
-  }
-
-  const key =
-      auth.config?.mapApi_key ||
-      import.meta.env.VITE_LONGDOMAP_API_KEY
-
-  if (!key) {
-    selectedAddress.value = 'ไม่ได้ตั้งค่า Longdo API Key'
-    return
-  }
-
-  try {
-    addressLoading.value = true
-
-    const url = `https://api.longdo.com/map/services/address?lon=${lon}&lat=${lat}&noelevation=1&key=${key}`
-
-    const response = await fetch(url)
-    const data = await response.json()
-
-    const address = formatLongdoAddress(data)
-
-    addressCache.value[cacheKey] = address
-    selectedAddress.value = address
-  } catch (e) {
-    selectedAddress.value = 'โหลดที่อยู่ไม่สำเร็จ'
-  } finally {
-    addressLoading.value = false
-  }
-}
-
-function formatLongdoAddress(data: any): string {
-  return [
-    data.aoi,
-    data.road,
-    data.subdistrict,
-    data.district,
-    data.province,
-    data.postcode,
-    data.country,
-  ]
-      .filter(Boolean)
-      .join(' ')
 }
 
 watch(
@@ -786,28 +703,6 @@ onBeforeUnmount(() => {
 .map-actions button.active {
   background: #22c55e;
   color: #052e16;
-}
-
-.address-link {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: #60a5fa;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.address-link:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.popup-address {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  color: #e5e7eb;
-  line-height: 1.35;
 }
 
 </style>

@@ -41,6 +41,7 @@ export type FeatureFlags = {
 export type AppConfig = {
     fuelUnit?: string | null
     mapApi?: string | null
+    mapApi_key?: string | null
     showInfoWindow?: boolean
 }
 
