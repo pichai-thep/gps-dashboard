@@ -174,8 +174,7 @@
     </div>
 
     <div class="map-panel">
-      <FleetMap
-          mode="history"
+      <HistoryMap
           :history-points="rows"
           :focus-history-index="selectedHistoryIndex"
       />
@@ -187,7 +186,7 @@
 import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
-import FleetMap from '@/components/FleetMap.vue'
+import HistoryMap from '@/components/maps/HistoryMap.vue'
 
 import {
   getHistoryTracking,

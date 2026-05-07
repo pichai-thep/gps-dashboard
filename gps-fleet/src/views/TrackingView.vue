@@ -192,7 +192,7 @@
     </aside>
 
     <section class="map-area">
-      <FleetMap
+      <TrackingMap
           :vehicles="mapVehicles"
           :focus-vehicle-id="selectedVehicleId"
           @vehicle-click="selectVehicle"
@@ -211,7 +211,7 @@ import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 
-import FleetMap from '@/components/FleetMap.vue'
+import TrackingMap from '@/components/maps/TrackingMap.vue'
 import { getCurrentTracking, getVehicleGroups, type VehicleGroup } from '@/services/tracking'
 import { useAuthStore } from '@/stores/auth'
 import type { Vehicle, VehicleStatus } from '@/types/fleet'
@@ -458,6 +458,10 @@ function toggleVehicleVisible(vehicle: Vehicle) {
     next.delete(key)
   } else {
     next.add(key)
+
+    if (selectedVehicleId.value === key) {
+      selectedVehicleId.value = null
+    }
   }
 
   hiddenVehicleKeys.value = next
