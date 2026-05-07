@@ -6,10 +6,7 @@
       {{ providerLabel }}
     </div>
 
-    <div
-        v-if="selectedProvider === 'google'"
-        class="map-control"
-    >
+    <div class="map-control" v-if="selectedProvider == 'google'">
       <Dropdown
           v-model="selectedLayer"
           :options="layerOptions"
@@ -20,15 +17,10 @@
     </div>
 
     <div class="map-actions">
-      <button title="Zoom in" type="button" @click.stop="zoomIn">
-        +
-      </button>
+      <button title="Zoom in" type="button" @click.stop="zoomIn">+</button>
+      <button title="Zoom out" type="button" @click.stop="zoomOut">−</button>
 
-      <button title="Zoom out" type="button" @click.stop="zoomOut">
-        −
-      </button>
-
-      <button title="Fit map" type="button" @click.stop="fitMap">
+      <button type="button" @click.stop="fitMap" title="Fit map">
         <i class="pi pi-map-marker"></i>
       </button>
 
@@ -43,6 +35,7 @@
       </button>
 
       <button
+          v-if="mode !== 'history'"
           title="Show Popup"
           type="button"
           :class="{ active: showPopup }"
@@ -52,63 +45,54 @@
       </button>
     </div>
 
-    <div
-        ref="popupEl"
-        class="map-popup"
-        v-show="showPopup && popupData"
-    >
+    <div ref="popupEl" class="map-popup" v-show="showPopup && selectedVehicle">
       <div class="popup-title">
-        {{ popupData?.plate_no }}
+        {{ selectedVehicle?.plate_no }}
       </div>
 
       <div class="popup-row">
         <span>IMEI</span>
-        <strong>{{ popupData?.imei ?? '-' }}</strong>
+        <strong>{{ selectedVehicle?.imei }}</strong>
+      </div>
+
+      <div class="popup-row">
+        <span>acc_state</span>
+        <strong>{{ selectedVehicle?.acc_state }}</strong>
       </div>
 
       <div class="popup-row">
         <span>Status</span>
-        <strong>{{ popupData?.status ?? '-' }}</strong>
+        <strong>{{ selectedVehicle?.status }}</strong>
       </div>
 
       <div class="popup-row">
         <span>Speed</span>
-        <strong>{{ popupData?.speed ?? 0 }} km/h</strong>
+        <strong>{{ selectedVehicle?.speed ?? 0 }} km/h</strong>
       </div>
 
       <div class="popup-row">
-        <span>Heading</span>
-        <strong>{{ popupData?.heading ?? '-' }}</strong>
-      </div>
-
-      <div class="popup-row">
-        <span>ACC</span>
-        <strong>{{ popupData?.acc_state ?? '-' }}</strong>
-      </div>
-
-      <div class="popup-row">
-        <span>Fuel</span>
-        <strong>{{ popupData?.fuel_left ?? '-' }}</strong>
+        <span>Fuel left(%)</span>
+        <strong>{{ selectedVehicle?.fuel_left ?? '-' }}</strong>
       </div>
 
       <div class="popup-row">
         <span>GPS Time</span>
-        <strong>{{ popupData?.gps_time ?? '-' }}</strong>
+        <strong>{{ selectedVehicle?.gps_time ?? '-' }}</strong>
       </div>
 
       <div class="popup-row">
         <span>Updated</span>
-        <strong>{{ popupData?.received_time ?? '-' }}</strong>
+        <strong>{{ selectedVehicle?.received_time ?? '-' }}</strong>
       </div>
 
-      <div v-if="mode !== 'history'" class="popup-row">
+      <div class="popup-row">
         <span>ชื่อ</span>
-        <strong>{{ formatDriverName(popupData?.track1) }}</strong>
+        <strong>{{ formatDriverName(selectedVehicle?.track1) }}</strong>
       </div>
 
-      <div v-if="mode !== 'history'" class="popup-row">
+      <div class="popup-row">
         <span>ใบขับขี่</span>
-        <strong>{{ formatDriverLicense(popupData?.track3) }}</strong>
+        <strong>{{ formatDriverLicense(selectedVehicle?.track3) }}</strong>
       </div>
 
       <div class="popup-row">
@@ -133,15 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from 'vue'
-
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Dropdown from 'primevue/dropdown'
 
 import Map from 'ol/Map'
@@ -153,13 +129,13 @@ import XYZ from 'ol/source/XYZ'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
 import LineString from 'ol/geom/LineString'
-import Overlay from 'ol/Overlay'
-
 import { fromLonLat } from 'ol/proj'
 import { boundingExtent } from 'ol/extent'
 import { defaults as defaultControls } from 'ol/control'
+import Overlay from 'ol/Overlay'
 
 import {
+  Circle as CircleStyle,
   Fill,
   Icon,
   Stroke,
@@ -176,49 +152,19 @@ import {
   type MapProviderKey,
 } from '@/config/mapProviders'
 
-import type {
-  Vehicle,
-  VehicleStatus,
-} from '@/types/fleet'
+import type { Vehicle, VehicleStatus } from '@/types/fleet'
 
 type HistoryPoint = {
   lat?: number | string
   lng?: number | string
   latitude?: number | string
   longitude?: number | string
-
   speed?: number | string
-
   course?: number | string
   heading?: number | string
-  direction?: number | string
-  angle?: number | string
-  degree?: number | string
-
   gps_time?: string
   gps_datetime?: string
-  data_date?: string
-  server_time?: string
-  received_time?: string
-
   status?: string | number
-
-  plate_no?: string
-  imei?: string
-
-  state?: number | string
-  gps_status?: string
-
-  acc?: string | number | boolean
-  acc_state?: string | number | boolean
-
-  fuel?: number | string
-  fuel_per?: number | string
-  fuel_left?: number | string
-}
-
-type PopupData = Partial<Vehicle> & {
-  heading?: number | string
 }
 
 const props = withDefaults(
@@ -227,14 +173,12 @@ const props = withDefaults(
       historyPoints?: HistoryPoint[]
       mode?: 'current' | 'history'
       focusVehicleId?: string | null
-      focusHistoryIndex?: number | null
     }>(),
     {
       vehicles: () => [],
       historyPoints: () => [],
       mode: 'current',
       focusVehicleId: null,
-      focusHistoryIndex: null,
     }
 )
 
@@ -245,15 +189,16 @@ const emit = defineEmits<{
 const auth = useAuthStore()
 
 const mapEl = ref<HTMLDivElement | null>(null)
-const popupEl = ref<HTMLDivElement | null>(null)
 
 let map: Map | null = null
 let baseLayer: TileLayer<XYZ> | null = null
+
 let vehicleSource: VectorSource | null = null
 let historySource: VectorSource | null = null
-let popupOverlay: Overlay | null = null
 
-const popupData = ref<PopupData | null>(null)
+const popupEl = ref<HTMLDivElement | null>(null)
+const selectedVehicle = ref<Vehicle | null>(null)
+let popupOverlay: Overlay | null = null
 
 const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
@@ -262,11 +207,11 @@ const addressCache = ref<Record<string, string>>({})
 const followVehicle = ref(true)
 const showPopup = ref(true)
 
-const selectedLayer = ref<MapLayerType>('default')
-
 const selectedProvider = computed<MapProviderKey>(() => {
   return resolveMapProvider(auth.config?.mapApi)
 })
+
+const selectedLayer = ref<MapLayerType>('default')
 
 const layerOptions = computed(() => {
   if (selectedProvider.value === 'longdo') {
@@ -292,10 +237,7 @@ onMounted(async () => {
 
   if (!mapEl.value) return
 
-  baseLayer = createBaseLayer(
-      selectedProvider.value,
-      selectedLayer.value
-  )
+  baseLayer = createBaseLayer(selectedProvider.value, selectedLayer.value)
 
   vehicleSource = new VectorSource()
   historySource = new VectorSource()
@@ -310,19 +252,16 @@ onMounted(async () => {
 
   map = new Map({
     target: mapEl.value,
-
     controls: defaultControls({
       zoom: false,
       rotate: false,
       attribution: false,
     }),
-
     layers: [
       baseLayer,
       historyLayer,
       vehicleLayer,
     ],
-
     view: new View({
       center: fromLonLat([100.5018, 13.7563]),
       zoom: 6,
@@ -339,7 +278,33 @@ onMounted(async () => {
     map.addOverlay(popupOverlay)
   }
 
-  map.on('singleclick', handleMapClick)
+  map.on('singleclick', (event) => {
+    if (props.mode === 'history') return
+
+    let found = false
+
+    map?.forEachFeatureAtPixel(event.pixel, (feature) => {
+      const vehicle = feature.get('vehicle') as Vehicle
+
+      if (vehicle) {
+        followVehicle.value = true
+        selectedVehicle.value = vehicle
+        selectedAddress.value = null
+
+        if (showPopup.value) {
+          popupOverlay?.setPosition(event.coordinate)
+        }
+
+        emit('vehicle-click', vehicle)
+        found = true
+      }
+    })
+
+    if (!found) {
+      selectedVehicle.value = null
+      popupOverlay?.setPosition(undefined)
+    }
+  })
 
   if (props.mode === 'history') {
     renderHistory()
@@ -347,78 +312,6 @@ onMounted(async () => {
     renderVehicles()
   }
 })
-
-function handleMapClick(event: any) {
-  if (!map) return
-
-  if (props.mode === 'history') {
-    handleHistoryClick(event)
-    return
-  }
-
-  handleVehicleClick(event)
-}
-
-function handleHistoryClick(event: any) {
-  if (!map) return
-
-  let found = false
-
-  map.forEachFeatureAtPixel(event.pixel, (feature) => {
-    const history = feature.get('history') as HistoryPoint | undefined
-
-    if (!history) return
-
-    const geometry = feature.getGeometry()
-
-    if (!(geometry instanceof Point)) return
-
-    showHistoryPopup(
-        history,
-        geometry.getCoordinates()
-    )
-
-    found = true
-  })
-
-  if (!found) {
-    closePopup()
-  }
-}
-
-function handleVehicleClick(event: any) {
-  if (!map) return
-
-  let found = false
-
-  map.forEachFeatureAtPixel(event.pixel, (feature) => {
-    const vehicle = feature.get('vehicle') as Vehicle | undefined
-
-    if (!vehicle) return
-
-    popupData.value = vehicle
-    selectedAddress.value = null
-    followVehicle.value = true
-
-    if (showPopup.value) {
-      popupOverlay?.setPosition(event.coordinate)
-    }
-
-    emit('vehicle-click', vehicle)
-
-    found = true
-  })
-
-  if (!found) {
-    closePopup()
-  }
-}
-
-function closePopup() {
-  popupData.value = null
-  selectedAddress.value = null
-  popupOverlay?.setPosition(undefined)
-}
 
 function resolveMapProvider(value?: string | null): MapProviderKey {
   const mapApi = String(value || '').toLowerCase()
@@ -431,13 +324,8 @@ function resolveMapProvider(value?: string | null): MapProviderKey {
   return DEFAULT_MAP_PROVIDER
 }
 
-function createTileSource(
-    providerKey: MapProviderKey,
-    layer: MapLayerType
-): XYZ {
-  const provider =
-      mapProviders[providerKey] ||
-      mapProviders[DEFAULT_MAP_PROVIDER]
+function createTileSource(providerKey: MapProviderKey, layer: MapLayerType): XYZ {
+  const provider = mapProviders[providerKey] || mapProviders[DEFAULT_MAP_PROVIDER]
 
   const url =
       typeof provider.url === 'function'
@@ -451,10 +339,7 @@ function createTileSource(
   })
 }
 
-function createBaseLayer(
-    providerKey: MapProviderKey,
-    layer: MapLayerType
-): TileLayer<XYZ> {
+function createBaseLayer(providerKey: MapProviderKey, layer: MapLayerType): TileLayer<XYZ> {
   return new TileLayer({
     source: createTileSource(providerKey, layer),
   })
@@ -492,7 +377,6 @@ function getDirectionName(heading?: number | string | null): string {
   if (normalized < 202.5) return 'run-s'
   if (normalized < 247.5) return 'run-ws'
   if (normalized < 292.5) return 'run-w'
-
   return 'run-wn'
 }
 
@@ -519,10 +403,7 @@ function getVehicleIcon(vehicle: Vehicle): string {
   }
 }
 
-function createVehicleStyle(
-    vehicle: Vehicle,
-    isSelected = false
-): Style {
+function createVehicleStyle(vehicle: Vehicle, isSelected = false): Style {
   const color = getVehicleColor(vehicle.status)
 
   return new Style({
@@ -568,11 +449,86 @@ function renderVehicles() {
         Boolean(props.focusVehicleId) &&
         getVehicleKey(vehicle) === props.focusVehicleId
 
-    feature.setStyle(
-        createVehicleStyle(vehicle, isSelected)
-    )
+    feature.setStyle(createVehicleStyle(vehicle, isSelected))
 
     vehicleSource?.addFeature(feature)
+  })
+}
+
+function getHistoryLatLng(point: HistoryPoint) {
+  const lat = Number(point.lat ?? point.latitude)
+  const lng = Number(point.lng ?? point.longitude)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null
+  }
+
+  if (lat === 0 || lng === 0) {
+    return null
+  }
+
+  return { lat, lng }
+}
+
+function createHistoryPointStyle(point: HistoryPoint, index: number, total: number): Style {
+  const heading = Number(point.heading ?? point.course ?? 0)
+
+  if (index === 0) {
+    return new Style({
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: '#22c55e' }),
+        stroke: new Stroke({
+          color: '#ffffff',
+          width: 2,
+        }),
+      }),
+      text: new Text({
+        text: 'START',
+        offsetY: -18,
+        font: '700 11px system-ui',
+        fill: new Fill({ color: '#ffffff' }),
+        stroke: new Stroke({
+          color: '#020617',
+          width: 4,
+        }),
+      }),
+    })
+  }
+
+  if (index === total - 1) {
+    return new Style({
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: '#ef4444' }),
+        stroke: new Stroke({
+          color: '#ffffff',
+          width: 2,
+        }),
+      }),
+      text: new Text({
+        text: 'END',
+        offsetY: -18,
+        font: '700 11px system-ui',
+        fill: new Fill({ color: '#ffffff' }),
+        stroke: new Stroke({
+          color: '#020617',
+          width: 4,
+        }),
+      }),
+    })
+  }
+
+  return new Style({
+    image: new Icon({
+      src: '/icons/history-arrow.svg',
+      scale: 0.8,
+      anchor: [0.5, 0.5],
+      rotation:
+          Number.isFinite(heading)
+              ? (heading * Math.PI) / 180
+              : 0,
+    }),
   })
 }
 
@@ -580,7 +536,6 @@ function renderHistory() {
   if (!historySource) return
 
   historySource.clear()
-  closePopup()
 
   const points = props.historyPoints || []
 
@@ -626,7 +581,6 @@ function renderHistory() {
     const feature = new Feature({
       geometry: new Point(coordinate),
       history: point,
-      historyIndex: index,
     })
 
     feature.setStyle(
@@ -640,190 +594,15 @@ function renderHistory() {
     historySource?.addFeature(feature)
   })
 
-  map?.getView().fit(
-      boundingExtent(coordinates),
-      {
-        padding: [70, 70, 70, 70],
-        duration: 500,
-        maxZoom: 16,
-      }
-  )
-}
-
-function getHistoryLatLng(point: HistoryPoint) {
-  const lat = Number(point.lat ?? point.latitude)
-  const lng = Number(point.lng ?? point.longitude)
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return null
-  }
-
-  if (lat === 0 || lng === 0) {
-    return null
-  }
-
-  return { lat, lng }
-}
-
-function getHistoryHeading(point: HistoryPoint): number {
-  const heading = Number(
-      point.heading ??
-      point.course ??
-      point.direction ??
-      point.angle ??
-      point.degree ??
-      0
-  )
-
-  if (!Number.isFinite(heading)) {
-    return 0
-  }
-
-  return heading
-}
-
-function getHistoryStatusLabel(point: HistoryPoint): string {
-  const state = Number(point.state ?? 0)
-  const speed = Number(point.speed ?? 0)
-  const gpsStatus = String(point.gps_status ?? '').toUpperCase()
-
-  if (gpsStatus === 'V') return 'No GPS'
-  if (state === 1 && speed > 0) return 'Running'
-  if (state === 1 && speed <= 0) return 'Start'
-  if (state === 0) return 'Parking'
-
-  return String(point.status ?? '-')
-}
-
-function getHistoryColor(point: HistoryPoint): string {
-  const state = Number(point.state ?? 0)
-  const speed = Number(point.speed ?? 0)
-  const gpsStatus = String(point.gps_status ?? '').toUpperCase()
-
-  // gps_status = V => no_gps สีน้ำเงิน
-  if (gpsStatus === 'V') {
-    return '#3b82f6'
-  }
-
-  // state = 1 และ speed > 0 => running สีเขียว
-  if (state === 1 && speed > 0) {
-    return '#22c55e'
-  }
-
-  // state = 1 และ speed <= 0 => start สีเหลือง
-  if (state === 1 && speed <= 0) {
-    return '#eab308'
-  }
-
-  // state = 0 => parking สีแดง
-  if (state === 0) {
-    return '#ef4444'
-  }
-
-  return '#64748b'
-}
-
-function createArrowSvg(color: string): string {
-  const svg = `
-    <svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="21" cy="21" r="16" fill="${color}" stroke="#020617" stroke-width="3"/>
-      <path d="M21 6 L31 29 L21 23 L11 29 Z" fill="#ffffff"/>
-    </svg>
-  `
-
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-}
-
-function createHistoryPointStyle(
-    point: HistoryPoint,
-    index: number,
-    total: number
-): Style {
-  const heading = getHistoryHeading(point)
-  const color = getHistoryColor(point)
-
-  const isStart = index === 0
-  const isEnd = index === total - 1
-
-  return new Style({
-
-    // image: new Icon({
-    //   src: createArrowSvg(color),
-    //   scale: isStart || isEnd ? 1 : 0.82,
-    //   anchor: [0.5, 0.5],
-    //   rotation: (heading * Math.PI) / 180,
-    // }),
-    image: new Icon({
-      src: createArrowSvg(color),
-      scale: isStart || isEnd ? 0.62 : 0.6,
-      anchor: [0.5, 0.5],
-      rotation: (heading * Math.PI) / 180,
-    }),
-
-    text:
-        isStart || isEnd
-            ? new Text({
-              text: isStart ? 'START' : 'END',
-              offsetY: -24,
-              font: '700 11px system-ui',
-              fill: new Fill({ color: '#ffffff' }),
-              stroke: new Stroke({
-                color: '#020617',
-                width: 4,
-              }),
-            })
-            : undefined,
-  })
-}
-
-function showHistoryPopup(
-    point: HistoryPoint,
-    coordinate: number[]
-) {
-  const latLng = getHistoryLatLng(point)
-
-  popupData.value = {
-    vehicle_id: 'history',
-    plate_no: point.plate_no ?? 'History Point',
-    imei: point.imei ?? '-',
-
-    status: getHistoryStatusLabel(point),
-    speed: Number(point.speed ?? 0),
-    heading: getHistoryHeading(point),
-
-    gps_time:
-        point.gps_time ??
-        point.data_date ??
-        point.gps_datetime ??
-        '-',
-
-    received_time:
-        point.server_time ??
-        point.received_time ??
-        point.gps_time ??
-        point.data_date ??
-        point.gps_datetime ??
-        '-',
-
-    lat: latLng?.lat,
-    lng: latLng?.lng,
-
-    acc_state:
-        point.acc_state ??
-        point.acc ??
-        '-',
-
-    fuel_left:
-        point.fuel_left ??
-        point.fuel ??
-        point.fuel_per ??
-        '-',
-  } as PopupData
-
-  selectedAddress.value = null
-
-  if (showPopup.value) {
-    popupOverlay?.setPosition(coordinate)
+  if (map) {
+    map.getView().fit(
+        boundingExtent(coordinates),
+        {
+          padding: [70, 70, 70, 70],
+          duration: 500,
+          maxZoom: 16,
+        }
+    )
   }
 }
 
@@ -841,15 +620,7 @@ function fitHistory() {
 
   const coordinates = historySource
       .getFeatures()
-      .map((feature) => {
-        const geometry = feature.getGeometry()
-
-        if (geometry instanceof Point) {
-          return geometry.getCoordinates()
-        }
-
-        return null
-      })
+      .map((feature) => feature.getGeometry()?.getCoordinates())
       .filter((item): item is number[] => Array.isArray(item))
 
   if (!coordinates.length) return
@@ -884,77 +655,46 @@ function fitAllVehicles() {
   )
 }
 
+function changeLayer() {
+  if (!map || !baseLayer) return
+
+  const source = createTileSource(selectedProvider.value, selectedLayer.value)
+
+  baseLayer.setSource(source)
+  source.refresh()
+}
+
 function focusVehicle(vehicleId?: string | null) {
   if (props.mode === 'history') return
   if (!map || !vehicleSource || !vehicleId) return
 
   const feature = vehicleSource.getFeatures().find((f) => {
-    const vehicle = f.get('vehicle') as Vehicle | undefined
-    return vehicle ? getVehicleKey(vehicle) === vehicleId : false
+    const v = f.get('vehicle') as Vehicle | undefined
+    return v ? getVehicleKey(v) === vehicleId : false
   })
 
   if (!feature) return
 
   const geometry = feature.getGeometry()
-
   if (!(geometry instanceof Point)) return
 
   const vehicle = feature.get('vehicle') as Vehicle | undefined
-
   if (!vehicle) return
 
-  const coordinate = geometry.getCoordinates()
+  const coords = geometry.getCoordinates()
 
-  popupData.value = vehicle
+  selectedVehicle.value = vehicle
   selectedAddress.value = null
 
   if (showPopup.value) {
-    popupOverlay?.setPosition(coordinate)
+    popupOverlay?.setPosition(coords)
   }
 
   map.getView().animate({
-    center: coordinate,
+    center: coords,
     zoom: 16,
     duration: 400,
   })
-}
-
-function focusHistoryPoint(index: number) {
-  if (props.mode !== 'history') return
-  if (!map || !historySource) return
-
-  const feature = historySource
-      .getFeatures()
-      .find((item) => item.get('historyIndex') === index)
-
-  if (!feature) return
-
-  const geometry = feature.getGeometry()
-
-  if (!(geometry instanceof Point)) return
-
-  const coordinate = geometry.getCoordinates()
-  const history = feature.get('history') as HistoryPoint
-
-  showHistoryPopup(history, coordinate)
-
-  map.getView().animate({
-    center: coordinate,
-    zoom: 17,
-    duration: 300,
-  })
-}
-
-function changeLayer() {
-  if (!map || !baseLayer) return
-
-  const source = createTileSource(
-      selectedProvider.value,
-      selectedLayer.value
-  )
-
-  baseLayer.setSource(source)
-  source.refresh()
 }
 
 function zoomIn() {
@@ -981,6 +721,30 @@ function zoomOut() {
   })
 }
 
+function cleanDriverText(value?: string | null): string {
+  return String(value || '')
+      .replace(/\^/g, ' ')
+      .replace(/%/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+}
+
+function formatDriverName(value?: string | null): string {
+  if (!value) return '-'
+
+  const parts = value.split('$').map(cleanDriverText)
+
+  const lastname = parts[0] || ''
+  const firstname = parts[1] || ''
+  const prefix = parts[2] || ''
+
+  return [prefix, firstname, lastname].filter(Boolean).join(' ') || '-'
+}
+
+function formatDriverLicense(value?: string | null): string {
+  return value?.trim() || '-'
+}
+
 function togglePopup() {
   showPopup.value = !showPopup.value
 
@@ -989,47 +753,17 @@ function togglePopup() {
     return
   }
 
-  if (!popupData.value) return
-
-  if (props.mode === 'history') {
-    const gpsTime = String(popupData.value.gps_time ?? '')
-
-    const feature = historySource?.getFeatures().find((item) => {
-      const history = item.get('history') as HistoryPoint | undefined
-
-      if (!history) return false
-
-      const historyTime = String(
-          history.gps_time ??
-          history.data_date ??
-          history.gps_datetime ??
-          ''
-      )
-
-      return historyTime === gpsTime
+  if (selectedVehicle.value) {
+    const feature = vehicleSource?.getFeatures().find((f) => {
+      const vehicle = f.get('vehicle') as Vehicle | undefined
+      return vehicle ? getVehicleKey(vehicle) === getVehicleKey(selectedVehicle.value!) : false
     })
 
     const geometry = feature?.getGeometry()
 
-    if (geometry instanceof Point) {
+    if (geometry) {
       popupOverlay?.setPosition(geometry.getCoordinates())
     }
-
-    return
-  }
-
-  const feature = vehicleSource?.getFeatures().find((item) => {
-    const vehicle = item.get('vehicle') as Vehicle | undefined
-
-    if (!vehicle) return false
-
-    return getVehicleKey(vehicle) === getVehicleKey(popupData.value as Vehicle)
-  })
-
-  const geometry = feature?.getGeometry()
-
-  if (geometry instanceof Point) {
-    popupOverlay?.setPosition(geometry.getCoordinates())
   }
 }
 
@@ -1038,10 +772,11 @@ function getVehicleKey(vehicle: Vehicle): string {
 }
 
 async function loadSelectedAddress() {
-  if (!popupData.value) return
+  if (!selectedVehicle.value) return
 
-  const lat = Number(popupData.value.lat)
-  const lon = Number(popupData.value.lng)
+  const vehicle = selectedVehicle.value
+  const lat = Number(vehicle.lat)
+  const lon = Number(vehicle.lng)
 
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     selectedAddress.value = 'ไม่พบพิกัด'
@@ -1067,11 +802,11 @@ async function loadSelectedAddress() {
   try {
     addressLoading.value = true
 
-    const url =
-        `https://api.longdo.com/map/services/address?lon=${lon}&lat=${lat}&noelevation=1&key=${key}`
+    const url = `https://api.longdo.com/map/services/address?lon=${lon}&lat=${lat}&noelevation=1&key=${key}`
 
     const response = await fetch(url)
     const data = await response.json()
+
     const address = formatLongdoAddress(data)
 
     addressCache.value[cacheKey] = address
@@ -1095,32 +830,6 @@ function formatLongdoAddress(data: any): string {
   ]
       .filter(Boolean)
       .join(' ')
-}
-
-function cleanDriverText(value?: string | null): string {
-  return String(value || '')
-      .replace(/\^/g, ' ')
-      .replace(/%/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-}
-
-function formatDriverName(value?: string | null): string {
-  if (!value) return '-'
-
-  const parts = value.split('$').map(cleanDriverText)
-
-  const lastname = parts[0] || ''
-  const firstname = parts[1] || ''
-  const prefix = parts[2] || ''
-
-  return [prefix, firstname, lastname]
-      .filter(Boolean)
-      .join(' ') || '-'
-}
-
-function formatDriverLicense(value?: string | null): string {
-  return value?.trim() || '-'
 }
 
 watch(
@@ -1166,18 +875,6 @@ watch(
     { deep: true }
 )
 
-watch(
-    () => props.focusHistoryIndex,
-    async (index) => {
-      await nextTick()
-
-      if (props.mode !== 'history') return
-      if (index === null || index === undefined) return
-
-      focusHistoryPoint(index)
-    }
-)
-
 watch(selectedLayer, () => {
   changeLayer()
 })
@@ -1187,10 +884,7 @@ watch(
     () => {
       if (!map) return
 
-      const nextLayer = createBaseLayer(
-          selectedProvider.value,
-          selectedLayer.value
-      )
+      const nextLayer = createBaseLayer(selectedProvider.value, selectedLayer.value)
 
       map.getLayers().setAt(0, nextLayer)
       baseLayer = nextLayer
@@ -1212,6 +906,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+
 .map-shell {
   width: 100%;
   height: 100%;
@@ -1227,11 +922,11 @@ onBeforeUnmount(() => {
 }
 
 .map-popup {
-  min-width: 250px;
+  min-width: 240px;
   padding: 12px;
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.95);
-  color: #ffffff;
+  color: #fff;
   font-size: 12px;
 }
 
@@ -1250,23 +945,14 @@ onBeforeUnmount(() => {
 }
 
 .popup-title {
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: 6px;
 }
 
 .popup-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  padding: 3px 0;
-}
-
-.popup-row span {
-  color: #cbd5e1;
-}
-
-.popup-row strong {
-  text-align: right;
+  padding: 2px 0;
 }
 
 .map-control {
@@ -1298,7 +984,7 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.9);
-  color: #ffffff;
+  color: #fff;
   font-size: 18px;
   font-weight: 800;
   cursor: pointer;
