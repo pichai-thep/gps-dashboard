@@ -19,18 +19,21 @@ export async function getVehiclesByGroup(groupId: number | string) {
     return response.data
 }
 
-export async function getVehicles() {
+export async function getVehicles(groupId: string | number | null = null) {
     const auth = useAuthStore()
 
     const customerId =
         auth.customer?.id ??
         auth.user?.customer_id ??
-        auth.config?.customer_id
+        auth.config?.customer_id ??
+        localStorage.getItem('gps_fleet_customer_id')
 
     const response = await api.get('/tracking/current', {
         params: {
             customer_id: customerId,
+            group_id: groupId || -1,
             limit: 1000,
+            per_page: 1000,
         },
     })
 

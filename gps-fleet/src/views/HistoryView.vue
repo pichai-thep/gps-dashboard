@@ -375,12 +375,8 @@ async function initPage() {
   pageLoading.value = true
 
   try {
-    await Promise.all([
-      loadGroups(),
-      loadVehicles(),
-    ])
-
-    filterVehiclesByGroup(selectedGroup.value)
+    await loadGroups()
+    await loadVehicles(-1)
   } finally {
     pageLoading.value = false
   }
@@ -418,10 +414,14 @@ async function loadGroups() {
   }
 }
 
-async function loadVehicles() {
+async function loadVehicles(groupId: string | number | null = -1) {
   try {
-    const response = await getVehicles()
-    const list = normalizeList<any>(response, ['data', 'vehicles', 'result'])
+    const response = await getVehicles(groupId)
+
+    const list = normalizeList<any>(
+        response,
+        ['data', 'vehicles', 'result']
+    )
 
     allVehicles.value = list.map((item) => ({
       vehicle_id:
@@ -443,23 +443,6 @@ async function loadVehicles() {
           item.device_imei ??
           item.vehicle_imei ??
           '',
-
-      group_id:
-          item.group_id ??
-          item.customer_group_id ??
-          item.customerGroupId ??
-          item.customer_group ??
-          item.vehicle_group_id ??
-          item.groupId ??
-          item.group ??
-          null,
-
-      group_name:
-          item.group_name ??
-          item.customer_group_name ??
-          item.customerGroupName ??
-          item.group_label ??
-          null,
     }))
 
     vehicles.value = allVehicles.value
@@ -470,31 +453,52 @@ async function loadVehicles() {
   }
 }
 
-function filterVehiclesByGroup(groupId: number | string | null) {
+function filterVehiclesByGroup(groupId: string) {
+
+  console.log('GROUP ID', groupId)
+
   if (!groupId) {
-    vehicles.value = allVehicles.value
+    vehicles.value = [...allVehicles.value]
     return
   }
 
-  const selected = groups.value.find((group) => {
-    return String(group.group_id) === String(groupId)
-  })
+  const selectedGroup =
+      groups.value.find((group) => {
+        return String(group.group_id) === String(groupId)
+      })
 
-  vehicles.value = allVehicles.value.filter((vehicle) => {
-    const matchById =
-        vehicle.group_id !== null &&
-        vehicle.group_id !== undefined &&
-        String(vehicle.group_id) === String(groupId)
+  vehicles.value =
+      allVehicles.value.filter((vehicle) => {
 
-    const matchByName =
-        selected?.group_name &&
-        vehicle.group_name &&
-        String(vehicle.group_name).trim() === String(selected.group_name).trim()
+        const vehicleGroupId =
+            String(vehicle.group_id ?? '')
+                .trim()
 
-    return matchById || matchByName
-  })
+        const selectedId =
+            String(groupId).trim()
+
+        const byId =
+            vehicleGroupId !== '' &&
+            vehicleGroupId === selectedId
+
+        const byName =
+            normalizeText(vehicle.group_name) ===
+            normalizeText(selectedGroup?.group_name)
+
+        return byId || byName
+      })
+
+  console.log(
+      'FILTERED VEHICLES',
+      vehicles.value
+  )
 }
 
+function normalizeText(value: any): string {
+  return String(value ?? '')
+      .trim()
+      .toLowerCase()
+}
 async function loadHistory() {
   if (!validateRange()) return
 
@@ -704,6 +708,16 @@ function normalizeList<T>(response: any, keys: string[] = []): T[] {
 
   return []
 }
+
+watch(selectedGroup, async (groupId) => {
+  selectedVehicle.value = null
+  selectedHistoryIndex.value = null
+  rows.value = []
+  errorMessage.value = ''
+
+  await loadVehicles(groupId || -1)
+})
+
 </script>
 
 <style scoped>
