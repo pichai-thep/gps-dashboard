@@ -141,6 +141,12 @@ const currentPageTitle = computed(() => {
   return map[route.path] || 'Fleet Command Center'
 })
 
+onMounted(async () => {
+  if (auth.token && !auth.user) {
+    await auth.fetchMe()
+  }
+})
+
 async function logout() {
   await auth.logout()
   router.push('/login')

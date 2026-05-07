@@ -1,25 +1,25 @@
 {
   "compilerOptions": {
-    "moduleResolution": "bundler",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    },
+    "target": "ES2020",
 
     "module": "ESNext",
-    "target": "ESNext",
-    "lib": ["ESNext", "DOM"],
-    "types": ["vite/client"],
+
+    "moduleResolution": "Bundler",
+
+    "lib": ["ES2020", "DOM"],
+
+    "types": ["node"],
 
     "strict": true,
+
     "jsx": "preserve",
+
+    "resolveJsonModule": true,
+
     "isolatedModules": true,
+
+    "esModuleInterop": true,
+
     "skipLibCheck": true
-  },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue"
-  ]
+  }
 }

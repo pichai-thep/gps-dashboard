@@ -1,68 +1,130 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import {
+    createRouter,
+    createWebHistory,
+} from 'vue-router'
+
+import { useAuthStore } from '@/stores/auth'
 
 import LoginView from '@/views/LoginView.vue'
+
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
+
 import DashboardView from '@/views/DashboardView.vue'
+
 import TrackingView from '@/views/TrackingView.vue'
+
 import HistoryView from '@/views/HistoryView.vue'
+
 import NotificationsView from '@/views/NotificationsView.vue'
 
 const router = createRouter({
     history: createWebHistory(),
+
     routes: [
         {
             path: '/login',
+
             name: 'login',
+
             component: LoginView,
+
             meta: {
                 guestOnly: true,
             },
         },
+
         {
             path: '/',
+
             component: DashboardLayout,
+
             meta: {
                 requiresAuth: true,
             },
+
             children: [
                 {
                     path: '',
+
                     name: 'dashboard',
-                    component: DashboardView,
+
+                    component:
+                    DashboardView,
                 },
+
                 {
                     path: 'tracking',
+
                     name: 'tracking',
-                    component: TrackingView,
+
+                    component:
+                    TrackingView,
                 },
+
                 {
                     path: 'history',
+
                     name: 'history',
-                    component: HistoryView,
+
+                    component:
+                    HistoryView,
                 },
+
                 {
                     path: 'notifications',
+
                     name: 'notifications',
-                    component: NotificationsView,
+
+                    component:
+                    NotificationsView,
                 },
             ],
         },
     ],
 })
 
-router.beforeEach((to) => {
-    const token = localStorage.getItem('gps_fleet_token')
+/**
+ * --------------------------------------------------
+ * ROUTE GUARD
+ * --------------------------------------------------
+ */
+router.beforeEach(async (to) => {
+    const auth = useAuthStore()
 
-    if (to.meta.requiresAuth && !token) {
+    /**
+     * restore auth
+     * ตอน refresh page
+     */
+    if (
+        auth.token &&
+        !auth.isReady
+    ) {
+        await auth.init()
+    }
+
+    /**
+     * auth required
+     */
+    if (
+        to.meta.requiresAuth &&
+        !auth.token
+    ) {
         return {
             path: '/login',
+
             query: {
                 redirect: to.fullPath,
             },
         }
     }
 
-    if (to.meta.guestOnly && token) {
+    /**
+     * already login
+     */
+    if (
+        to.meta.guestOnly &&
+        auth.token
+    ) {
         return {
             path: '/tracking',
         }

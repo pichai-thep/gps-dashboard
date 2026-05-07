@@ -1,5 +1,5 @@
 import axios from 'axios'
-import router from '@/router'
+import { useAuthStore } from '@/stores/auth'
 
 let isRedirectingToLogin = false
 
@@ -40,5 +40,32 @@ api.interceptors.response.use(
         return Promise.reject(err)
     }
 )
+
+
+
+
+api.interceptors.request.use((config) => {
+
+    const auth = useAuthStore()
+
+    if (auth.token) {
+        config.headers.Authorization =
+            `Bearer ${auth.token}`
+    }
+
+    const customerId =
+        auth.user?.customer_id
+
+    if (customerId) {
+
+        config.params = {
+            ...(config.params || {}),
+            customer_id: customerId,
+        }
+
+    }
+
+    return config
+})
 
 export default api

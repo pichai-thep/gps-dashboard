@@ -6,7 +6,6 @@
       {{ providerLabel }}
     </div>
 
-
     <div class="map-control" v-if="selectedProvider == 'google'">
       <Dropdown
           v-model="selectedLayer"
@@ -17,14 +16,16 @@
       />
     </div>
 
-
     <div class="map-actions">
       <button title="Zoom in" type="button" @click.stop="zoomIn">+</button>
       <button title="Zoom out" type="button" @click.stop="zoomOut">−</button>
-      <button type="button" @click.stop="fitAllVehicles" title="Fit all vehicles">
+
+      <button type="button" @click.stop="fitMap" title="Fit map">
         <i class="pi pi-map-marker"></i>
       </button>
+
       <button
+          v-if="mode !== 'history'"
           title="Follow Vehicle"
           type="button"
           :class="{ active: followVehicle }"
@@ -34,6 +35,7 @@
       </button>
 
       <button
+          v-if="mode !== 'history'"
           title="Show Popup"
           type="button"
           :class="{ active: showPopup }"
@@ -41,12 +43,9 @@
       >
         <i class="pi pi-info-circle"></i>
       </button>
-
     </div>
 
-    <!-- 🔥 POPUP -->
     <div ref="popupEl" class="map-popup" v-show="showPopup && selectedVehicle">
-
       <div class="popup-title">
         {{ selectedVehicle?.plate_no }}
       </div>
@@ -113,7 +112,6 @@
       <div v-if="selectedAddress" class="popup-address">
         {{ selectedAddress }}
       </div>
-
     </div>
   </div>
 </template>
@@ -130,13 +128,22 @@ import VectorSource from 'ol/source/Vector'
 import XYZ from 'ol/source/XYZ'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
+import LineString from 'ol/geom/LineString'
 import { fromLonLat } from 'ol/proj'
-import { Fill, Icon, Stroke, Style, Text } from 'ol/style'
-import Overlay from 'ol/Overlay'
-import { defaults as defaultControls } from 'ol/control'
 import { boundingExtent } from 'ol/extent'
-import { useAuthStore } from '@/stores/auth'
+import { defaults as defaultControls } from 'ol/control'
+import Overlay from 'ol/Overlay'
 
+import {
+  Circle as CircleStyle,
+  Fill,
+  Icon,
+  Stroke,
+  Style,
+  Text,
+} from 'ol/style'
+
+import { useAuthStore } from '@/stores/auth'
 
 import {
   DEFAULT_MAP_PROVIDER,
@@ -146,12 +153,59 @@ import {
 } from '@/config/mapProviders'
 
 import type { Vehicle, VehicleStatus } from '@/types/fleet'
-const props = defineProps<{
-  vehicles: Vehicle[]
-  focusVehicleId?: string | null
+
+type HistoryPoint = {
+  lat?: number | string
+  lng?: number | string
+  latitude?: number | string
+  longitude?: number | string
+  speed?: number | string
+  course?: number | string
+  heading?: number | string
+  gps_time?: string
+  gps_datetime?: string
+  status?: string | number
+}
+
+const props = withDefaults(
+    defineProps<{
+      vehicles?: Vehicle[]
+      historyPoints?: HistoryPoint[]
+      mode?: 'current' | 'history'
+      focusVehicleId?: string | null
+    }>(),
+    {
+      vehicles: () => [],
+      historyPoints: () => [],
+      mode: 'current',
+      focusVehicleId: null,
+    }
+)
+
+const emit = defineEmits<{
+  'vehicle-click': [vehicle: Vehicle]
 }>()
 
 const auth = useAuthStore()
+
+const mapEl = ref<HTMLDivElement | null>(null)
+
+let map: Map | null = null
+let baseLayer: TileLayer<XYZ> | null = null
+
+let vehicleSource: VectorSource | null = null
+let historySource: VectorSource | null = null
+
+const popupEl = ref<HTMLDivElement | null>(null)
+const selectedVehicle = ref<Vehicle | null>(null)
+let popupOverlay: Overlay | null = null
+
+const addressLoading = ref(false)
+const selectedAddress = ref<string | null>(null)
+const addressCache = ref<Record<string, string>>({})
+
+const followVehicle = ref(true)
+const showPopup = ref(true)
 
 const selectedProvider = computed<MapProviderKey>(() => {
   return resolveMapProvider(auth.config?.mapApi)
@@ -174,45 +228,6 @@ const layerOptions = computed(() => {
   ]
 })
 
-const followVehicle = ref(true)
-const showPopup = ref(true);
-
-const emit = defineEmits<{
-  'vehicle-click': [vehicle: Vehicle]
-}>()
-
-const mapEl = ref<HTMLDivElement | null>(null)
-
-let map: Map | null = null
-let baseLayer: TileLayer<XYZ> | null = null
-let vehicleSource: VectorSource | null = null
-
-// 🔥 popup state
-const popupEl = ref<HTMLDivElement | null>(null)
-const selectedVehicle = ref<Vehicle | null>(null)
-let popupOverlay: Overlay | null = null
-
-const addressLoading = ref(false)
-const selectedAddress = ref<string | null>(null)
-const addressCache = ref<Record<string, string>>({})
-
-function resolveMapProvider(value?: string | null): MapProviderKey {
-  const mapApi = String(value || '').toLowerCase()
-  if (mapApi === '' ) return 'osm'
-  if (mapApi === 'google' || mapApi === 'googleMap') return 'google'
-  if (mapApi === 'longdo') return 'longdo'
-  if (mapApi === 'osm' || mapApi === 'openstreetmap') return 'osm'
-
-  return DEFAULT_MAP_PROVIDER
-}
-
-const providerOptions = computed(() =>
-    Object.entries(mapProviders).map(([value, provider]) => ({
-      value: value as MapProviderKey,
-      label: provider.label,
-    }))
-)
-
 const providerLabel = computed(() => {
   return `${selectedProvider.value.toUpperCase()} • ${selectedLayer.value}`
 })
@@ -223,7 +238,13 @@ onMounted(async () => {
   if (!mapEl.value) return
 
   baseLayer = createBaseLayer(selectedProvider.value, selectedLayer.value)
+
   vehicleSource = new VectorSource()
+  historySource = new VectorSource()
+
+  const historyLayer = new VectorLayer({
+    source: historySource,
+  })
 
   const vehicleLayer = new VectorLayer({
     source: vehicleSource,
@@ -236,14 +257,17 @@ onMounted(async () => {
       rotate: false,
       attribution: false,
     }),
-    layers: [baseLayer, vehicleLayer],
+    layers: [
+      baseLayer,
+      historyLayer,
+      vehicleLayer,
+    ],
     view: new View({
       center: fromLonLat([100.5018, 13.7563]),
       zoom: 6,
     }),
   })
 
-  // 🔥 init popup
   if (popupEl.value) {
     popupOverlay = new Overlay({
       element: popupEl.value,
@@ -254,8 +278,9 @@ onMounted(async () => {
     map.addOverlay(popupOverlay)
   }
 
-  // 🔥 click marker
   map.on('singleclick', (event) => {
+    if (props.mode === 'history') return
+
     let found = false
 
     map?.forEachFeatureAtPixel(event.pixel, (feature) => {
@@ -265,6 +290,7 @@ onMounted(async () => {
         followVehicle.value = true
         selectedVehicle.value = vehicle
         selectedAddress.value = null
+
         if (showPopup.value) {
           popupOverlay?.setPosition(event.coordinate)
         }
@@ -272,7 +298,6 @@ onMounted(async () => {
         emit('vehicle-click', vehicle)
         found = true
       }
-
     })
 
     if (!found) {
@@ -281,20 +306,23 @@ onMounted(async () => {
     }
   })
 
-  renderVehicles()
+  if (props.mode === 'history') {
+    renderHistory()
+  } else {
+    renderVehicles()
+  }
 })
 
-// function createBaseLayer(providerKey: MapProviderKey): TileLayer<XYZ> {
-//   const provider = mapProviders[providerKey] || mapProviders[DEFAULT_MAP_PROVIDER]
-//
-//   return new TileLayer({
-//     source: new XYZ({
-//       url: provider.url,
-//       attributions: provider.attributions,
-//       crossOrigin: 'anonymous',
-//     }),
-//   })
-// }
+function resolveMapProvider(value?: string | null): MapProviderKey {
+  const mapApi = String(value || '').toLowerCase()
+
+  if (mapApi === '') return 'osm'
+  if (mapApi === 'google' || mapApi === 'googlemap') return 'google'
+  if (mapApi === 'longdo') return 'longdo'
+  if (mapApi === 'osm' || mapApi === 'openstreetmap') return 'osm'
+
+  return DEFAULT_MAP_PROVIDER
+}
 
 function createTileSource(providerKey: MapProviderKey, layer: MapLayerType): XYZ {
   const provider = mapProviders[providerKey] || mapProviders[DEFAULT_MAP_PROVIDER]
@@ -303,12 +331,6 @@ function createTileSource(providerKey: MapProviderKey, layer: MapLayerType): XYZ
       typeof provider.url === 'function'
           ? provider.url(auth.config?.mapApi_key, layer)
           : provider.url
-
-  console.log('CREATE TILE SOURCE', {
-    providerKey,
-    layer,
-    url,
-  })
 
   return new XYZ({
     url,
@@ -325,15 +347,14 @@ function createBaseLayer(providerKey: MapProviderKey, layer: MapLayerType): Tile
 
 function getVehicleColor(status: VehicleStatus): string {
   return {
-    running: '#22c55e',   // เขียว
-    start: '#eab308',     // เหลือง
-    acc_on: '#f97316',    // ส้ม
-    parking: '#64748b',   // เทา
-    no_gps: '#3b82f6',    // น้ำเงิน ✅ แก้
-    offline: '#ef4444',   // แดง
+    running: '#22c55e',
+    start: '#eab308',
+    acc_on: '#f97316',
+    parking: '#64748b',
+    no_gps: '#3b82f6',
+    offline: '#ef4444',
   }[status] || '#64748b'
 }
-
 
 function normalizeCarType(value?: string | null): string {
   return String(value || 'bus')
@@ -373,11 +394,7 @@ function getVehicleIcon(vehicle: Vehicle): string {
       return `/cars/${carType}/acc-on.png`
 
     case 'parking':
-      return `/cars/${carType}/stop.png`
-
     case 'no_gps':
-      return `/cars/${carType}/stop.png`
-
     case 'offline':
       return `/cars/${carType}/stop.png`
 
@@ -385,20 +402,11 @@ function getVehicleIcon(vehicle: Vehicle): string {
       return `/cars/${carType}/stop.png`
   }
 }
+
 function createVehicleStyle(vehicle: Vehicle, isSelected = false): Style {
   const color = getVehicleColor(vehicle.status)
-  // const icon_path = vehicle.
 
   return new Style({
-    // image: new Icon({
-    //   src: '/icons/car.svg',
-    //   color,
-    //   scale: isSelected ? 0.72 : 0.56,
-    //   anchor: [0.5, 1],
-    //   rotation: vehicle.heading ? (Number(vehicle.heading) * Math.PI) / 180 : 0,
-    // }),
-
-
     image: new Icon({
       src: getVehicleIcon(vehicle),
       scale: isSelected ? 0.85 : 0.68,
@@ -407,7 +415,7 @@ function createVehicleStyle(vehicle: Vehicle, isSelected = false): Style {
 
     text: new Text({
       text: vehicle.plate_no || '',
-      offsetY: -28, // 🔥 ลดลง
+      offsetY: -28,
       font: '700 12px system-ui',
       fill: new Fill({ color: '#ffffff' }),
       stroke: new Stroke({
@@ -415,14 +423,12 @@ function createVehicleStyle(vehicle: Vehicle, isSelected = false): Style {
         width: 4,
       }),
     }),
-
   })
 }
 
 function renderVehicles() {
+  if (props.mode === 'history') return
   if (!vehicleSource) return
-
-
 
   vehicleSource.clear()
 
@@ -430,7 +436,12 @@ function renderVehicles() {
     if (vehicle.lat == null || vehicle.lng == null) return
 
     const feature = new Feature({
-      geometry: new Point(fromLonLat([Number(vehicle.lng), Number(vehicle.lat)])),
+      geometry: new Point(
+          fromLonLat([
+            Number(vehicle.lng),
+            Number(vehicle.lat),
+          ])
+      ),
       vehicle,
     })
 
@@ -444,6 +455,206 @@ function renderVehicles() {
   })
 }
 
+function getHistoryLatLng(point: HistoryPoint) {
+  const lat = Number(point.lat ?? point.latitude)
+  const lng = Number(point.lng ?? point.longitude)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null
+  }
+
+  if (lat === 0 || lng === 0) {
+    return null
+  }
+
+  return { lat, lng }
+}
+
+function createHistoryPointStyle(point: HistoryPoint, index: number, total: number): Style {
+  const heading = Number(point.heading ?? point.course ?? 0)
+
+  if (index === 0) {
+    return new Style({
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: '#22c55e' }),
+        stroke: new Stroke({
+          color: '#ffffff',
+          width: 2,
+        }),
+      }),
+      text: new Text({
+        text: 'START',
+        offsetY: -18,
+        font: '700 11px system-ui',
+        fill: new Fill({ color: '#ffffff' }),
+        stroke: new Stroke({
+          color: '#020617',
+          width: 4,
+        }),
+      }),
+    })
+  }
+
+  if (index === total - 1) {
+    return new Style({
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: '#ef4444' }),
+        stroke: new Stroke({
+          color: '#ffffff',
+          width: 2,
+        }),
+      }),
+      text: new Text({
+        text: 'END',
+        offsetY: -18,
+        font: '700 11px system-ui',
+        fill: new Fill({ color: '#ffffff' }),
+        stroke: new Stroke({
+          color: '#020617',
+          width: 4,
+        }),
+      }),
+    })
+  }
+
+  return new Style({
+    image: new Icon({
+      src: '/icons/history-arrow.svg',
+      scale: 0.8,
+      anchor: [0.5, 0.5],
+      rotation:
+          Number.isFinite(heading)
+              ? (heading * Math.PI) / 180
+              : 0,
+    }),
+  })
+}
+
+function renderHistory() {
+  if (!historySource) return
+
+  historySource.clear()
+
+  const points = props.historyPoints || []
+
+  if (!points.length) return
+
+  const coordinates: number[][] = []
+  const validPoints: HistoryPoint[] = []
+
+  points.forEach((point) => {
+    const latLng = getHistoryLatLng(point)
+
+    if (!latLng) return
+
+    const coordinate = fromLonLat([
+      latLng.lng,
+      latLng.lat,
+    ])
+
+    coordinates.push(coordinate)
+    validPoints.push(point)
+  })
+
+  if (!coordinates.length) return
+
+  const routeFeature = new Feature({
+    geometry: new LineString(coordinates),
+  })
+
+  routeFeature.setStyle(
+      new Style({
+        stroke: new Stroke({
+          color: '#ef4444',
+          width: 4,
+        }),
+      })
+  )
+
+  historySource.addFeature(routeFeature)
+
+  validPoints.forEach((point, index) => {
+    const coordinate = coordinates[index]
+
+    const feature = new Feature({
+      geometry: new Point(coordinate),
+      history: point,
+    })
+
+    feature.setStyle(
+        createHistoryPointStyle(
+            point,
+            index,
+            validPoints.length
+        )
+    )
+
+    historySource?.addFeature(feature)
+  })
+
+  if (map) {
+    map.getView().fit(
+        boundingExtent(coordinates),
+        {
+          padding: [70, 70, 70, 70],
+          duration: 500,
+          maxZoom: 16,
+        }
+    )
+  }
+}
+
+function fitMap() {
+  if (props.mode === 'history') {
+    fitHistory()
+    return
+  }
+
+  fitAllVehicles()
+}
+
+function fitHistory() {
+  if (!map || !historySource) return
+
+  const coordinates = historySource
+      .getFeatures()
+      .map((feature) => feature.getGeometry()?.getCoordinates())
+      .filter((item): item is number[] => Array.isArray(item))
+
+  if (!coordinates.length) return
+
+  map.getView().fit(
+      boundingExtent(coordinates),
+      {
+        padding: [70, 70, 70, 70],
+        duration: 500,
+        maxZoom: 16,
+      }
+  )
+}
+
+function fitAllVehicles() {
+  if (!map || !vehicleSource) return
+
+  const coordinates = vehicleSource
+      .getFeatures()
+      .map((feature) => feature.getGeometry()?.getCoordinates())
+      .filter((item): item is number[] => Array.isArray(item))
+
+  if (!coordinates.length) return
+
+  map.getView().fit(
+      boundingExtent(coordinates),
+      {
+        padding: [80, 80, 80, 80],
+        duration: 500,
+        maxZoom: 15,
+      }
+  )
+}
+
 function changeLayer() {
   if (!map || !baseLayer) return
 
@@ -451,12 +662,10 @@ function changeLayer() {
 
   baseLayer.setSource(source)
   source.refresh()
-
-  console.log('LAYER CHANGED', selectedProvider.value, selectedLayer.value)
 }
 
-// 🔥 focus + popup
 function focusVehicle(vehicleId?: string | null) {
+  if (props.mode === 'history') return
   if (!map || !vehicleSource || !vehicleId) return
 
   const feature = vehicleSource.getFeatures().find((f) => {
@@ -512,23 +721,6 @@ function zoomOut() {
   })
 }
 
-function fitAllVehicles() {
-  if (!map || !vehicleSource) return
-
-  const coordinates = vehicleSource
-      .getFeatures()
-      .map((feature) => feature.getGeometry()?.getCoordinates())
-      .filter((item): item is number[] => Array.isArray(item))
-
-  if (!coordinates.length) return
-
-  map.getView().fit(boundingExtent(coordinates), {
-    padding: [80, 80, 80, 80],
-    duration: 500,
-    maxZoom: 15,
-  })
-}
-
 function cleanDriverText(value?: string | null): string {
   return String(value || '')
       .replace(/\^/g, ' ')
@@ -568,6 +760,7 @@ function togglePopup() {
     })
 
     const geometry = feature?.getGeometry()
+
     if (geometry) {
       popupOverlay?.setPosition(geometry.getCoordinates())
     }
@@ -643,6 +836,9 @@ watch(
     () => props.focusVehicleId,
     async (vehicleId) => {
       await nextTick()
+
+      if (props.mode === 'history') return
+
       renderVehicles()
 
       if (vehicleId) {
@@ -655,11 +851,26 @@ watch(
     () => props.vehicles,
     async () => {
       await nextTick()
+
+      if (props.mode === 'history') return
+
       renderVehicles()
 
       if (props.focusVehicleId && followVehicle.value) {
         focusVehicle(props.focusVehicleId)
       }
+    },
+    { deep: true }
+)
+
+watch(
+    () => props.historyPoints,
+    async () => {
+      await nextTick()
+
+      if (props.mode !== 'history') return
+
+      renderHistory()
     },
     { deep: true }
 )
@@ -692,12 +903,13 @@ onBeforeUnmount(() => {
     map = null
   }
 })
-
-
 </script>
 
 <style scoped>
+
 .map-shell {
+  width: 100%;
+  height: 100%;
   flex: 1;
   position: relative;
   border-radius: 18px;
@@ -723,14 +935,11 @@ onBeforeUnmount(() => {
   bottom: 12px;
   left: 12px;
   z-index: 20;
-
   font-size: 11px;
   color: #cbd5f5;
-
   background: rgba(15, 23, 42, 0.7);
   padding: 4px 8px;
   border-radius: 6px;
-
   backdrop-filter: blur(6px);
   pointer-events: none;
 }
@@ -809,5 +1018,4 @@ onBeforeUnmount(() => {
   color: #e5e7eb;
   line-height: 1.35;
 }
-
 </style>

@@ -127,6 +127,7 @@ class TrackingController extends Controller
 
         $customerId = (int) $request->query('customer_id');
 
+
         $gpsUser = DB::connection($connection)
             ->table('user')
             ->where('login', $authUser->login)
