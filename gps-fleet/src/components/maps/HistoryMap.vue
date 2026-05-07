@@ -11,6 +11,11 @@
         </div>
 
         <div class="popup-row">
+          <span>IMEI</span>
+          <strong>{{ popupData.imei ?? '-' }}</strong>
+        </div>
+
+        <div class="popup-row">
           <span>Status</span>
           <strong>{{ popupData.status }}</strong>
         </div>
@@ -26,9 +31,48 @@
         </div>
 
         <div class="popup-row">
-          <span>Heading</span>
-          <strong>{{ popupData.heading }}</strong>
+          <span>Lat/Lon</span>
+          <strong>{{ popupData.lat }}, {{ popupData.lng }}</strong>
         </div>
+
+        <div class="popup-row">
+          <span>Driver</span>
+          <strong>{{ popupData.driver_name ?? '-' }}</strong>
+        </div>
+
+        <div class="popup-row">
+          <span>Phone</span>
+          <strong>{{ popupData.driver_phone ?? '-' }}</strong>
+        </div>
+
+        <div class="popup-row">
+          <span>License Name</span>
+          <strong>{{ popupData.driver_license_name ?? '-' }}</strong>
+        </div>
+
+        <div class="popup-row">
+          <span>License No</span>
+          <strong>{{ popupData.driver_license_no ?? '-' }}</strong>
+        </div>
+
+        <div class="popup-row">
+          <span>Address</span>
+
+          <button
+              v-if="!selectedAddress"
+              type="button"
+              class="address-link"
+              :disabled="addressLoading"
+              @click.stop="loadSelectedAddress"
+          >
+            {{ addressLoading ? 'Loading...' : 'Show address' }}
+          </button>
+        </div>
+
+        <div v-if="selectedAddress" class="popup-address">
+          {{ selectedAddress }}
+        </div>
+
       </div>
     </template>
   </BaseMap>
@@ -54,6 +98,7 @@ import VectorSource from 'ol/source/Vector'
 
 import { fromLonLat } from 'ol/proj'
 import { boundingExtent } from 'ol/extent'
+import { useAuthStore } from '@/stores/auth'
 
 import {
   Fill,
@@ -85,6 +130,15 @@ type HistoryPoint = {
   data_date?: string
 
   plate_no?: string
+  imei?: string
+
+  driver_name?: string
+  driver_phone?: string
+  driver_license_name?: string
+  driver_license_no?: string
+
+  track1?: string
+  track3?: string
 }
 
 const props = defineProps<{
@@ -95,6 +149,10 @@ const props = defineProps<{
 const baseMapRef = ref()
 
 const map = ref<Map | null>(null)
+const auth = useAuthStore()
+const addressLoading = ref(false)
+const selectedAddress = ref<string | null>(null)
+const addressCache = ref<Record<string, string>>({})
 
 const historySource =
     new VectorSource()
@@ -478,39 +536,177 @@ function createHistoryStyle(
   })
 }
 
+function getHistoryLatLng(point: HistoryPoint) {
+
+  const lat =
+      Number(
+          point.lat ??
+          point.latitude
+      )
+
+  const lng =
+      Number(
+          point.lng ??
+          point.lon ??
+          point.longitude
+      )
+
+  if (
+      Number.isNaN(lat) ||
+      Number.isNaN(lng)
+  ) {
+    return null
+  }
+
+  return {
+    lat,
+    lng,
+  }
+}
+
 function showPopup(
     point: HistoryPoint,
     coordinate: number[],
 ) {
+  const latLng = getHistoryLatLng(point)
+
+  selectedAddress.value = null
 
   popupData.value = {
-
     plate_no:
         point.plate_no ??
         'History',
 
+    imei:
+        point.imei ??
+        '-',
+
     status:
-    resolveStatus(point)
-        .label,
+    resolveStatus(point).label,
 
     speed:
-        Number(
-            point.speed ?? 0
-        ),
+        Number(point.speed ?? 0),
 
     gps_time:
         point.gps_time ??
         point.data_date ??
         '-',
 
+    lat:
+        latLng?.lat ?? '-',
+
+    lng:
+        latLng?.lng ?? '-',
+
     heading:
         getHeading(point),
+
+    driver_name:
+        point.driver_name ??
+        formatDriverName(point.track1) ??
+        '-',
+
+    driver_phone:
+        point.driver_phone ??
+        '-',
+
+    driver_license_name:
+        point.driver_license_name ??
+        '-',
+
+    driver_license_no:
+        point.driver_license_no ??
+        point.track3 ??
+        '-',
   }
 
-  popupOverlay?.setPosition(
-      coordinate
-  )
+  popupOverlay?.setPosition(coordinate)
 }
+
+async function loadSelectedAddress() {
+  if (!popupData.value) return
+
+  const lat = Number(popupData.value.lat)
+  const lon = Number(popupData.value.lng)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    selectedAddress.value = 'ไม่พบพิกัด'
+    return
+  }
+
+  const cacheKey = `${lat},${lon}`
+
+  if (addressCache.value[cacheKey]) {
+    selectedAddress.value = addressCache.value[cacheKey]
+    return
+  }
+
+  const key =
+      auth.config?.mapApi_key ||
+      import.meta.env.VITE_LONGDOMAP_API_KEY
+
+  if (!key) {
+    selectedAddress.value = 'ไม่ได้ตั้งค่า Longdo API Key'
+    return
+  }
+
+  try {
+    addressLoading.value = true
+
+    const url =
+        `https://api.longdo.com/map/services/address?lon=${lon}&lat=${lat}&noelevation=1&key=${key}`
+
+    const response = await fetch(url)
+    const data = await response.json()
+
+    const address = formatLongdoAddress(data)
+
+    addressCache.value[cacheKey] = address
+    selectedAddress.value = address
+  } catch (e) {
+    selectedAddress.value = 'โหลดที่อยู่ไม่สำเร็จ'
+  } finally {
+    addressLoading.value = false
+  }
+}
+
+function formatLongdoAddress(data: any): string {
+  return [
+    data.aoi,
+    data.road,
+    data.subdistrict,
+    data.district,
+    data.province,
+    data.postcode,
+    data.country,
+  ]
+      .filter(Boolean)
+      .join(' ')
+}
+
+function cleanDriverText(value?: string | null): string {
+  return String(value || '')
+      .replace(/\^/g, ' ')
+      .replace(/%/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+}
+
+function formatDriverName(value?: string | null): string {
+  if (!value) return '-'
+
+  const parts = value.split('$').map(cleanDriverText)
+
+  const lastname = parts[0] || ''
+  const firstname = parts[1] || ''
+  const prefix = parts[2] || ''
+
+  return [prefix, firstname, lastname]
+      .filter(Boolean)
+      .join(' ') || '-'
+}
+
+
 
 function closePopup() {
 
@@ -608,5 +804,27 @@ watch(
 
 .popup-row span {
   color: #cbd5e1;
+}
+
+.address-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #60a5fa;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.address-link:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.popup-address {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e5e7eb;
+  line-height: 1.35;
 }
 </style>
