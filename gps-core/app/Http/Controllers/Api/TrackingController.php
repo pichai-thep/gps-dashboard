@@ -11,7 +11,7 @@ class TrackingController extends Controller
 {
     private const DEFAULT_STATUS_COUNTS = [
         'running' => 0,
-        'start' => 0,
+        'idle' => 0,
         'acc_on' => 0,
         'parking' => 0,
         'no_gps' => 0,
@@ -310,7 +310,7 @@ class TrackingController extends Controller
         }
 
         if ($extPower > $engineVolt) {
-            return 'start';
+            return 'idle';
         }
 
         return 'acc_on';

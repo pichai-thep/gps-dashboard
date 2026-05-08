@@ -4,6 +4,17 @@
       @ready="handleMapReady"
       @fit="fitHistory"
   >
+    <template #controls>
+      <button
+          title="Show Popup"
+          type="button"
+          :class="{ active: showPopup }"
+          @click.stop="togglePopup"
+      >
+        <i class="pi pi-info-circle"></i>
+      </button>
+    </template>
+
     <template #popup>
       <div v-if="popupData">
         <div class="popup-title">

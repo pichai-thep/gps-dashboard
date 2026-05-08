@@ -6,6 +6,7 @@
       {{ providerLabel }}
     </div>
 
+
     <div class="map-actions">
       <button type="button" title="Zoom in" @click.stop="zoomIn">
         +
@@ -18,7 +19,13 @@
       <button type="button" title="Fit map" @click.stop="emitFit">
         <i class="pi pi-map-marker"></i>
       </button>
+
     </div>
+
+    <div class="map-controls">
+      <slot name="controls" />
+    </div>
+
 
     <slot
         :map="map"
@@ -359,4 +366,41 @@ onBeforeUnmount(() => {
 
   font-size: 12px;
 }
+
+.map-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 40;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-controls button {
+  width: 36px;
+  height: 36px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+
+  background: rgba(15, 23, 42, 0.9);
+  color: #ffffff;
+
+  cursor: pointer;
+
+  backdrop-filter: blur(12px);
+}
+
+.map-controls button:hover {
+  background: #2563eb;
+}
+
+.map-controls button.active {
+  background: #22c55e;
+  color: #052e16;
+}
+
+
 </style>

@@ -224,7 +224,7 @@ const auth = useAuthStore()
 
 const defaultStatusCount: StatusCount = {
   running: 0,
-  start: 0,
+  idle: 0,
   acc_on: 0,
   parking: 0,
   no_gps: 0,
@@ -239,8 +239,8 @@ const refreshOptions = [
 
 const statusOptions = [
   { label: 'Running', value: 'running' },
-  { label: 'Start', value: 'start' },
-  { label: 'ACC on', value: 'acc_on' },
+  { label: 'Idle', value: 'idle' },
+  { label: 'ACC:on', value: 'acc_on' },
   { label: 'Parking', value: 'parking' },
   { label: 'No GPS', value: 'no_gps' },
   { label: 'Offline', value: 'offline' },
@@ -248,8 +248,8 @@ const statusOptions = [
 
 const statusSummaryItems = [
   { label: 'Running', value: 'running' },
-  { label: 'Start', value: 'start' },
-  { label: 'ACC', value: 'acc_on' },
+  { label: 'Idle', value: 'idle' },
+  { label: 'ACC:on', value: 'acc_on' },
   { label: 'Parking', value: 'parking' },
   { label: 'No GPS', value: 'no_gps' },
   { label: 'Offline', value: 'offline' },
@@ -476,7 +476,7 @@ function getRowClass(vehicle: Vehicle) {
 function getStatusIcon(status: VehicleStatus) {
   return {
     running: 'pi pi-arrow-circle-up',
-    start: 'pi pi-arrow-circle-up',
+    idle: 'pi pi-arrow-circle-up',
     acc_on: 'pi pi-key',
     parking: 'pi pi-stop-circle',
     no_gps: 'pi pi-exclamation-circle',
@@ -485,7 +485,7 @@ function getStatusIcon(status: VehicleStatus) {
 }
 
 function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
-  const shouldRotate = status === 'running' || status === 'start'
+  const shouldRotate = status === 'running' || status === 'idle'
 
   return {
     transform: shouldRotate && heading != null
@@ -752,7 +752,7 @@ onBeforeUnmount(() => {
   background: #16a34a;
 }
 
-.summary-item.start {
+.summary-item.idle {
   background: #eab308;
 }
 
@@ -801,7 +801,7 @@ onBeforeUnmount(() => {
   color: #22c55e;
 }
 
-.status-icon.start {
+.status-icon.idle {
   color: #aa9000;
 }
 

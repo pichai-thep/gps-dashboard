@@ -4,7 +4,28 @@
       @ready="handleMapReady"
       @fit="fitVehicles"
   >
+    <template #controls>
+      <button
+          title="Follow Vehicle"
+          type="button"
+          :class="{ active: followVehicle }"
+          @click.stop="followVehicle = !followVehicle"
+      >
+        <i class="pi pi-send"></i>
+      </button>
+
+      <button
+          title="Show Popup"
+          type="button"
+          :class="{ active: showPopup }"
+          @click.stop="togglePopup"
+      >
+        <i class="pi pi-info-circle"></i>
+      </button>
+    </template>
+
     <template #popup>
+
       <div v-if="popupVehicle">
         <div class="popup-title">
           {{ popupVehicle.plate_no }}
@@ -113,6 +134,22 @@ const vehicleLayer =
 const popupVehicle =
     ref<Vehicle | null>(null)
 
+const followVehicle =
+    ref(false)
+
+const showPopup =
+    ref(true)
+
+function togglePopup() {
+
+  showPopup.value =
+      !showPopup.value
+
+  if (!showPopup.value) {
+    closePopup()
+  }
+}
+
 let popupOverlay: any = null
 
 function handleMapReady(payload: any) {
@@ -156,13 +193,17 @@ function handleMapClick(event: any) {
           return
         }
 
-        popupVehicle.value =
-            vehicle
+        if (showPopup.value) {
 
-        popupOverlay?.setPosition(
-            geometry.getCoordinates()
-        )
+          popupVehicle.value =
+              vehicle
 
+          popupOverlay?.setPosition(
+              geometry.getCoordinates()
+          )
+        }
+
+        // emit selection even when popup disabled
         emit(
             'vehicle-click',
             vehicle
@@ -264,8 +305,9 @@ function fitVehicles() {
 }
 
 function focusVehicle(
-    vehicleId: string
-) {
+    vehicleId: string,
+    animate = true
+){
 
   if (!map.value) return
 
@@ -299,18 +341,30 @@ function focusVehicle(
   const vehicle =
       feature.get('vehicle')
 
-  popupVehicle.value =
-      vehicle
+  if (showPopup.value) {
 
-  popupOverlay?.setPosition(
-      coordinate
-  )
+    popupVehicle.value =
+        vehicle
 
-  map.value.getView().animate({
-    center: coordinate,
-    zoom: 16,
-    duration: 300,
-  })
+    popupOverlay?.setPosition(
+        coordinate
+    )
+  }
+
+  if (animate) {
+
+    map.value.getView().animate({
+      center: coordinate,
+      zoom: 16,
+      duration: 300,
+    })
+
+  } else {
+
+    map.value.getView().setCenter(
+        coordinate
+    )
+  }
 }
 
 function closePopup() {
@@ -332,20 +386,6 @@ function getVehicleKey(
       vehicle.id ||
       vehicle.plate_no
   )
-}
-
-function getVehicleColor(
-    status: VehicleStatus
-): string {
-
-  return {
-    running: '#22c55e',
-    start: '#eab308',
-    acc_on: '#f97316',
-    parking: '#64748b',
-    no_gps: '#3b82f6',
-    offline: '#ef4444',
-  }[status] || '#64748b'
 }
 
 function normalizeCarType(
@@ -532,6 +572,16 @@ watch(
       await nextTick()
 
       renderVehicles()
+
+      if (
+          followVehicle.value &&
+          props.focusVehicleId
+      ) {
+        focusVehicle(
+            props.focusVehicleId,
+            false
+        )
+      }
     },
     { deep: true }
 )
@@ -546,7 +596,10 @@ watch(
         return
       }
 
-      focusVehicle(vehicleId)
+      focusVehicle(
+          props.focusVehicleId,
+          false
+      )
     }
 )
 </script>
