@@ -172,7 +172,7 @@ const vehicleLayer =
       source: vehicleSource,
     })
 
-const followVehicle = ref(true)
+const followVehicle = ref(false)
 const showPopup = ref(true)
 const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
