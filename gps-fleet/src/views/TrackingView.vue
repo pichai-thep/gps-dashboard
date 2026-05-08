@@ -401,16 +401,31 @@ function loadByDriver(status: DriverStatus) {
   loadVehicles()
 }
 
-function startPolling() {
-  if (pollingTimer) {
-    window.clearInterval(pollingTimer)
+function stopPolling() {
+  if (!pollingTimer) {
+    return
   }
 
+  window.clearInterval(pollingTimer)
+  pollingTimer = null
+}
+
+function startPolling() {
+  stopPolling()
+
   pollingTimer = window.setInterval(() => {
-    if (!document.hidden) {
-      loadVehicles()
-    }
+    loadVehicles()
   }, refreshInterval.value)
+}
+
+function handleVisibilityChange() {
+  if (document.hidden) {
+    stopPolling()
+    return
+  }
+
+  loadVehicles()
+  startPolling()
 }
 
 function onPage(event: any) {
@@ -563,7 +578,9 @@ watch(search, () => {
 })
 
 watch(refreshInterval, () => {
-  startPolling()
+  if (!document.hidden) {
+    startPolling()
+  }
 })
 
 onMounted(async () => {
@@ -573,17 +590,26 @@ onMounted(async () => {
 
   await loadGroups()
   await loadVehicles()
+
   startPolling()
+
+  document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange
+  )
 })
 
 onBeforeUnmount(() => {
-  if (pollingTimer) {
-    window.clearInterval(pollingTimer)
-  }
+  stopPolling()
 
   if (searchTimer) {
     window.clearTimeout(searchTimer)
   }
+
+  document.removeEventListener(
+      'visibilitychange',
+      handleVisibilityChange
+  )
 })
 </script>
 
