@@ -28,6 +28,7 @@
     <template #popup>
 
       <div v-if="popupVehicle">
+
         <div class="popup-title">
           {{ popupVehicle.plate_no }}
         </div>
@@ -74,6 +75,25 @@
             }}
           </strong>
         </div>
+
+        <div class="popup-row">
+          <span>Address</span>
+
+          <button
+              v-if="!selectedAddress"
+              type="button"
+              class="address-link"
+              :disabled="addressLoading"
+              @click.stop="loadSelectedAddress"
+          >
+            {{ addressLoading ? 'Loading...' : 'Show address' }}
+          </button>
+        </div>
+
+        <div v-if="selectedAddress" class="popup-address">
+          {{ selectedAddress }}
+        </div>
+
       </div>
     </template>
 
@@ -111,6 +131,10 @@ import type {
   Vehicle,
   VehicleStatus,
 } from '@/types/fleet'
+import {useAuthStore} from "@/stores/auth";
+
+
+const auth = useAuthStore()
 
 const props = defineProps<{
   vehicles?: Vehicle[]
@@ -135,6 +159,71 @@ const vehicleLayer =
 
 const followVehicle = ref(false)
 const showPopup = ref(true)
+const addressLoading = ref(false)
+const selectedAddress = ref<string | null>(null)
+const addressCache = ref<Record<string, string>>({})
+
+
+async function loadSelectedAddress() {
+  if (!popupVehicle.value) return
+
+  const lat = Number(popupVehicle.value.lat)
+  const lon = Number(popupVehicle.value.lng)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    selectedAddress.value = 'ไม่พบพิกัด'
+    return
+  }
+
+  const cacheKey = `${lat},${lon}`
+
+  if (addressCache.value[cacheKey]) {
+    selectedAddress.value = addressCache.value[cacheKey]
+    return
+  }
+
+  const key =
+      auth.config?.mapApi_key ||
+      import.meta.env.VITE_LONGDOMAP_API_KEY
+
+  if (!key) {
+    selectedAddress.value = 'ไม่ได้ตั้งค่า Longdo API Key'
+    return
+  }
+
+  try {
+    addressLoading.value = true
+
+    const url =
+        `https://api.longdo.com/map/services/address?lon=${lon}&lat=${lat}&noelevation=1&key=${key}`
+
+    const response = await fetch(url)
+    const data = await response.json()
+    const address = formatLongdoAddress(data)
+
+    addressCache.value[cacheKey] = address
+    selectedAddress.value = address
+  } catch (e) {
+    selectedAddress.value = 'โหลดที่อยู่ไม่สำเร็จ'
+  } finally {
+    addressLoading.value = false
+  }
+}
+
+function formatLongdoAddress(data: any): string {
+  return [
+    data.aoi,
+    data.road,
+    data.subdistrict,
+    data.district,
+    data.province,
+    data.postcode,
+    data.country,
+  ]
+      .filter(Boolean)
+      .join(' ')
+}
+
 
 function toggleFollowVehicle() {
   followVehicle.value = !followVehicle.value
@@ -616,4 +705,28 @@ watch(
 .popup-row span {
   color: #cbd5e1;
 }
+
+.popup-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.popup-address-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+
+  background: #22c55e;
+  color: #052e16;
+
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.popup-address-btn:hover {
+  background: #16a34a;
+}
+
 </style>

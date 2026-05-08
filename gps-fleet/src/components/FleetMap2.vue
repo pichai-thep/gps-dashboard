@@ -128,7 +128,9 @@
       <div v-if="selectedAddress" class="popup-address">
         {{ selectedAddress }}
       </div>
+
     </div>
+
   </div>
 </template>
 
