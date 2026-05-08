@@ -45,7 +45,7 @@
               :class="{ active: noDriverCardFilter }"
               @click="toggleNoDriverCardFilter"
           >
-            ไม่ได้รูดบัตร {{ noDriverCardCount }}
+            no-license {{ noDriverCardCount }}
           </button>
         </div>
       </div>
@@ -121,7 +121,7 @@
           :first="(page - 1) * perPage"
           :rowsPerPageOptions="[10, 20, 50, 100]"
           scrollable
-          scrollHeight="calc(100vh - 500px)"
+          scrollHeight="calc(150vh - 450px)"
           class="vehicle-table"
           selectionMode="single"
           tableStyle="width: 100%; table-layout: fixed;"
@@ -632,7 +632,7 @@ onBeforeUnmount(() => {
 .panel-header {
   position: relative;
   flex-shrink: 0;
-  padding: 18px 20px 14px;
+  padding: 10px 10px 10px;
   background: #111827;
 }
 
@@ -784,8 +784,8 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   display: grid;
   grid-template-columns: 1.7fr 1.4fr 100px;
-  gap: 8px;
-  padding: 10px;
+  gap: 5px;
+  padding: 5px;
   background: #020617;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);

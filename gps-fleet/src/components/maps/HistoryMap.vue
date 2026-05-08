@@ -27,6 +27,11 @@
         </div>
 
         <div class="popup-row">
+          <span>GPS Time</span>
+          <strong>{{ popupData.gps_time }}</strong>
+        </div>
+
+        <div class="popup-row">
           <span>Status</span>
           <strong>{{ popupData.status }}</strong>
         </div>
@@ -37,31 +42,16 @@
         </div>
 
         <div class="popup-row">
-          <span>GPS Time</span>
-          <strong>{{ popupData.gps_time }}</strong>
-        </div>
-
-        <div class="popup-row">
           <span>Lat/Lon</span>
           <strong>{{ popupData.lat }}, {{ popupData.lng }}</strong>
         </div>
 
-        <div class="popup-row">
-          <span>Driver</span>
-          <strong>{{ popupData.driver_name ?? '-' }}</strong>
-        </div>
-
-        <div class="popup-row">
-          <span>Phone</span>
-          <strong>{{ popupData.driver_phone ?? '-' }}</strong>
-        </div>
-
-        <div class="popup-row">
+        <div class="popup-row" v-if="popupData.driver_license_name">
           <span>License Name</span>
           <strong>{{ popupData.driver_license_name ?? '-' }}</strong>
         </div>
 
-        <div class="popup-row">
+        <div class="popup-row" v-if="popupData.driver_license_no">
           <span>License No</span>
           <strong>{{ popupData.driver_license_no ?? '-' }}</strong>
         </div>
@@ -688,8 +678,8 @@ function formatLongdoAddress(data: any): string {
     data.subdistrict,
     data.district,
     data.province,
-    data.postcode,
-    data.country,
+    // data.postcode,
+    // data.country,
   ]
       .filter(Boolean)
       .join(' ')
@@ -802,6 +792,7 @@ watch(
 
 <style scoped>
 .popup-title {
+  font-size: large;
   font-weight: 800;
   margin-bottom: 8px;
 }

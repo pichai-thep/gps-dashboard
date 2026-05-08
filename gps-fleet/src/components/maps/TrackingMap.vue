@@ -67,6 +67,11 @@
           </strong>
         </div>
 
+        <div class="popup-row">
+          <span>Lat/Lon</span>
+          <strong>{{ popupVehicle.lat }}, {{ popupVehicle.lng }}</strong>
+        </div>
+
         <div class="popup-row" v-if="popupVehicle.driver_name">
           <span>Driver name</span>
           <strong>
@@ -232,7 +237,7 @@ function formatLongdoAddress(data: any): string {
     data.subdistrict,
     data.district,
     data.province,
-    data.postcode,
+    // data.postcode,
     // data.country,
   ]
       .filter(Boolean)
@@ -730,27 +735,26 @@ watch(
   color: #cbd5e1;
 }
 
-.popup-actions {
-  margin-top: 10px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.popup-address-btn {
+.address-link {
   border: 0;
-  border-radius: 8px;
-  padding: 6px 10px;
-
-  background: #22c55e;
-  color: #052e16;
-
-  font-size: 12px;
-  font-weight: 800;
+  padding: 0;
+  background: transparent;
+  color: #60a5fa;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.popup-address-btn:hover {
-  background: #16a34a;
+.address-link:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.popup-address {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e5e7eb;
+  line-height: 1.35;
 }
 
 </style>
