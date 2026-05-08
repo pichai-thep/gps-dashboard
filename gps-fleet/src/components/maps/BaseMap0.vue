@@ -6,6 +6,7 @@
       {{ providerLabel }}
     </div>
 
+
     <div class="map-actions">
       <button type="button" title="Zoom in" @click.stop="zoomIn">
         +
@@ -18,37 +19,13 @@
       <button type="button" title="Fit map" @click.stop="emitFit">
         <i class="pi pi-map-marker"></i>
       </button>
+
     </div>
 
     <div class="map-controls">
       <slot name="map-controls" />
     </div>
 
-    <div v-if="isGoogleMap" class="map-layer-switcher">
-      <button
-          type="button"
-          :class="{ active: currentLayer === 'default' }"
-          @click.stop="currentLayer = 'default'"
-      >
-        Map
-      </button>
-
-      <button
-          type="button"
-          :class="{ active: currentLayer === 'satellite' }"
-          @click.stop="currentLayer = 'satellite'"
-      >
-        Satellite
-      </button>
-
-      <button
-          type="button"
-          :class="{ active: currentLayer === 'hybrid' }"
-          @click.stop="currentLayer = 'hybrid'"
-      >
-        Hybrid
-      </button>
-    </div>
 
     <slot
         :map="map"
@@ -75,13 +52,12 @@ import {
 
 import Map from 'ol/Map'
 import View from 'ol/View'
-import Overlay from 'ol/Overlay'
 import TileLayer from 'ol/layer/Tile'
 import XYZ from 'ol/source/XYZ'
-import { defaults as defaultControls } from 'ol/control'
+import Overlay from 'ol/Overlay'
 import { fromLonLat } from 'ol/proj'
-
-import { useAuthStore } from '@/stores/auth'
+import { defaults as defaultControls } from 'ol/control'
+import { useAuthStore } from '../../stores/auth'
 
 import {
   DEFAULT_MAP_PROVIDER,
@@ -125,13 +101,6 @@ const map = shallowRef<Map | null>(null)
 const baseLayer = shallowRef<TileLayer<XYZ> | null>(null)
 const popupOverlay = shallowRef<Overlay | null>(null)
 
-const currentLayer = ref<MapLayerType>(props.layer)
-
-
-const isGoogleMap = computed(() => {
-  return selectedProvider.value === 'google'
-})
-
 const selectedProvider = computed<MapProviderKey>(() => {
   if (props.provider) {
     return props.provider
@@ -141,7 +110,7 @@ const selectedProvider = computed<MapProviderKey>(() => {
 })
 
 const providerLabel = computed(() => {
-  return `${selectedProvider.value.toUpperCase()} • ${currentLayer.value}`
+  return `${selectedProvider.value.toUpperCase()} • ${props.layer}`
 })
 
 onMounted(async () => {
@@ -153,7 +122,7 @@ onMounted(async () => {
 
   const tileLayer = createBaseLayer(
       selectedProvider.value,
-      currentLayer.value
+      props.layer
   )
 
   const overlay = new Overlay({
@@ -171,8 +140,13 @@ onMounted(async () => {
       attribution: false,
     }),
 
-    layers: [tileLayer],
-    overlays: [overlay],
+    layers: [
+      tileLayer,
+    ],
+
+    overlays: [
+      overlay,
+    ],
 
     view: new View({
       center: fromLonLat(props.center),
@@ -194,7 +168,7 @@ onMounted(async () => {
 watch(
     () => [
       selectedProvider.value,
-      currentLayer.value,
+      props.layer,
       auth.config?.mapApi_key,
     ],
     () => {
@@ -204,7 +178,7 @@ watch(
 
       const source = createTileSource(
           selectedProvider.value,
-          currentLayer.value
+          props.layer
       )
 
       baseLayer.value.setSource(source)
@@ -212,17 +186,10 @@ watch(
     }
 )
 
-onBeforeUnmount(() => {
-  map.value?.setTarget(undefined)
-  map.value = null
-})
-
 function resolveMapProvider(value?: string | null): MapProviderKey {
   const mapApi = String(value || '').toLowerCase()
 
-  if (!mapApi) {
-    return 'osm'
-  }
+  if (!mapApi) return 'osm'
 
   if (mapApi === 'google' || mapApi === 'googlemap') {
     return 'google'
@@ -269,12 +236,9 @@ function createBaseLayer(
 }
 
 function zoomIn() {
-  const view = map.value?.getView()
+  if (!map.value) return
 
-  if (!view) {
-    return
-  }
-
+  const view = map.value.getView()
   const zoom = view.getZoom() ?? props.zoom
 
   view.animate({
@@ -284,12 +248,9 @@ function zoomIn() {
 }
 
 function zoomOut() {
-  const view = map.value?.getView()
+  if (!map.value) return
 
-  if (!view) {
-    return
-  }
-
+  const view = map.value.getView()
   const zoom = view.getZoom() ?? props.zoom
 
   view.animate({
@@ -319,16 +280,23 @@ defineExpose({
   getPopupOverlay,
   setPopupPosition,
 })
+
+onBeforeUnmount(() => {
+  if (map.value) {
+    map.value.setTarget(undefined)
+    map.value = null
+  }
+})
 </script>
 
 <style scoped>
 .base-map-shell {
-  position: relative;
-  flex: 1;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  flex: 1;
+  position: relative;
   border-radius: 18px;
+  overflow: hidden;
 }
 
 .base-map {
@@ -342,16 +310,15 @@ defineExpose({
   left: 12px;
   z-index: 20;
 
+  font-size: 11px;
+  color: #cbd5f5;
+
+  background: rgba(15, 23, 42, 0.7);
   padding: 4px 8px;
   border-radius: 6px;
 
-  background: rgba(15, 23, 42, 0.7);
-  color: #cbd5f5;
-
-  font-size: 11px;
-
-  pointer-events: none;
   backdrop-filter: blur(6px);
+  pointer-events: none;
 }
 
 .map-actions {
@@ -365,8 +332,7 @@ defineExpose({
   gap: 8px;
 }
 
-.map-actions button,
-.map-controls :slotted(button) {
+.map-actions button {
   width: 36px;
   height: 36px;
 
@@ -376,36 +342,14 @@ defineExpose({
   background: rgba(15, 23, 42, 0.9);
   color: #ffffff;
 
+  font-size: 18px;
+  font-weight: 800;
+
   cursor: pointer;
   backdrop-filter: blur(12px);
 }
 
-.map-actions button {
-  font-size: 18px;
-  font-weight: 800;
-}
-
 .map-actions button:hover {
-  background: #22c55e;
-  color: #052e16;
-}
-
-.map-controls {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 40;
-
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.map-controls :slotted(button:hover) {
-  background: #2563eb;
-}
-
-.map-controls :slotted(button.active) {
   background: #22c55e;
   color: #052e16;
 }
@@ -422,45 +366,37 @@ defineExpose({
   font-size: 12px;
 }
 
-.map-layer-switcher {
+.map-controls {
   position: absolute;
   top: 16px;
-  left: 64px;
-  z-index: 35;
+  right: 16px;
+  z-index: 40;
 
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  padding: 4px;
-  border-radius: 12px;
+.map-controls :slotted(button) {
+  width: 36px;
+  height: 36px;
 
-  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+
+  background: rgba(15, 23, 42, 0.9);
+  color: #ffffff;
+
+  cursor: pointer;
   backdrop-filter: blur(12px);
 }
 
-.map-layer-switcher button {
-  height: 32px;
-  padding: 0 10px;
-
-  border: 0;
-  border-radius: 8px;
-
-  background: transparent;
-  color: #ffffff;
-
-  font-size: 12px;
-  font-weight: 700;
-
-  cursor: pointer;
+.map-controls :slotted(button:hover) {
+  background: #2563eb;
 }
 
-.map-layer-switcher button:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.map-layer-switcher button.active {
+.map-controls :slotted(button.active) {
   background: #22c55e;
   color: #052e16;
 }
-
 </style>
