@@ -11,7 +11,18 @@
         </div>
 
         <h2>Current Tracking</h2>
-        <p>{{ mapVehicles.length }} / {{ totalRecords }} vehicles on map</p>
+
+        <div class="panel-subtitle">
+          <p>{{ mapVehicles.length }} / {{ totalRecords }} vehicles on map</p>
+
+          <Dropdown
+              v-model="refreshInterval"
+              :options="refreshOptions"
+              optionLabel="label"
+              optionValue="value"
+              class="refresh-filter"
+          />
+        </div>
 
         <div class="summary-row">
           <button
@@ -44,6 +55,13 @@
             optionLabel="name"
             optionValue="id"
             placeholder="Group"
+            class="group-filter"
+        />
+
+        <InputText
+            v-model="search"
+            placeholder="Search vehicle..."
+            class="search-input"
         />
 
         <Dropdown
@@ -53,21 +71,8 @@
             optionValue="value"
             placeholder="Status"
             showClear
+            class="status-filter"
             @update:modelValue="setStatusAndLoad"
-        />
-
-        <Dropdown
-            v-model="refreshInterval"
-            :options="refreshOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Interval"
-        />
-
-        <InputText
-            v-model="search"
-            placeholder="search"
-            class="search-input"
         />
 
         <Dropdown
@@ -84,7 +89,7 @@
             :options="sortDirOptions"
             optionLabel="label"
             optionValue="value"
-            placeholder="Order"
+            placeholder="ASC"
             class="sort-dir-filter"
         />
       </div>
@@ -99,7 +104,7 @@
           :first="(page - 1) * perPage"
           :rowsPerPageOptions="[10, 20, 50, 100]"
           scrollable
-          scrollHeight="calc(100vh - 390px)"
+          scrollHeight="calc(100vh - 420px)"
           class="vehicle-table"
           selectionMode="single"
           tableStyle="width: 100%; table-layout: fixed;"
@@ -232,9 +237,9 @@ const defaultStatusCount: StatusCount = {
 }
 
 const refreshOptions = [
-  { label: '10 sec', value: 10_000 },
-  { label: '30 sec', value: 30_000 },
-  { label: '1 min', value: 60_000 },
+  { label: '10s', value: 10_000 },
+  { label: '30s', value: 30_000 },
+  { label: '1m', value: 60_000 },
 ]
 
 const statusOptions = [
@@ -940,6 +945,126 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+
+.panel-subtitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  margin-top: 6px;
+}
+
+.panel-subtitle p {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.control-bar {
+  flex-shrink: 0;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr 92px;
+  gap: 8px;
+
+  padding: 10px;
+
+  background: #0b1220;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.group-filter {
+  grid-column: 1 / 2;
+}
+
+.search-input {
+  grid-column: 2 / 4;
+}
+
+.status-filter {
+  grid-column: 1 / 2;
+}
+
+.sort-filter {
+  grid-column: 2 / 3;
+}
+
+.sort-dir-filter {
+  grid-column: 3 / 4;
+}
+
+.control-bar :deep(.p-dropdown),
+.control-bar :deep(.p-inputtext) {
+  width: 100%;
+  height: 36px;
+  min-height: 36px;
+
+  border-radius: 10px;
+
+  font-family: inherit;
+  font-size: 12px !important;
+  font-weight: 600;
+  line-height: 36px;
+}
+
+.control-bar :deep(.p-dropdown-label),
+.control-bar :deep(.p-inputtext) {
+  display: flex;
+  align-items: center;
+
+  height: 36px;
+  padding: 0 10px;
+
+  font-family: inherit;
+  font-size: 12px !important;
+  font-weight: 600;
+  line-height: 36px;
+
+  color: #334155;
+}
+
+.control-bar :deep(.p-placeholder) {
+  font-size: 12px !important;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.control-bar :deep(.p-dropdown-trigger) {
+  width: 28px;
+}
+
+.control-bar :deep(.p-dropdown-trigger-icon) {
+  font-size: 12px;
+}
+
+.refresh-filter {
+  width: 99px;
+}
+
+.refresh-filter :deep(.p-dropdown) {
+  height: 32px;
+  min-height: 32px;
+
+  border-radius: 10px;
+
+  font-family: inherit;
+  font-size: 12px !important;
+  font-weight: 600;
+}
+
+.refresh-filter :deep(.p-dropdown-label) {
+  display: flex;
+  align-items: center;
+
+  height: 32px;
+  padding: 0 10px;
+
+  font-size: 12px !important;
+  font-weight: 600;
+  line-height: 32px;
 }
 
 :deep(.p-datatable-tbody > tr > td:last-child) {
