@@ -211,7 +211,7 @@ class TrackingController extends Controller
             'received_time' => $row->received_date,
             'status' => $this->resolveStatus($row),
             'heading' => (int) ($row->heading ?? 0),
-            'fuel_left' => (float) ($row->fuel_left ?? 0),
+            'fuel_left' => $row->fuel_left,
             'icon_path' => $row->icon_path ?? '',
             'icon' => $row->icon_path ?? 'bus',
             'driver_name' => $row->driver_name ?? null,

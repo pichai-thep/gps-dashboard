@@ -29,8 +29,11 @@
 
       <div v-if="popupVehicle">
 
-        <div class="popup-title">
-          {{ popupVehicle.plate_no }}
+        <div class="popup-title">{{ popupVehicle.plate_no }}</div>
+
+        <div class="popup-row">
+          <span>IMEI</span>
+          <strong>{{ popupVehicle.imei }}</strong>
         </div>
 
         <div class="popup-row">
@@ -46,34 +49,46 @@
           </strong>
         </div>
 
+        <div class="popup-row" v-if="popupVehicle.fuel_left">
+          <span>Fuel left</span>
+          <strong>{{ popupVehicle.fuel_left ?? '' }} %</strong>
+        </div>
+
         <div class="popup-row">
           <span>GPS Time</span>
           <strong>
             {{ popupVehicle.gps_time ?? '-' }}
           </strong>
         </div>
-
         <div class="popup-row">
-          <span>Driver</span>
-
+          <span>Updated Time</span>
           <strong>
-            {{
-              formatDriverName(
-                  popupVehicle.track1
-              )
-            }}
+            {{ popupVehicle.received_time ?? '-' }}
           </strong>
         </div>
 
-        <div class="popup-row">
-          <span>License</span>
-
+        <div class="popup-row" v-if="popupVehicle.driver_name">
+          <span>Driver name</span>
           <strong>
-            {{
-              popupVehicle.track3 ??
-              '-'
-            }}
+            {{ popupVehicle.driver_name }}
           </strong>
+        </div>
+
+        <div class="popup-row" v-if="popupVehicle.driver_phone">
+          <span>Driver phone</span>
+          <strong>
+            {{ popupVehicle.driver_phone }}
+          </strong>
+        </div>
+
+        <div class="popup-row" v-if="popupVehicle.track3">
+          <span>License-no</span>
+          <strong>{{popupVehicle.track3 ?? '-' }}</strong>
+        </div>
+
+        <div class="popup-row" v-if="popupVehicle.track1">
+          <span>License-name</span>
+          <strong>{{ formatDriverName(popupVehicle?.track1) }}</strong>
         </div>
 
         <div class="popup-row">
@@ -157,12 +172,12 @@ const vehicleLayer =
       source: vehicleSource,
     })
 
-const followVehicle = ref(false)
+const followVehicle = ref(true)
 const showPopup = ref(true)
 const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
 const addressCache = ref<Record<string, string>>({})
-
+const clickedFromMap = ref(false)
 
 async function loadSelectedAddress() {
   if (!popupVehicle.value) return
@@ -218,7 +233,7 @@ function formatLongdoAddress(data: any): string {
     data.district,
     data.province,
     data.postcode,
-    data.country,
+    // data.country,
   ]
       .filter(Boolean)
       .join(' ')
@@ -293,16 +308,17 @@ function handleMapClick(event: any) {
         const coordinate = geometry.getCoordinates()
 
         if (showPopup.value) {
+
+          selectedAddress.value = null
+          addressLoading.value = false
+
           popupVehicle.value = vehicle
+
           popupOverlay?.setPosition(coordinate)
         }
 
-        map.value?.getView().animate({
-          center: coordinate,
-          zoom: 18,
-          duration: 300,
-        })
 
+        clickedFromMap.value = true
         emit('vehicle-click', vehicle)
 
         found = true
@@ -438,6 +454,10 @@ function focusVehicle(
       feature.get('vehicle')
 
   if (showPopup.value) {
+
+    selectedAddress.value = null
+    addressLoading.value = false
+
     popupVehicle.value = vehicle
 
     popupOverlay?.setPosition(
@@ -456,8 +476,10 @@ function focusVehicle(
 
 function closePopup() {
 
-  popupVehicle.value =
-      null
+  popupVehicle.value = null
+
+  selectedAddress.value = null
+  addressLoading.value = false
 
   popupOverlay?.setPosition(
       undefined
@@ -547,7 +569,7 @@ function getVehicleIcon(
     case 'running':
       return `/cars/${carType}/${getDirectionName(vehicle.heading)}.png`
 
-    case 'start':
+    case 'idle':
       return `/cars/${carType}/start.png`
 
     case 'acc_on':
@@ -673,7 +695,6 @@ watch(
 watch(
     () => props.focusVehicleId,
     async (vehicleId) => {
-
       await nextTick()
 
       if (!vehicleId) {
@@ -683,14 +704,17 @@ watch(
 
       focusVehicle(
           vehicleId,
-          true
+          !clickedFromMap.value
       )
+
+      clickedFromMap.value = false
     }
 )
 </script>
 
 <style scoped>
 .popup-title {
+  font-size: large;
   font-weight: 800;
   margin-bottom: 8px;
 }
