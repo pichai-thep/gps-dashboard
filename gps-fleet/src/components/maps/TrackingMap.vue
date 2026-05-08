@@ -4,23 +4,24 @@
       @ready="handleMapReady"
       @fit="fitVehicles"
   >
-    <template #controls>
+
+    <template #map-controls>
       <button
-          title="Follow Vehicle"
           type="button"
+          title="Follow Vehicle"
           :class="{ active: followVehicle }"
-          @click.stop="followVehicle = !followVehicle"
+          @click.stop="toggleFollowVehicle"
       >
         <i class="pi pi-send"></i>
       </button>
 
       <button
-          title="Show Popup"
           type="button"
+          title="Show Popup"
           :class="{ active: showPopup }"
-          @click.stop="togglePopup"
+          @click.stop="toggleShowPopup"
       >
-        <i class="pi pi-info-circle"></i>
+        <i class="pi pi-list"></i>
       </button>
     </template>
 
@@ -75,6 +76,7 @@
         </div>
       </div>
     </template>
+
   </BaseMap>
 </template>
 
@@ -131,19 +133,29 @@ const vehicleLayer =
       source: vehicleSource,
     })
 
+const followVehicle = ref(false)
+const showPopup = ref(true)
+
+function toggleFollowVehicle() {
+  followVehicle.value = !followVehicle.value
+
+  if (
+      followVehicle.value &&
+      props.focusVehicleId
+  ) {
+    focusVehicle(
+        props.focusVehicleId,
+        false
+    )
+  }
+}
+
+
 const popupVehicle =
     ref<Vehicle | null>(null)
 
-const followVehicle =
-    ref(false)
-
-const showPopup =
-    ref(true)
-
-function togglePopup() {
-
-  showPopup.value =
-      !showPopup.value
+function toggleShowPopup() {
+  showPopup.value = !showPopup.value
 
   if (!showPopup.value) {
     closePopup()
@@ -172,7 +184,6 @@ function handleMapReady(payload: any) {
 }
 
 function handleMapClick(event: any) {
-
   if (!map.value) return
 
   let found = false
@@ -180,34 +191,30 @@ function handleMapClick(event: any) {
   map.value.forEachFeatureAtPixel(
       event.pixel,
       (feature) => {
-
-        const vehicle =
-            feature.get('vehicle')
+        const vehicle = feature.get('vehicle')
 
         if (!vehicle) return
 
-        const geometry =
-            feature.getGeometry()
+        const geometry = feature.getGeometry()
 
         if (!(geometry instanceof Point)) {
           return
         }
 
+        const coordinate = geometry.getCoordinates()
+
         if (showPopup.value) {
-
-          popupVehicle.value =
-              vehicle
-
-          popupOverlay?.setPosition(
-              geometry.getCoordinates()
-          )
+          popupVehicle.value = vehicle
+          popupOverlay?.setPosition(coordinate)
         }
 
-        // emit selection even when popup disabled
-        emit(
-            'vehicle-click',
-            vehicle
-        )
+        map.value?.getView().animate({
+          center: coordinate,
+          zoom: 18,
+          duration: 300,
+        })
+
+        emit('vehicle-click', vehicle)
 
         found = true
       }
@@ -342,9 +349,7 @@ function focusVehicle(
       feature.get('vehicle')
 
   if (showPopup.value) {
-
-    popupVehicle.value =
-        vehicle
+    popupVehicle.value = vehicle
 
     popupOverlay?.setPosition(
         coordinate
@@ -352,18 +357,11 @@ function focusVehicle(
   }
 
   if (animate) {
-
     map.value.getView().animate({
       center: coordinate,
       zoom: 16,
       duration: 300,
     })
-
-  } else {
-
-    map.value.getView().setCenter(
-        coordinate
-    )
   }
 }
 
@@ -573,13 +571,10 @@ watch(
 
       renderVehicles()
 
-      if (
-          followVehicle.value &&
-          props.focusVehicleId
-      ) {
+      if (props.focusVehicleId) {
         focusVehicle(
             props.focusVehicleId,
-            false
+            followVehicle.value
         )
       }
     },
@@ -593,12 +588,13 @@ watch(
       await nextTick()
 
       if (!vehicleId) {
+        closePopup()
         return
       }
 
       focusVehicle(
-          props.focusVehicleId,
-          false
+          vehicleId,
+          true
       )
     }
 )

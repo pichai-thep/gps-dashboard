@@ -23,7 +23,7 @@
     </div>
 
     <div class="map-controls">
-      <slot name="controls" />
+      <slot name="map-controls" />
     </div>
 
 
@@ -57,8 +57,7 @@ import XYZ from 'ol/source/XYZ'
 import Overlay from 'ol/Overlay'
 import { fromLonLat } from 'ol/proj'
 import { defaults as defaultControls } from 'ol/control'
-
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '../../stores/auth'
 
 import {
   DEFAULT_MAP_PROVIDER,
@@ -378,7 +377,7 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
-.map-controls button {
+.map-controls :slotted(button) {
   width: 36px;
   height: 36px;
 
@@ -389,18 +388,15 @@ onBeforeUnmount(() => {
   color: #ffffff;
 
   cursor: pointer;
-
   backdrop-filter: blur(12px);
 }
 
-.map-controls button:hover {
+.map-controls :slotted(button:hover) {
   background: #2563eb;
 }
 
-.map-controls button.active {
+.map-controls :slotted(button.active) {
   background: #22c55e;
   color: #052e16;
 }
-
-
 </style>

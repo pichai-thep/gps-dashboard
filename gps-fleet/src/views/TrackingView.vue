@@ -2,11 +2,11 @@
   <div class="tracking-page">
     <aside class="vehicle-panel">
       <div class="panel-header">
-        <Message v-if="error" severity="error" class="m-3">
+        <Message v-show="error" severity="error" class="tracking-error">
           {{ error }}
         </Message>
 
-        <div v-if="loading" class="loading-text">
+        <div class="loading-text" :class="{ active: loading }">
           Loading tracking...
         </div>
 
@@ -609,8 +609,29 @@ onBeforeUnmount(() => {
 }
 
 .panel-header {
+  position: relative;
+  flex-shrink: 0;
   padding: 16px 22px 14px;
   overflow: visible;
+}
+
+.loading-text {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+
+  opacity: 0;
+  pointer-events: none;
+
+  font-size: 11px;
+  font-weight: 700;
+  color: #93c5fd;
+
+  transition: opacity 0.15s ease;
+}
+
+.loading-text.active {
+  opacity: 1;
 }
 
 .panel-header h2 {
@@ -624,6 +645,10 @@ onBeforeUnmount(() => {
   margin: 6px 0 0;
   color: #9ca3af;
   font-size: 14px;
+}
+
+.tracking-error {
+  margin-bottom: 8px;
 }
 
 .control-bar {
