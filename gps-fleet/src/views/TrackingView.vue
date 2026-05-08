@@ -15,13 +15,16 @@
         <div class="panel-subtitle">
           <p>{{ mapVehicles.length }} / {{ totalRecords }} vehicles on map</p>
 
-          <Dropdown
-              v-model="refreshInterval"
-              :options="refreshOptions"
-              optionLabel="label"
-              optionValue="value"
-              class="refresh-filter"
-          />
+          <div class="refresh-field">
+            <i class="pi pi-refresh"></i>
+
+            <Dropdown
+                v-model="refreshInterval"
+                :options="refreshOptions"
+                optionLabel="label"
+                optionValue="value"
+            />
+          </div>
         </div>
 
         <div class="summary-row">
@@ -45,53 +48,67 @@
             ไม่ได้รูดบัตร {{ noDriverCardCount }}
           </button>
         </div>
-
       </div>
 
       <div class="control-bar">
-        <Dropdown
-            v-model="selectedGroupId"
-            :options="groupOptions"
-            optionLabel="name"
-            optionValue="id"
-            placeholder="Group"
-            class="group-filter"
-        />
+        <div class="filter-field group-filter">
+          <i class="pi pi-users"></i>
 
-        <InputText
-            v-model="search"
-            placeholder="Search vehicle..."
-            class="search-input"
-        />
+          <Dropdown
+              v-model="selectedGroupId"
+              :options="groupOptions"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Group"
+          />
+        </div>
 
-        <Dropdown
-            :modelValue="statusFilter"
-            :options="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Status"
-            showClear
-            class="status-filter"
-            @update:modelValue="setStatusAndLoad"
-        />
+        <div class="filter-field search-input">
+          <i class="pi pi-search"></i>
 
-        <Dropdown
-            v-model="sortBy"
-            :options="sortOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Sort by"
-            class="sort-filter"
-        />
+          <InputText
+              v-model="search"
+              placeholder="Search vehicle..."
+          />
+        </div>
 
-        <Dropdown
-            v-model="sortDir"
-            :options="sortDirOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="ASC"
-            class="sort-dir-filter"
-        />
+        <div class="filter-field status-filter">
+          <i class="pi pi-flag"></i>
+
+          <Dropdown
+              :modelValue="statusFilter"
+              :options="statusOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Status"
+              showClear
+              @update:modelValue="setStatusAndLoad"
+          />
+        </div>
+
+        <div class="filter-field sort-filter">
+          <i class="pi pi-sort-alpha-down"></i>
+
+          <Dropdown
+              v-model="sortBy"
+              :options="sortOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Sort by"
+          />
+        </div>
+
+        <div class="filter-field sort-dir-filter">
+          <i class="pi pi-sort-alt"></i>
+
+          <Dropdown
+              v-model="sortDir"
+              :options="sortDirOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="ASC"
+          />
+        </div>
       </div>
 
       <DataTable
@@ -104,7 +121,7 @@
           :first="(page - 1) * perPage"
           :rowsPerPageOptions="[10, 20, 50, 100]"
           scrollable
-          scrollHeight="calc(100vh - 420px)"
+          scrollHeight="calc(100vh - 500px)"
           class="vehicle-table"
           selectionMode="single"
           tableStyle="width: 100%; table-layout: fixed;"
@@ -166,20 +183,6 @@
           </template>
         </Column>
 
-<!--        <Column header="" style="width: 56px; min-width: 56px; text-align: center">-->
-<!--          <template #body="slotProps">-->
-<!--            <div class="eye-cell">-->
-<!--              <Button-->
-<!--                  text-->
-<!--                  rounded-->
-<!--                  size="small"-->
-<!--                  :icon="isVehicleVisible(slotProps.data) ? 'pi pi-eye' : 'pi pi-eye-slash'"-->
-<!--                  @click.stop="toggleVehicleVisible(slotProps.data)"-->
-<!--              />-->
-<!--            </div>-->
-<!--          </template>-->
-<!--        </Column>-->
-
         <Column header="" style="width: 44px">
           <template #body="slotProps">
             <div class="eye-cell">
@@ -207,7 +210,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue'
 
 import Button from 'primevue/button'
 import Column from 'primevue/column'
@@ -217,12 +226,15 @@ import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 
 import TrackingMap from '@/components/maps/TrackingMap.vue'
-import { getCurrentTracking, getVehicleGroups, type VehicleGroup } from '@/services/tracking'
+import {
+  getCurrentTracking,
+  getVehicleGroups,
+  type VehicleGroup,
+} from '@/services/tracking'
 import { useAuthStore } from '@/stores/auth'
 import type { Vehicle, VehicleStatus } from '@/types/fleet'
 
 type StatusCount = Record<VehicleStatus, number>
-const noDriverCardFilter = ref(false)
 type DriverStatus = 'ok' | 'missing' | 'no_license' | 'hide'
 
 const auth = useAuthStore()
@@ -260,12 +272,6 @@ const statusSummaryItems = [
   { label: 'Offline', value: 'offline' },
 ] as const
 
-const driverSummaryItems = [
-  { label: 'OK', value: 'ok' },
-  { label: 'No License', value: 'no_license' },
-  { label: 'Missing', value: 'missing' },
-] as const
-
 const sortOptions = [
   { label: 'Plate', value: 'plate_no' },
   { label: 'Time', value: 'gps_time' },
@@ -285,7 +291,7 @@ const groupOptions = ref<VehicleGroup[]>([{ id: -1, name: 'All Group' }])
 const selectedVehicleId = ref<string | null>(null)
 const selectedGroupId = ref<number | string>(-1)
 const statusFilter = ref<VehicleStatus | null>(null)
-const driverFilter = ref<DriverStatus | null>(null)
+const noDriverCardFilter = ref(false)
 
 const refreshInterval = ref(30_000)
 const search = ref('')
@@ -315,24 +321,6 @@ const mapVehicles = computed(() => {
 
 const noDriverCardCount = computed(() => {
   return vehicles.value.filter(isNoDriverCard).length
-})
-
-const driverCount = computed(() => {
-  const counts = {
-    ok: 0,
-    no_license: 0,
-    missing: 0,
-  }
-
-  for (const vehicle of vehicles.value) {
-    const status = getDriverStatus(vehicle)
-
-    if (status === 'ok' || status === 'no_license' || status === 'missing') {
-      counts[status]++
-    }
-  }
-
-  return counts
 })
 
 async function loadVehicles() {
@@ -400,16 +388,14 @@ function loadByStatus(status: VehicleStatus) {
   setStatusAndLoad(statusFilter.value === status ? null : status)
 }
 
-function loadByDriver(status: DriverStatus) {
-  driverFilter.value = driverFilter.value === status ? null : status
+function toggleNoDriverCardFilter() {
+  noDriverCardFilter.value = !noDriverCardFilter.value
   resetListState()
   loadVehicles()
 }
 
 function stopPolling() {
-  if (!pollingTimer) {
-    return
-  }
+  if (!pollingTimer) return
 
   window.clearInterval(pollingTimer)
   pollingTimer = null
@@ -438,21 +424,6 @@ function onPage(event: any) {
   perPage.value = event.rows
   loadVehicles()
 }
-
-function isNoDriverCard(vehicle: any): boolean {
-  return (
-      Number(vehicle.dlt_synch ?? 0) === 1 &&
-      Number(vehicle.speed ?? 0) > 0 &&
-      getDriverStatus(vehicle) === 'missing'
-  )
-}
-
-function toggleNoDriverCardFilter() {
-  noDriverCardFilter.value = !noDriverCardFilter.value
-  resetListState()
-  loadVehicles()
-}
-
 
 function onRowClick(event: { data: Vehicle }) {
   selectVehicle(event.data)
@@ -493,6 +464,14 @@ function getRowClass(vehicle: Vehicle) {
   }
 }
 
+function isNoDriverCard(vehicle: any): boolean {
+  return (
+      Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0) === 1 &&
+      Number(vehicle.speed ?? 0) > 0 &&
+      !String(vehicle.track3 ?? '').trim()
+  )
+}
+
 function getStatusIcon(status: VehicleStatus) {
   return {
     running: 'pi pi-arrow-circle-up',
@@ -508,14 +487,23 @@ function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
   const shouldRotate = status === 'running' || status === 'idle'
 
   return {
-    transform: shouldRotate && heading != null
-        ? `rotate(${Number(heading)}deg)`
-        : undefined,
+    transform:
+        shouldRotate && heading != null
+            ? `rotate(${Number(heading)}deg)`
+            : undefined,
   }
 }
 
 function getDriverStatus(vehicle: any): DriverStatus {
-  return vehicle.driver_status ?? 'hide'
+  const dltSynch = Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0)
+  const speed = Number(vehicle.speed ?? 0)
+  const track3 = String(vehicle.track3 ?? '').trim()
+
+  if (dltSynch !== 1 || speed <= 0) {
+    return 'hide'
+  }
+
+  return track3 ? 'ok' : 'missing'
 }
 
 function getDriverIcon(status: DriverStatus): string {
@@ -561,7 +549,9 @@ function formatGpsTimeCompact(value?: string | null): string {
 }
 
 function formatFuel(value?: number | string | null): string {
-  if (value === null || value === undefined || value === '') return '-'
+  if (value === null || value === undefined || value === '') {
+    return '-'
+  }
 
   return `${value}%`
 }
@@ -629,11 +619,11 @@ onBeforeUnmount(() => {
 }
 
 .vehicle-panel {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-width: 0;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
   border-radius: 18px;
   background: #111827;
@@ -642,22 +632,19 @@ onBeforeUnmount(() => {
 .panel-header {
   position: relative;
   flex-shrink: 0;
-  padding: 16px 22px 14px;
-  overflow: visible;
+  padding: 18px 20px 14px;
+  background: #111827;
 }
 
 .loading-text {
   position: absolute;
-  top: 8px;
-  right: 14px;
-
+  top: 10px;
+  right: 16px;
   opacity: 0;
   pointer-events: none;
-
+  color: #93c5fd;
   font-size: 11px;
   font-weight: 700;
-  color: #93c5fd;
-
   transition: opacity 0.15s ease;
 }
 
@@ -667,127 +654,95 @@ onBeforeUnmount(() => {
 
 .panel-header h2 {
   margin: 0;
-  color: #fff;
+  color: #ffffff;
   font-size: 22px;
   font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
-.panel-header p {
-  margin: 6px 0 0;
-  color: #9ca3af;
-  font-size: 14px;
-}
-
-.tracking-error {
-  margin-bottom: 8px;
-}
-
-.control-bar {
-  flex-shrink: 0;
-  display: grid;
-  grid-template-columns: 1fr 140px 100px;
-  gap: 10px;
-  padding: 12px;
-  background: #0b1220;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.search-input,
-.sort-filter,
-.sort-dir-filter {
-  width: 100%;
-}
-
-.search-input {
-  grid-column: 1;
-}
-
-.sort-filter {
-  grid-column: 2;
-}
-
-.sort-dir-filter {
-  grid-column: 3;
-}
-
-.vehicle-table {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.plate-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.plate-cell strong {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.plate-cell small {
-  color: #64748b;
-  font-size: 9px;
-}
-
-.time-cell {
-  font-size: 12px;
-  color: #64748b;
-  line-height: 1.25;
-
-  display: -webkit-box;
-  -webkit-line-clamp: 2;   /* 👈 จำกัด 2 บรรทัด */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.time-cell-gps {
-  font-size: 12px;
-  color: #334155;
-  white-space: nowrap;
-}
-
-.status-summary,
-.driver-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-
-.eye-cell {
+.panel-subtitle {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 2px;
+  margin-top: 2px;
 }
 
-.eye-cell :deep(.p-button) {
-  width: 30px;
-  height: 30px;
-  padding: 0;
+.panel-subtitle p {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.eye-cell :deep(.p-button .pi) {
-  font-size: 16px;
+.refresh-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  width: 82px;
+  height: 34px;
+  padding: 0 8px;
+
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+
+  background: #0f172a;
+}
+
+.refresh-field > .pi {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.refresh-field :deep(.p-dropdown),
+.refresh-field :deep(.p-select) {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.refresh-field :deep(.p-dropdown-label),
+.refresh-field :deep(.p-select-label) {
+  padding: 0 !important;
+
+  color: #e5e7eb !important;
+
+  font-size: 13px !important;
+  font-weight: 700;
+  line-height: 32px;
+}
+
+.refresh-field :deep(.p-dropdown-trigger),
+.refresh-field :deep(.p-select-dropdown) {
+  width: 20px;
+  color: #94a3b8 !important;
+}
+
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .summary-item {
-  border: 0;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  height: 22px;
-  padding: 0 8px;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
   border-radius: 999px;
-  font-size: 11px;
+  color: #ffffff;
+  font-size: 10px;
   font-weight: 800;
-  color: #fff;
   line-height: 1;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .summary-item:hover {
@@ -796,12 +751,8 @@ onBeforeUnmount(() => {
 }
 
 .summary-item.active {
-  outline: 3px solid rgba(255, 255, 255, 0.85);
+  outline: 2px solid rgba(255, 255, 255, 0.85);
   outline-offset: 2px;
-}
-
-.summary-item:not(.active) {
-  opacity: 0.9;
 }
 
 .summary-item.running {
@@ -824,155 +775,19 @@ onBeforeUnmount(() => {
   background: #2563eb;
 }
 
-.summary-item.offline {
-  background: #ef4444;
-}
-
-.summary-item.ok {
-  background: #22c55e;
-}
-
-.summary-item.no_license {
-  background: #f59e0b;
-}
-
-.summary-item.missing {
-  background: #ef4444;
-}
-
-.status-icon {
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1;
-  filter: saturate(1.35) contrast(1.2) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
-  transition: transform 0.15s ease;
-}
-
-.status-icon.running {
-  color: #22c55e;
-}
-
-.status-icon.idle {
-  color: #aa9000;
-}
-
-.status-icon.acc_on {
-  color: #f97316;
-}
-
-.status-icon.parking {
-  color: #64748b;
-}
-
-.status-icon.no_gps {
-  color: #3b82f6;
-}
-
-.status-icon.offline {
-  color: #ef4444;
-}
-
-.summary-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-  align-items: center;
-}
-
+.summary-item.offline,
 .summary-item.no-driver-card {
   background: #ef4444;
 }
 
-.vehicle-table {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.plate-cell {
-  min-width: 0;
-}
-
-.plate-cell strong {
-  word-break: break-word;
-  line-height: 1.15;
-}
-
-:deep(.p-datatable-table-container) {
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-}
-
-:deep(.p-datatable-table) {
-  width: 100% !important;
-  table-layout: fixed !important;
-}
-
-:deep(.p-datatable-thead > tr > th),
-:deep(.p-datatable-tbody > tr > td) {
-  overflow: visible;
-}
-
-.time-cell {
-  width: auto;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.plate-cell {
-  min-width: 0;
-}
-
-.plate-cell strong {
-  display: block;
-  max-width: 100%;
-  word-break: break-word;
-  line-height: 1.15;
-}
-
-.time-cell {
-  width: auto;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-
-.panel-subtitle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-
-  margin-top: 6px;
-}
-
-.panel-subtitle p {
-  margin: 0;
-  color: #9ca3af;
-  font-size: 14px;
-}
-
 .control-bar {
   flex-shrink: 0;
-
   display: grid;
-  grid-template-columns: 1fr 1fr 92px;
+  grid-template-columns: 1.7fr 1.4fr 100px;
   gap: 8px;
-
   padding: 10px;
-
-  background: #0b1220;
+  background: #020617;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -996,83 +811,104 @@ onBeforeUnmount(() => {
   grid-column: 3 / 4;
 }
 
-.control-bar :deep(.p-dropdown),
-.control-bar :deep(.p-inputtext) {
+.filter-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+
+  background: #0f172a;
+}
+
+.filter-field > .pi {
+  flex: 0 0 auto;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.filter-field :deep(.p-dropdown),
+.filter-field :deep(.p-select),
+.filter-field :deep(.p-inputtext) {
+  flex: 1;
   width: 100%;
+  min-width: 0;
   height: 36px;
-  min-height: 36px;
-
-  border-radius: 10px;
-
-  font-family: inherit;
   font-size: 12px !important;
-  font-weight: 600;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  color: #e5e7eb !important;
+}
+
+.filter-field :deep(.p-dropdown-label),
+.filter-field :deep(.p-select-label),
+.filter-field :deep(.p-inputtext) {
+  padding: 0 !important;
+
+  color: #e5e7eb !important;
+
+  font-size: 12px !important;
+  font-weight: 700;
   line-height: 36px;
 }
 
-.control-bar :deep(.p-dropdown-label),
-.control-bar :deep(.p-inputtext) {
-  display: flex;
-  align-items: center;
+.filter-field :deep(.p-placeholder) {
+  color: #64748b !important;
+}
 
-  height: 36px;
-  padding: 0 10px;
+.filter-field :deep(.p-dropdown-trigger),
+.filter-field :deep(.p-select-dropdown) {
+  width: 24px;
+  color: #94a3b8 !important;
+}
 
-  font-family: inherit;
-  font-size: 12px !important;
-  font-weight: 600;
-  line-height: 36px;
+.filter-field:focus-within {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
 
+.tracking-error {
+  margin-bottom: 8px;
+}
+
+.vehicle-table {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:deep(.p-datatable-table-container) {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+:deep(.p-datatable-table) {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+:deep(.p-datatable-thead > tr > th) {
+  padding: 12px;
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-size: 15px;
+  font-weight: 800;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+:deep(.p-datatable-tbody > tr > td) {
+  padding: 12px;
   color: #334155;
-}
-
-.control-bar :deep(.p-placeholder) {
-  font-size: 12px !important;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.control-bar :deep(.p-dropdown-trigger) {
-  width: 28px;
-}
-
-.control-bar :deep(.p-dropdown-trigger-icon) {
-  font-size: 12px;
-}
-
-.refresh-filter {
-  width: 99px;
-}
-
-.refresh-filter :deep(.p-dropdown) {
-  height: 32px;
-  min-height: 32px;
-
-  border-radius: 10px;
-
-  font-family: inherit;
-  font-size: 12px !important;
-  font-weight: 600;
-}
-
-.refresh-filter :deep(.p-dropdown-label) {
-  display: flex;
-  align-items: center;
-
-  height: 32px;
-  padding: 0 10px;
-
-  font-size: 12px !important;
-  font-weight: 600;
-  line-height: 32px;
-}
-
-:deep(.p-datatable-tbody > tr > td:last-child) {
-  padding-right: 8px;
-}
-
-:deep(.p-button .pi) {
-  font-size: 16px;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 
 :deep(.selected-vehicle-row) {
@@ -1084,12 +920,108 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #22c55e !important;
 }
 
-.map-area {
-  min-width: 0;
-  height: 100%;
-  display: flex;
+.status-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  filter: saturate(1.35) contrast(1.2) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  transition: transform 0.15s ease;
 }
 
+.status-icon.running {
+  color: #22c55e;
+}
+
+.status-icon.idle {
+  color: #eab308;
+}
+
+.status-icon.acc_on {
+  color: #f97316;
+}
+
+.status-icon.parking {
+  color: #64748b;
+}
+
+.status-icon.no_gps {
+  color: #3b82f6;
+}
+
+.status-icon.offline {
+  color: #ef4444;
+}
+
+.plate-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.plate-cell strong {
+  display: block;
+  max-width: 100%;
+  color: #334155;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.time-cell {
+  width: auto;
+  max-width: 100%;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.time-cell-gps {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.eye-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eye-cell :deep(.p-button) {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #22c55e;
+}
+
+.eye-cell :deep(.p-button:hover) {
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.eye-cell :deep(.p-button .pi) {
+  font-size: 16px;
+}
+
+:deep(.p-datatable-tbody > tr > td:last-child) {
+  padding-right: 8px;
+}
+
+:deep(.p-datatable-thead > tr > th) {
+  background: #111827 !important;
+  color: #cbd5e1 !important;
+}
+:deep(.p-datatable-tbody > tr > td) {
+  padding: 14px 12px;
+}
 .driver-ok {
   color: #22c55e;
 }
@@ -1102,4 +1034,9 @@ onBeforeUnmount(() => {
   color: #f59e0b;
 }
 
+.map-area {
+  display: flex;
+  min-width: 0;
+  height: 100%;
+}
 </style>
