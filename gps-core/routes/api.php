@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HistoryController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\TrackingController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,3 +23,4 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::get('/tracking/history/export', [HistoryController::class, 'export']);
 });
 
+Route::get('/notifications/recent', [NotificationController::class, 'recent']);
