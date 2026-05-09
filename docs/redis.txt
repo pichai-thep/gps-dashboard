@@ -1,0 +1,54 @@
+เข้า redis
+redis-cli
+เลือก DB
+SELECT 0
+ดู key ทั้งหมด
+KEYS *
+
+หรือเฉพาะ notification:
+
+KEYS notify:user:*
+Push notification เข้า list
+LPUSH notify:user:mcap "{\"id\":1,\"msg_type\":\"overspeed\",\"message\":\"รถเร็วเกิน\"}"
+ดู notification ล่าสุด
+LRANGE notify:user:mcap 0 10
+ดูจำนวน notification
+LLEN notify:user:mcap
+ลบทั้ง key
+DEL notify:user:mcap
+ล้างทั้ง DB
+
+ระวังมาก ⚠️
+
+FLUSHDB
+ล้างทุก DB
+
+อันตรายสุด ⚠️⚠️⚠️
+
+FLUSHALL
+ตั้ง expire
+EXPIRE notify:user:mcap 86400
+
+86400 = 1 วัน
+
+ดู TTL
+TTL notify:user:mcap
+ตัด list ให้เหลือ 100 รายการล่าสุด
+LTRIM notify:user:mcap 0 99
+เช็ค memory
+INFO memory
+เช็ค server
+INFO server
+เช็ค client connection
+INFO clients
+เช็คทุกอย่างรวม ๆ
+INFO
+ออกจาก redis
+exit
+Pattern ที่คุณจะใช้จริงบ่อยสุด
+Java push
+LPUSH notify:user:mcap ...
+LTRIM notify:user:mcap 0 99
+EXPIRE notify:user:mcap 86400
+Laravel read
+LRANGE notify:user:mcap 0 49

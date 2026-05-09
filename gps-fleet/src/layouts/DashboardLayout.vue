@@ -29,10 +29,13 @@
           <span v-if="!sidebarCollapsed">History</span>
         </RouterLink>
 
-        <RouterLink to="/notifications" class="menu-item">
-          <i class="pi pi-bell"></i>
-          <span v-if="!sidebarCollapsed">Notifications</span>
-        </RouterLink>
+<!--        <RouterLink to="/notifications" class="menu-item">-->
+<!--          <i class="pi pi-bell"></i>-->
+<!--          <span v-if="!sidebarCollapsed">Notifications</span>-->
+<!--        </RouterLink>-->
+
+        <NotificationBell />
+
       </nav>
     </aside>
 
@@ -89,6 +92,7 @@ import { computed, ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import NotificationBell from "@/components/notifications/NotificationBell.vue";
 
 
 const sidebarCollapsed = ref(true)

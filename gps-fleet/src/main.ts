@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import './style.css'
 import 'primeicons/primeicons.css'
+import ToastService from 'primevue/toastservice'
 
 createApp(App)
     .use(createPinia())
@@ -20,6 +21,7 @@ createApp(App)
         },
         ripple: true,
     })
+    .use(ToastService)
     .mount('#app')
 
-console.log('APP START')
+// console.log('APP START')

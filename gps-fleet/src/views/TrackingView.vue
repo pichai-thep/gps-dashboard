@@ -233,6 +233,7 @@ import {
 } from '@/services/tracking'
 import { useAuthStore } from '@/stores/auth'
 import type { Vehicle, VehicleStatus } from '@/types/fleet'
+import {getRecentNotifications} from "@/services/notificationApi";
 
 type StatusCount = Record<VehicleStatus, number>
 type DriverStatus = 'ok' | 'missing' | 'no_license' | 'hide'
@@ -321,6 +322,12 @@ const mapVehicles = computed(() => {
 
 const noDriverCardCount = computed(() => {
   return vehicles.value.filter(isNoDriverCard).length
+})
+
+onMounted(async () => {
+  const items = await getRecentNotifications()
+
+  console.log(items)
 })
 
 async function loadVehicles() {
