@@ -24,3 +24,5 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
 });
 
 Route::get('/notifications/recent', [NotificationController::class, 'recent']);
+Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);

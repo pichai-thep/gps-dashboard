@@ -37,4 +37,16 @@ class NotificationService
     {
         return "notify:user:$login";
     }
+
+    public function getUnreadCount(string $login): int
+    {
+        return (int) Redis::connection('default')
+            ->get("notify:user:$login:unread");
+    }
+
+    public function markRead(string $login): void
+    {
+        Redis::connection('default')
+            ->set("notify:user:$login:unread", 0);
+    }
 }

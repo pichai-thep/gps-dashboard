@@ -91,15 +91,20 @@
 import { computed, ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '../stores/auth'
+import { getRecentNotifications, NotificationItem } from '../services/notificationApi';
+import {useToast} from "primevue";
 import NotificationBell from "@/components/notifications/NotificationBell.vue";
 
-
+const notifications = ref<NotificationItem[]>([])
 const sidebarCollapsed = ref(true)
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const toast = useToast()
+
+const latestId = ref<number>(0)
 
 const user = computed(() => auth.user)
 
@@ -148,6 +153,8 @@ const currentPageTitle = computed(() => {
 onMounted(async () => {
   if (auth.token && !auth.user) {
     await auth.fetchMe()
+    console.log('onMount Dashboard layout')
+    await loadNotifications()
   }
 })
 
@@ -155,6 +162,45 @@ async function logout() {
   await auth.logout()
   router.push('/login')
 }
+
+async function loadNotifications() {
+  try {
+    // loading.value = true
+
+    const items = await getRecentNotifications()
+
+    const oldLatestId = latestId.value
+    const newestId = Number(items[0]?.id ?? 0)
+
+    notifications.value = items
+
+    if (newestId > oldLatestId) {
+      const newestItem = items[0]
+      toast.add({
+        severity: 'warn',
+        summary: newestItem.msg_type,
+        detail: newestItem.message,
+        life: 5000,
+      })
+    }
+
+    if (newestId > latestId.value) {
+      latestId.value = newestId
+    }
+
+    console.log({
+      oldLatestId,
+      newestId,
+      latestId: latestId.value,
+      count: items.length,
+    })
+  } catch (err) {
+    console.error('loadNotifications error', err)
+  } finally {
+    // loading.value = false
+  }
+}
+
 </script>
 
 <style scoped>

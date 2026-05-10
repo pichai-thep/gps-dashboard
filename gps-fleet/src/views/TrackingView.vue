@@ -325,9 +325,9 @@ const noDriverCardCount = computed(() => {
 })
 
 onMounted(async () => {
-  const items = await getRecentNotifications()
+  // const items = await getRecentNotifications()
 
-  console.log(items)
+  // console.log(items)
 })
 
 async function loadVehicles() {
