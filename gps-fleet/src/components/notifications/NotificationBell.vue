@@ -15,7 +15,7 @@ const toast = useToast()
 
 const notifications = ref<NotificationItem[]>([])
 const unreadCount = ref(0)
-const latestId = ref(-1)
+const latestId = ref(0)
 
 let timer: number | undefined
 

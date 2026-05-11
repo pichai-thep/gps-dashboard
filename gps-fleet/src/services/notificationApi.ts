@@ -1,4 +1,5 @@
 import api from '../plugins/axios'
+import {useAuthStore} from "../stores/auth";
 
 export type NotificationItem = {
     id: number
@@ -13,14 +14,13 @@ export type NotificationItem = {
 }
 
 export async function getRecentNotifications(): Promise<NotificationItem[]> {
+    const auth = useAuthStore()
     const res = await api.get('/api/notifications/recent')
-
     return res.data?.data ?? []
 }
 
 export async function getNotificationUnreadCount(): Promise<number> {
     const res = await api.get('/api/notifications/unread-count')
-
     return res.data?.count ?? 0
 }
 

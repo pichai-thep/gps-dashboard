@@ -1,0 +1,20 @@
+@baseUrl = http://127.0.0.1:8000
+
+### Login
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "mcap",
+    "password": "1234"
+}
+
+###
+
+#@token = {{login.response.body.$.token}}
+#@token = 'dev-token-16564'
+### Notifications
+GET {{baseUrl}}/api/notifications/recent
+Accept: application/json
+Authorization: Bearer dev-token-16564

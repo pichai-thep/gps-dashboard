@@ -16,16 +16,16 @@ class NotificationController extends Controller
 
     public function recent(Request $request)
     {
-        /*
-         * TODO:
-         * ภายหลังใช้ auth_user จริง
-         */
-        $login = 'mcap';
+        $user = $request->attributes->get('auth_user');
+        $login = $user->login;
+
+        logger()->info("Api NotificationController login: {$login}");
+
 
         $items = $this->notificationService
-            ->getRecentByLogin($login);
+            ->getRecentByLogin(strtolower($login));
 
-        Log::debug($items);
+//        Log::debug($items);
 
         return response()->json([
             'success' => true,
@@ -36,7 +36,8 @@ class NotificationController extends Controller
 
     public function unreadCount(Request $request)
     {
-        $login = 'mcap';
+        $user = $request->attributes->get('auth_user');
+        $login = $user->login;
 
         return response()->json([
             'success' => true,
@@ -46,7 +47,8 @@ class NotificationController extends Controller
 
     public function markRead(Request $request)
     {
-        $login = 'mcap';
+        $user = $request->attributes->get('auth_user');
+        $login = $user->login;
 
         $this->notificationService->markRead($login);
 

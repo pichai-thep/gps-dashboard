@@ -21,8 +21,10 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
 
     Route::get('/tracking/history', [HistoryController::class, 'index']);
     Route::get('/tracking/history/export', [HistoryController::class, 'export']);
+
+    Route::get('/notifications/recent', [NotificationController::class, 'recent']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
+
 });
 
-Route::get('/notifications/recent', [NotificationController::class, 'recent']);
-Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
-Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
