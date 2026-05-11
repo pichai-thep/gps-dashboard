@@ -103,3 +103,9 @@ JAVA CODE
 jedis.lpush(key, json);  ==> push notify
 jedis.ltrim(key, 0, 99); ==> keep only 100 record.
 jedis.expire(key, 86400 * 7); ==> expire in 7 days
+
+sudo firewall-cmd --permanent \
+  --add-rich-rule='rule family="ipv4" source address="10.0.0.30" port protocol="tcp" port="6379" accept'
+
+firewall-cmd --reload
+
