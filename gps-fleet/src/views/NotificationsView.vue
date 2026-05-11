@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import {
   getRecentNotifications,
   type NotificationItem,
-} from '@/services/notificationApi'
+} from '@/services/notification'
 
 const notifications = ref<NotificationItem[]>([])
 const loading = ref(false)

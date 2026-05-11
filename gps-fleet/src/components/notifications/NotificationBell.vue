@@ -8,7 +8,7 @@ import {
   getNotificationUnreadCount,
   markNotificationsRead,
   type NotificationItem,
-} from '@/services/notificationApi'
+} from '@/services/notification'
 
 const router = useRouter()
 const toast = useToast()
@@ -16,32 +16,42 @@ const toast = useToast()
 const notifications = ref<NotificationItem[]>([])
 const unreadCount = ref(0)
 const latestId = ref(0)
+const initialized = ref(false)
 
 let timer: number | undefined
 
 async function loadNotifications() {
   try {
     const items = await getRecentNotifications()
+    const count = await getNotificationUnreadCount()
+
+    const newestId = Number(items[0]?.id ?? 0)
+    const oldLatestId = latestId.value
 
     notifications.value = items
-    unreadCount.value = await getNotificationUnreadCount()
+    unreadCount.value = count
 
-    if (items.length) {
-      const newestId = Number(items[0].id)
+    if (initialized.value && newestId > oldLatestId) {
+      const newItems = items.filter((item) => Number(item.id) > oldLatestId)
 
-      if (latestId.value == 0 || newestId > latestId.value) {
-        const newestItem = items[0]
+      newItems
+          .slice()
+          .reverse()
+          .forEach((item) => {
+            toast.add({
+              severity: 'warn',
+              summary: item.msg_type,
+              detail: item.message,
+              life: 5000,
+            })
+          })
+    }
 
-        toast.add({
-          severity: 'warn',
-          summary: newestItem.msg_type,
-          detail: newestItem.message,
-          life: 5000,
-        })
-      }
-
+    if (newestId > latestId.value) {
       latestId.value = newestId
     }
+
+    initialized.value = true
   } catch (err) {
     console.error('loadNotifications error', err)
   }
