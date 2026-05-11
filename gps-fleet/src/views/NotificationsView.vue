@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-import {
-  getRecentNotifications,
-  type NotificationItem,
-} from '@/services/notification'
+import {onMounted, onUnmounted, ref} from 'vue'
+import {getRecentNotifications, type NotificationItem,} from '@/services/notification'
 
 const notifications = ref<NotificationItem[]>([])
 const loading = ref(false)
@@ -41,43 +38,31 @@ onUnmounted(() => {
       </div>
 
       <button @click="loadNotifications">
-        Refresh
+        {{ loading ? 'Refreshing...' : 'Refresh' }}
       </button>
     </div>
 
-    <div v-if="loading" class="loading">
-      Loading...
-    </div>
+<!--    <div class="notification-list">-->
+<!--      <article-->
+<!--          v-for="item in notifications"-->
+<!--          :key="item.id"-->
+<!--          class="notification-card"-->
+<!--      >-->
+<!--      </article>-->
+<!--    </div>-->
 
-    <div v-else-if="!notifications.length" class="empty">
-      ไม่มี notification
-    </div>
-
-    <div v-else class="notification-list">
+    <div
+        v-if="notifications.length > 0"
+        class="notification-list"
+    >
       <article
           v-for="item in notifications"
           :key="item.id"
           class="notification-card"
       >
-        <div class="icon">
-          <i class="pi pi-bell"></i>
-        </div>
-
-        <div class="content">
-          <div class="row">
-            <h3>{{ item.msg_type }}</h3>
-            <span>#{{ item.id }}</span>
-          </div>
-
-          <p>{{ item.message }}</p>
-
-          <div class="meta">
-            <span>IMEI: {{ item.imei }}</span>
-            <span>{{ item.created_at }}</span>
-          </div>
-        </div>
       </article>
     </div>
+
   </section>
 </template>
 
@@ -133,9 +118,9 @@ onUnmounted(() => {
   display: flex;
   gap: 16px;
   padding: 18px;
-  border: 1px solid #1f2937;
+  border: 0px solid #1f2937;
   border-radius: 20px;
-  background: #0f172a;
+
   width: 100%;
 }
 
