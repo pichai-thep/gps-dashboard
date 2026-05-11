@@ -5,12 +5,9 @@ export type NotificationItem = {
     id: number
     imei: string
     plate: string
-    tracker_model?: string
     msg_type: string
     message: string
     gps_time?: string
-    lat?: number
-    lon?: number
     created_at: string
 }
 

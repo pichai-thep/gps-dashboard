@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref} from 'vue'
-import {getRecentNotifications, type NotificationItem,} from '@/services/notification'
+import {getRecentNotifications, type NotificationItem,} from '../services/notification'
 
 const notifications = ref<NotificationItem[]>([])
 const loading = ref(false)
+const auto_loading = ref(false)
 
 let timer: number | undefined
 
@@ -11,9 +12,16 @@ async function loadNotifications() {
   try {
     loading.value = true
     notifications.value = await getRecentNotifications()
-    console.log(`notification.value: ${notifications.value}`)
   } finally {
     loading.value = false
+  }
+}
+async function autoLoadNotifications() {
+  try {
+    auto_loading.value = true
+    notifications.value = await getRecentNotifications()
+  } finally {
+    auto_loading.value = false
   }
 }
 
@@ -21,7 +29,7 @@ onMounted(async () => {
   await loadNotifications()
 
   timer = window.setInterval(() => {
-    loadNotifications()
+    autoLoadNotifications()
   }, 5000)
 })
 
@@ -35,7 +43,7 @@ onUnmounted(() => {
     <div class="page-header">
       <div>
         <h1>Notifications</h1>
-        <p>รายการแจ้งเตือนล่าสุดจาก Redis</p>
+        <p>รายการแจ้งเตือนล่าสุด</p>
       </div>
 
       <button @click="loadNotifications">

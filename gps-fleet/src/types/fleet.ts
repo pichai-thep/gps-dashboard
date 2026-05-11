@@ -1,10 +1,10 @@
 export type VehicleStatus =
     | 'running'
-    | 'start'
+    | 'idle'
     | 'acc_on'
     | 'parking'
-    | 'offline'
     | 'no_gps'
+    | 'offline'
 
 export type Vehicle = {
     id?: string | number

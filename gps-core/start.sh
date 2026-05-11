@@ -8,13 +8,7 @@ start_tunnel () {
   HOST=$3
 
   echo "→ Tunnel $LOCAL_PORT → $HOST:$REMOTE_PORT"
-
   pkill -f "autossh.*:$LOCAL_PORT:127.0.0.1:$REMOTE_PORT" 2>/dev/null
-
-#  autossh -M 0 -N \
-#    -L ${LOCAL_PORT}:127.0.0.1:${REMOTE_PORT} \
-#    gpsroot@${HOST} \
-#    > tunnel_${LOCAL_PORT}.log 2>&1 &
 
     autossh -M 0 -f -N \
       -p 22000 \
