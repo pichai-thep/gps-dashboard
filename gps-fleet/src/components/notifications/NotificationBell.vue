@@ -15,7 +15,7 @@ const toast = useToast()
 
 const notifications = ref<NotificationItem[]>([])
 const unreadCount = ref(0)
-const latestId = ref(0)
+const latestId = ref(-1)
 
 let timer: number | undefined
 
@@ -29,7 +29,7 @@ async function loadNotifications() {
     if (items.length) {
       const newestId = Number(items[0].id)
 
-      if (latestId.value > 0 && newestId > latestId.value) {
+      if (latestId.value == 0 || newestId > latestId.value) {
         const newestItem = items[0]
 
         toast.add({

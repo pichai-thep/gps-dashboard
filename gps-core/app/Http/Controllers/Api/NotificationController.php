@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class NotificationController extends Controller
 {
@@ -23,6 +24,8 @@ class NotificationController extends Controller
 
         $items = $this->notificationService
             ->getRecentByLogin($login);
+
+        Log::debug($items);
 
         return response()->json([
             'success' => true,

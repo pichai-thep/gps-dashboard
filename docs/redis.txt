@@ -1,3 +1,5 @@
+brew install redis
+
 เข้า redis
 redis-cli
 เลือก DB
@@ -9,10 +11,11 @@ KEYS *
 
 KEYS notify:user:*
 Push notification เข้า list
-LPUSH notify:user:mcap "{\"id\":1,\"msg_type\":\"overspeed\",\"message\":\"รถเร็วเกิน\"}"
-LPUSH notify:user:mcap "{\"id\":1001,\"imei\":\"867596042002541\",\"tracker_model\":\"T333\",\"msg_type\":\"overspeed\",\"message\":\"รถความเร็วเกิน 120 กม./ชม.\",\"gps_time\":\"2026-05-11 00:10:00\",\"created_at\":\"2026-05-11 00:10:00\"}"
-LPUSH notify:user:mcap "{\"id\":1002,\"imei\":\"867596042002541\",\"tracker_model\":\"T333\",\"msg_type\":\"offline\",\"message\":\"GPS Offline เกิน 30 นาที\",\"gps_time\":\"2026-05-11 00:11:00\",\"created_at\":\"2026-05-11 00:11:00\"}"
-LPUSH notify:user:mcap "{\"id\":1003,\"imei\":\"867596042002541\",\"tracker_model\":\"T333\",\"msg_type\":\"no_driver_card\",\"message\":\"รถวิ่งแต่ไม่มีรูดบัตร\",\"gps_time\":\"2026-05-11 00:12:00\",\"created_at\":\"2026-05-11 00:12:00\"}"
+redis-cli LPUSH notify:user:mcap "{\"id\":1,\"msg_type\":\"overspeed\",\"message\":\"รถเร็วเกิน\",\"imei\":\"867596042002541\",\"gps_time\":\"2026-05-11 00:10:00\",\"created_at\":\"2026-05-11 00:10:00\"}"
+redis-cli LPUSH notify:user:mcap "{\"id\":2,\"msg_type\":\"acc_on\",\"message\":\"ติดเครื่อง\",\"imei\":\"867596042002541\",\"created_at\":\"2026-05-11 00:10:00\"}"
+redis-cli LPUSH notify:user:mcap "{\"id\":3,\"msg_type\":\"acc_off\",\"message\":\"ดับเครื่อง\",\"imei\":\"867596042002541\",\"created_at\":\"2026-05-11 00:10:00\"}"
+redis-cli LPUSH notify:user:mcap "{\"id\":4,\"msg_type\":\"no_gps\",\"message\":\"ไม่มีสัญญาณจีพีเอส\",\"imei\":\"867596042002541\",\"created_at\":\"2026-05-11 00:10:00\"}"
+redis-cli LPUSH notify:user:mcap "{\"id\":5,\"msg_type\":\"offline\",\"message\":\"ไม่มีสัญญาณอินเทอร์เน็ต\",\"imei\":\"867596042002541\",\"created_at\":\"2026-05-11 00:10:00\"}"
 
 LTRIM notify:user:mcap 0 99
 
