@@ -78,3 +78,28 @@ LTRIM notify:user:mcap 0 99
 EXPIRE notify:user:mcap 86400
 Laravel read
 LRANGE notify:user:mcap 0 49
+
+
+sudo yum install epel-release -y
+sudo yum install redis -y
+sudo redis-server --version
+
+sudo systemctl enable redis
+sudo systemctl start redis
+sudo systemctl status redis
+
+test
+redis-cli ping ==> PONG  ok
+
+sudo vi /etc/redis.conf ==>  edit
+bind 127.0.0.1
+bind 127.0.0.1 PRIVATE_IP_OF_GPS_SERVER
+protected-mode yes
+requirepass GpsPushRedis@2026
+maxmemory 1gb
+maxmemory-policy allkeys-lru
+
+JAVA CODE
+jedis.lpush(key, json);  ==> push notify
+jedis.ltrim(key, 0, 99); ==> keep only 100 record.
+jedis.expire(key, 86400 * 7); ==> expire in 7 days
