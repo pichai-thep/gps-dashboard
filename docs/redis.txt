@@ -24,6 +24,9 @@ redis-cli LPUSH notify:user:gpsthaistar "{\"id\":3,\"msg_type\":\"speed-over\",\
 redis-cli LPUSH notify:user:gpsthaistar "{\"id\":4,\"msg_type\":\"no-gps\",\"message\":\"รับดาวเทียมไม่ได้\",\"imei\":\"867596042002541\",\"plate\":\"กข-8888\",\"created_at\":\"2026-05-11 00:10:00\"}"
 redis-cli LPUSH notify:user:gpsthaistar "{\"id\":5,\"msg_type\":\"offline\",\"message\":\"ออฟไลน์ ไม่ส่งสัญญาณ\",\"imei\":\"867596042002541\",\"plate\":\"กข-8888\",\"created_at\":\"2026-05-11 00:10:00\"}"
 
+INCR notify:user:mcap:unread
+GET notify:user:mcap:unread
+
 LTRIM notify:user:mcap 0 99
 
 ดู notification ล่าสุด

@@ -59,9 +59,7 @@ async function loadNotifications() {
 
 async function goNotifications() {
   await markNotificationsRead()
-
   unreadCount.value = 0
-
   router.push('/notifications')
 }
 
@@ -86,7 +84,6 @@ onUnmounted(() => {
       @click="goNotifications"
   >
     <i class="pi pi-bell"></i>
-
     <span
         v-if="unreadCount > 0"
         class="sidebar-badge"

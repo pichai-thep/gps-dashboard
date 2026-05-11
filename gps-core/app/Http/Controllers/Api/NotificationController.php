@@ -41,7 +41,7 @@ class NotificationController extends Controller
 
         return response()->json([
             'success' => true,
-            'count' => $this->notificationService->getUnreadCount($login),
+            'count' => $this->notificationService->getUnreadCount(strtolower($login)),
         ]);
     }
 
@@ -50,7 +50,7 @@ class NotificationController extends Controller
         $user = $request->attributes->get('auth_user');
         $login = $user->login;
 
-        $this->notificationService->markRead($login);
+        $this->notificationService->markRead(strtolower($login));
 
         return response()->json([
             'success' => true,

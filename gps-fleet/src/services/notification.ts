@@ -14,7 +14,7 @@ export type NotificationItem = {
 }
 
 export async function getRecentNotifications(): Promise<NotificationItem[]> {
-    const auth = useAuthStore()
+
     const res = await api.get('/api/notifications/recent')
     return res.data?.data ?? []
 }

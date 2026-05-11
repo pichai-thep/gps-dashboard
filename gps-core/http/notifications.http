@@ -18,3 +18,14 @@ Content-Type: application/json
 GET {{baseUrl}}/api/notifications/recent
 Accept: application/json
 Authorization: Bearer dev-token-16564
+
+###
+
+# curl http://127.0.0.1:8000/api/notifications/unread-count
+#  -H "Authorization: Bearer dev-token-16564"
+GET http://127.0.0.1:8000/api/notifications/unread-count
+Authorization: Bearer dev-token-16564
+
+###
+
+
