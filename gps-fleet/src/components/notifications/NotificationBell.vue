@@ -41,7 +41,7 @@ async function loadNotifications() {
             toast.add({
               severity: 'warn',
               summary: item.msg_type,
-              detail: item.message,
+              detail: item.plate +' ' + item.message,
               life: 5000,
             })
           })

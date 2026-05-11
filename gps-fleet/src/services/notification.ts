@@ -4,6 +4,7 @@ import {useAuthStore} from "../stores/auth";
 export type NotificationItem = {
     id: number
     imei: string
+    plate: string
     tracker_model?: string
     msg_type: string
     message: string
@@ -16,6 +17,7 @@ export type NotificationItem = {
 export async function getRecentNotifications(): Promise<NotificationItem[]> {
 
     const res = await api.get('/api/notifications/recent')
+    // console.log(`res:${JSON.stringify(res.data.data)}`);
     return res.data?.data ?? []
 }
 

@@ -11,6 +11,7 @@ async function loadNotifications() {
   try {
     loading.value = true
     notifications.value = await getRecentNotifications()
+    console.log(`notification.value: ${notifications.value}`)
   } finally {
     loading.value = false
   }
@@ -42,27 +43,40 @@ onUnmounted(() => {
       </button>
     </div>
 
-<!--    <div class="notification-list">-->
-<!--      <article-->
-<!--          v-for="item in notifications"-->
-<!--          :key="item.id"-->
-<!--          class="notification-card"-->
-<!--      >-->
-<!--      </article>-->
-<!--    </div>-->
+    <div v-if="loading && notifications.length === 0" class="loading">
+      Loading notifications...
+    </div>
 
-    <div
-        v-if="notifications.length > 0"
-        class="notification-list"
-    >
+    <div v-else-if="notifications.length === 0" class="empty">
+      ไม่มีรายการแจ้งเตือน
+    </div>
+
+    <div v-else class="notification-list">
       <article
           v-for="item in notifications"
           :key="item.id"
           class="notification-card"
       >
+        <div class="icon">
+          <i class="pi pi-bell"></i>
+        </div>
+
+        <div class="content">
+          <div class="row">
+            <h3>{{ item.msg_type || 'Notification' }}</h3>
+            <span>{{ item.gps_time || item.created_at || '-' }}</span>
+          </div>
+
+          <p>{{ item.message || '-' }}</p>
+
+          <div class="meta">
+            <span>IMEI: {{ item.imei || '-' }}</span>
+            <span>Plate: {{ item.plate || '-' }}</span>
+          </div>
+
+        </div>
       </article>
     </div>
-
   </section>
 </template>
 
@@ -120,7 +134,7 @@ onUnmounted(() => {
   padding: 18px;
   border: 0px solid #1f2937;
   border-radius: 20px;
-
+  background: #2d3748;
   width: 100%;
 }
 

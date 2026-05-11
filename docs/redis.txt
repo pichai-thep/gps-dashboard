@@ -24,6 +24,13 @@ redis-cli LPUSH notify:user:gpsthaistar "{\"id\":3,\"msg_type\":\"speed-over\",\
 redis-cli LPUSH notify:user:gpsthaistar "{\"id\":4,\"msg_type\":\"no-gps\",\"message\":\"รับดาวเทียมไม่ได้\",\"imei\":\"867596042002541\",\"plate\":\"กข-8888\",\"created_at\":\"2026-05-11 00:10:00\"}"
 redis-cli LPUSH notify:user:gpsthaistar "{\"id\":5,\"msg_type\":\"offline\",\"message\":\"ออฟไลน์ ไม่ส่งสัญญาณ\",\"imei\":\"867596042002541\",\"plate\":\"กข-8888\",\"created_at\":\"2026-05-11 00:10:00\"}"
 
+redis-cli LPUSH notify:user:all-tu "{\"id\":1,\"msg_type\":\"acc_on\",\"message\":\"ติดเครื่อง\",\"imei\":\"867596042002541\",\"plate\":\"กข-8888\",\"created_at\":\"2026-05-11 00:10:00\"}"
+redis-cli LPUSH notify:user:all-tu "{\"id\":2,\"msg_type\":\"acc_off\",\"message\":\"ดับเครื่อง\",\"imei\":\"867596042002541\",\"plate\":\"กข-8888\",\"created_at\":\"2026-05-11 00:10:00\"}"
+redis-cli LPUSH notify:user:all-tu "{\"id\":3,\"msg_type\":\"speed-over\",\"message\":\"ความเร็วเกินกำหนด\",\"imei\":\"867596042002541\",\"plate\":\"กข-8888\",\"created_at\":\"2026-05-11 00:10:00\"}"
+redis-cli LPUSH notify:user:all-tu "{\"id\":4,\"msg_type\":\"no-gps\",\"message\":\"รับดาวเทียมไม่ได้\",\"imei\":\"867596042002541\",\"plate\":\"กข-8888\",\"created_at\":\"2026-05-11 00:10:00\"}"
+redis-cli LPUSH notify:user:all-tu "{\"id\":5,\"msg_type\":\"offline\",\"message\":\"ออฟไลน์ ไม่ส่งสัญญาณ\",\"imei\":\"867596042002541\",\"plate\":\"กข-8888\",\"created_at\":\"2026-05-11 00:10:00\"}"
+
+
 INCR notify:user:mcap:unread
 GET notify:user:mcap:unread
 
