@@ -37,6 +37,7 @@ start_tunnel 7314 63014 202.129.206.49
 start_tunnel 7316 63016 202.129.206.50
 start_tunnel 7319 63019 202.129.206.52
 start_tunnel 7320 63020 202.129.206.53
+start_tunnel 7321 63021 202.129.206.55
 
 echo "🚀 Starting Laravel..."
 php artisan serve --port=8000

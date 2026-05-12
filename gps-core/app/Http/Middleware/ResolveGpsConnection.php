@@ -71,6 +71,7 @@ class ResolveGpsConnection
             'server16', 'gps16' => 'gps16',
             'server19', 'gps19' => 'gps19',
             'server20', 'gps20' => 'gps20',
+            'server21', 'gps21' => 'gps21',
             default => null,
         };
     }

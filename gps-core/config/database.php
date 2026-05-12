@@ -153,6 +153,20 @@ return [
             'options' => [PDO::ATTR_TIMEOUT => 3],
         ],
 
+        'gps21' => [
+            'driver' => 'mysql',
+            'host' => env('GPS21_DB_HOST'),
+            'port' => env('GPS21_DB_PORT'),
+            'database' => env('GPS21_DB_DATABASE'),
+            'username' => env('GPS21_DB_USERNAME'),
+            'password' => env('GPS21_DB_PASSWORD'),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => false,
+            'options' => [PDO::ATTR_TIMEOUT => 3],
+        ],
+
 
     ],
 
