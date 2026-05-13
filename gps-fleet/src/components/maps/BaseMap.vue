@@ -1,5 +1,7 @@
 <template>
-  <div class="base-map-shell">
+  <div class="base-map-shell"
+      :class="{ fullscreen: isFullscreen }"
+  >
     <div ref="mapEl" class="base-map"></div>
 
     <div class="map-provider-label">
@@ -18,6 +20,22 @@
       <button type="button" title="Fit map" @click.stop="emitFit">
         <i class="pi pi-map-marker"></i>
       </button>
+
+      <button
+          type="button"
+          title="Fullscreen"
+          @click.stop="toggleFullscreen"
+      >
+        <i
+            class="pi"
+            :class="
+              isFullscreen
+                ? 'pi-window-minimize'
+                : 'pi-window-maximize'
+            "
+        ></i>
+      </button>
+
     </div>
 
     <div class="map-controls">
@@ -126,6 +144,7 @@ const baseLayer = shallowRef<TileLayer<XYZ> | null>(null)
 const popupOverlay = shallowRef<Overlay | null>(null)
 
 const currentLayer = ref<MapLayerType>(props.layer)
+const isFullscreen = ref(false)
 
 
 const isGoogleMap = computed(() => {
@@ -147,6 +166,7 @@ const providerLabel = computed(() => {
 onMounted(async () => {
   await nextTick()
 
+  window.addEventListener('keydown', onKeydown)
   if (!mapEl.value || !popupEl.value) {
     return
   }
@@ -215,7 +235,23 @@ watch(
 onBeforeUnmount(() => {
   map.value?.setTarget(undefined)
   map.value = null
+  window.removeEventListener('keydown', onKeydown)
 })
+
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value
+
+  setTimeout(() => {
+    map.value?.updateSize()
+  }, 300)
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    isFullscreen.value = false
+  }
+}
+
 
 function resolveMapProvider(value?: string | null): MapProviderKey {
   const mapApi = String(value || '').toLowerCase()
@@ -461,6 +497,24 @@ defineExpose({
 .map-layer-switcher button.active {
   background: #22c55e;
   color: #052e16;
+}
+
+.base-map-shell.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  width: 100vw;
+  height: 100vh;
+
+  border-radius: 0;
+
+  background: #020817;
+}
+
+.base-map-shell.fullscreen .base-map {
+  width: 100%;
+  height: 100%;
 }
 
 </style>
