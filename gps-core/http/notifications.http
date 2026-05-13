@@ -6,7 +6,7 @@ POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "pichai20",
+    "username": "all-tu",
     "password": "1234"
 }
 
@@ -17,7 +17,7 @@ Content-Type: application/json
 ### Notifications
 GET {{baseUrl}}/api/notifications/recent
 Accept: application/json
-Authorization: Bearer dev-token-21130
+Authorization: Bearer dev-token-16186
 
 ###
 

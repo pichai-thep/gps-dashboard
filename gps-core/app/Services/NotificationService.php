@@ -2,10 +2,34 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
 class NotificationService
 {
+//    public function getRecentByLogin(
+//        string $serverName,
+//        string $login,
+//        int $limit = 50
+//    ): array {
+//
+//        $key = $this->userNotifyKey($login);
+//
+//        $items = Redis::connection($serverName)
+//            ->lrange($key, 0, $limit - 1);
+//
+//        if ((empty($items)) || ($items==null)) {
+//            return [];
+//        }
+//
+//        return collect($items)
+//            ->map(fn ($json) => json_decode($json, true))
+//            ->filter()
+//            ->values()
+//            ->all();
+//    }
+
+
     public function getRecentByLogin(
         string $serverName,
         string $login,
@@ -14,16 +38,31 @@ class NotificationService
 
         $key = $this->userNotifyKey($login);
 
-//        dd($serverName);
+        try {
 
-        $items = Redis::connection($serverName)
-            ->lrange($key, 0, $limit - 1);
+            $redis = Redis::connection($serverName);
 
-        return collect($items)
-            ->map(fn ($json) => json_decode($json, true))
-            ->filter()
-            ->values()
-            ->all();
+            // test connection
+            $redis->ping();
+
+            $items = $redis->lrange($key, 0, $limit - 1);
+
+            if (empty($items)) {
+                return [];
+            }
+
+            return collect($items)
+                ->map(fn ($json) => json_decode($json, true))
+                ->filter()
+                ->values()
+                ->all();
+
+        } catch (\Throwable $e) {
+
+            Log::error("Redis error [{$serverName}] : " . $e->getMessage());
+
+            return [];
+        }
     }
 
     public function pushToUser(
@@ -62,8 +101,13 @@ class NotificationService
         string $login
     ): int {
 
-        return (int) Redis::connection($serverName)
-            ->get("notify:user:$login:unread");
+        try{
+            return (int) Redis::connection($serverName)
+                ->get("notify:user:$login:unread");
+        } catch (\Throwable $e) {
+            Log::error("Redis error [{$serverName}] : " . $e->getMessage());
+            return 0;
+        }
     }
 
     public function markRead(
