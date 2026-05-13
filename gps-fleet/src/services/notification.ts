@@ -14,12 +14,16 @@ export type NotificationItem = {
 export async function getRecentNotifications(): Promise<NotificationItem[]> {
 
     const res = await api.get('/api/notifications/recent')
-    // console.log(`res:${JSON.stringify(res.data.data)}`);
+
+    // console.log(`Notification Service res1:${JSON.stringify(res)}`);
+    // console.log(`Notification Service res2:${JSON.stringify(res.data)}`);
+    // console.log(`Notification Service res3:${JSON.stringify(res.data.data)}`);
     return res.data?.data ?? []
 }
 
 export async function getNotificationUnreadCount(): Promise<number> {
     const res = await api.get('/api/notifications/unread-count')
+    // console.log(`getNotificationUnreadCount Service res:${JSON.stringify(res.data)}`);
     return res.data?.count ?? 0
 }
 

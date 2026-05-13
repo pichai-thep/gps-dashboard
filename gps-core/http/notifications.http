@@ -6,7 +6,7 @@ POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "mcap",
+    "username": "pichai20",
     "password": "1234"
 }
 
@@ -17,14 +17,14 @@ Content-Type: application/json
 ### Notifications
 GET {{baseUrl}}/api/notifications/recent
 Accept: application/json
-Authorization: Bearer dev-token-16564
+Authorization: Bearer dev-token-21130
 
 ###
 
 # curl http://127.0.0.1:8000/api/notifications/unread-count
 #  -H "Authorization: Bearer dev-token-16564"
 GET http://127.0.0.1:8000/api/notifications/unread-count
-Authorization: Bearer dev-token-16564
+Authorization: Bearer dev-token-21130
 
 ###
 

@@ -22,8 +22,15 @@ let timer: number | undefined
 
 async function loadNotifications() {
   try {
+    // console.log('loadNotifications')
     const items = await getRecentNotifications()
+    // console.log(`item=${JSON.stringify(items)}`)
+
     const count = await getNotificationUnreadCount()
+    console.log(`itemCount=${count}`)
+
+
+    // console.log(`item.count=${count}`)
 
     const newestId = Number(items[0]?.id ?? 0)
     const oldLatestId = latestId.value

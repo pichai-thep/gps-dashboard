@@ -6,11 +6,17 @@ use Illuminate\Support\Facades\Redis;
 
 class NotificationService
 {
-    public function getRecentByLogin(string $login, int $limit = 50): array
-    {
+    public function getRecentByLogin(
+        string $serverName,
+        string $login,
+        int $limit = 50
+    ): array {
+
         $key = $this->userNotifyKey($login);
 
-        $items = Redis::connection('default')
+//        dd($serverName);
+
+        $items = Redis::connection($serverName)
             ->lrange($key, 0, $limit - 1);
 
         return collect($items)
@@ -20,17 +26,30 @@ class NotificationService
             ->all();
     }
 
-    public function pushToUser(string $login, array $data, int $keep = 100): void
-    {
+    public function pushToUser(
+        string $serverName,
+        string $login,
+        array $data,
+        int $keep = 100
+    ): void {
+
         $key = $this->userNotifyKey($login);
 
-        Redis::connection('default')->lpush(
+        Redis::connection($serverName)->lpush(
             $key,
             json_encode($data, JSON_UNESCAPED_UNICODE)
         );
 
-        Redis::connection('default')->ltrim($key, 0, $keep - 1);
-        Redis::connection('default')->expire($key, 86400);
+        Redis::connection($serverName)->ltrim(
+            $key,
+            0,
+            $keep - 1
+        );
+
+        Redis::connection($serverName)->expire(
+            $key,
+            86400
+        );
     }
 
     private function userNotifyKey(string $login): string
@@ -38,15 +57,21 @@ class NotificationService
         return "notify:user:$login";
     }
 
-    public function getUnreadCount(string $login): int
-    {
-        return (int) Redis::connection('default')
+    public function getUnreadCount(
+        string $serverName,
+        string $login
+    ): int {
+
+        return (int) Redis::connection($serverName)
             ->get("notify:user:$login:unread");
     }
 
-    public function markRead(string $login): void
-    {
-        Redis::connection('default')
+    public function markRead(
+        string $serverName,
+        string $login
+    ): void {
+
+        Redis::connection($serverName)
             ->set("notify:user:$login:unread", 0);
     }
 }

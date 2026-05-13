@@ -196,29 +196,82 @@ return [
 
     'redis' => [
 
-        'client' => env('REDIS_CLIENT', 'phpredis'),
+        'client' => env('REDIS_CLIENT', 'predis'),
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', ''),
         ],
 
         'default' => [
-            'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
-            'password' => env('REDIS_PASSWORD', null),
-            'port' => env('REDIS_PORT', '6379'),
-            'database' => env('REDIS_DB', '0'),
+            'host' => '127.0.0.1',
+            'password' => env('REDIS_PASSWORD'),
+            'port' => 6379,
+            'database' => 0,
         ],
 
         'cache' => [
-            'url' => env('REDIS_URL'),
-            'host' => env('REDIS_HOST', '127.0.0.1'),
-            'password' => env('REDIS_PASSWORD', null),
-            'port' => env('REDIS_PORT', '6379'),
-            'database' => env('REDIS_CACHE_DB', '1'),
+            'host' => '127.0.0.1',
+            'password' => env('REDIS_PASSWORD'),
+            'port' => 6379,
+            'database' => 1,
         ],
 
+        'gps5' => [
+            'host' => env('REDIS_GPS5_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_GPS5_PORT', 7405),
+            'database' => env('REDIS_DB', 0),
+        ],
+
+        'gps10' => [
+            'host' => env('REDIS_GPS10_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_GPS10_PORT', 7410),
+            'database' => env('REDIS_DB', 0),
+        ],
+
+        'gps13' => [
+            'host' => env('REDIS_GPS13_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_GPS13_PORT', 7413),
+            'database' => env('REDIS_DB', 0),
+        ],
+
+        'gps14' => [
+            'host' => env('REDIS_GPS14_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_GPS14_PORT', 7414),
+            'database' => env('REDIS_DB', 0),
+        ],
+
+        'gps16' => [
+            'host' => env('REDIS_GPS16_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_GPS16_PORT', 7416),
+            'database' => env('REDIS_DB', 0),
+        ],
+
+        'gps19' => [
+            'host' => env('REDIS_GPS19_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_GPS19_PORT', 7419),
+            'database' => env('REDIS_DB', 0),
+        ],
+
+        'gps20' => [
+            'host' => env('REDIS_GPS20_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_GPS20_PORT', 7420),
+            'database' => env('REDIS_DB', 0),
+        ],
+
+        'gps21' => [
+            'host' => env('REDIS_GPS21_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_GPS21_PORT', 7421),
+            'database' => env('REDIS_DB', 0),
+        ],
     ],
 
 ];

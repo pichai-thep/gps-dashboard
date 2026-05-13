@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class NotificationController extends Controller
 {
@@ -17,18 +16,24 @@ class NotificationController extends Controller
     public function recent(Request $request)
     {
         $user = $request->attributes->get('auth_user');
-        $login = $user->login;
+        $connection = $request->attributes->get('gps_connection');
 
-        logger()->info("Api NotificationController login: {$login}");
+//        dd("connection: " .$connection);
 
+        $login = strtolower($user->login);
+        $serverName = strtolower($user->server_name);
+
+        logger()->info("Api NotificationController recent", [
+            'login' => $login,
+            'server_name' => $serverName,
+        ]);
 
         $items = $this->notificationService
-            ->getRecentByLogin(strtolower($login));
-
-//        Log::debug($items);
+            ->getRecentByLogin($connection, $login);
 
         return response()->json([
             'success' => true,
+            'server_name' => $serverName,
             'count' => count($items),
             'data' => $items,
         ]);
@@ -37,23 +42,33 @@ class NotificationController extends Controller
     public function unreadCount(Request $request)
     {
         $user = $request->attributes->get('auth_user');
-        $login = $user->login;
+        $connection = $request->attributes->get('gps_connection');
+
+        $login = strtolower($user->login);
+        $serverName = strtolower($user->server_name);
 
         return response()->json([
             'success' => true,
-            'count' => $this->notificationService->getUnreadCount(strtolower($login)),
+            'server_name' => $serverName,
+            'count' => $this->notificationService
+                ->getUnreadCount($connection, $login),
         ]);
     }
 
     public function markRead(Request $request)
     {
         $user = $request->attributes->get('auth_user');
-        $login = $user->login;
+        $connection = $request->attributes->get('gps_connection');
 
-        $this->notificationService->markRead(strtolower($login));
+        $login = strtolower($user->login);
+        $serverName = strtolower($user->server_name);
+
+        $this->notificationService
+            ->markRead($connection, $login);
 
         return response()->json([
             'success' => true,
+            'server_name' => $serverName,
             'count' => 0,
         ]);
     }

@@ -109,3 +109,37 @@ sudo firewall-cmd --permanent \
 
 firewall-cmd --reload
 
+redis-cli -a "GpsPushRedis@2026"
+redis-cli --scan --pattern 'notify:user:*'
+redis-cli --scan --pattern 'notify:user:*' | wc -l
+
+
+ถ้าต้องการนับ “ทุก notify ของทุก user” เช่น key หลายตัว
+
+notify:user:1
+notify:user:2
+notify:user:3
+
+ใช้:
+
+redis-cli --scan --pattern 'notify:user:*'
+
+แล้วนับจำนวน key:
+
+redis-cli --scan --pattern 'notify:user:*' | wc -l
+
+แต่ถ้าต้องการ “รวมจำนวน message ทั้งหมดทุก queue”
+
+เช่นแต่ละ key เป็น LIST
+
+ใช้:
+
+for k in $(redis-cli --scan --pattern 'notify:user:*'); do
+  redis-cli LLEN "$k"
+done | awk '{sum+=$1} END {print sum}'
+
+ถ้ามี password:
+
+for k in $(redis-cli -a 'PASSWORD' --scan --pattern 'notify:user:*'); do
+  redis-cli -a 'PASSWORD' LLEN "$k"
+done | awk '{sum+=$1} END {print sum}'
