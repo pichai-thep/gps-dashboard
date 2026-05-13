@@ -27,6 +27,20 @@
           </div>
         </div>
 
+
+      </div>
+
+      <div class="filter-toggle">
+        <Button
+            :label="showFilters ? 'Hide Filters' : 'Show Filters'"
+            :icon="showFilters ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+            text
+            size="small"
+            @click="showFilters = !showFilters"
+        />
+      </div>
+
+      <div v-show="showFilters" class="tracking-filters">
         <div class="summary-row">
           <button
               v-for="item in statusSummaryItems"
@@ -48,9 +62,7 @@
             no-license {{ noDriverCardCount }}
           </button>
         </div>
-      </div>
-
-      <div class="control-bar">
+        <div class="control-bar">
         <div class="filter-field group-filter">
           <i class="pi pi-users"></i>
 
@@ -109,6 +121,7 @@
               placeholder="ASC"
           />
         </div>
+      </div>
       </div>
 
       <DataTable
@@ -237,7 +250,8 @@ import {getRecentNotifications} from "@/services/notificationApi";
 
 type StatusCount = Record<VehicleStatus, number>
 type DriverStatus = 'ok' | 'missing' | 'no_license' | 'hide'
-
+const showFilters = ref(false)
+// const showFilters = ref(window.innerWidth > 768)
 const auth = useAuthStore()
 
 const defaultStatusCount: StatusCount = {
@@ -1039,6 +1053,10 @@ onBeforeUnmount(() => {
 
 .driver-no-license {
   color: #f59e0b;
+}
+
+.tracking-filters {
+  transition: all .2s ease;
 }
 
 .map-area {
