@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import Card from 'primevue/card'
 import api from "@/services/api";
+import {useRouter} from "vue-router";
 
 type DashboardSummary = {
   running: number
@@ -31,6 +32,7 @@ const summary = ref<DashboardSummary>({
 
 const loading = ref(false)
 const lastUpdated = ref('')
+const router = useRouter();
 
 let timer: number | undefined
 
@@ -44,6 +46,16 @@ const vehicleTotal = computed(() => {
       summary.value.offline
   )
 })
+
+function goToTracking(status?: string, extraQuery: Record<string, string | number> = {}) {
+  router.push({
+    name: 'tracking',
+    query: {
+      ...(status ? { status } : {}),
+      ...extraQuery,
+    },
+  })
+}
 
 function percent(value: number) {
   if (!vehicleTotal.value) return '0%'
@@ -115,7 +127,7 @@ onUnmounted(() => {
       <h2>Vehicle Status</h2>
 
       <div class="status-grid">
-        <Card class="summary-card status-card running">
+        <Card class="summary-card status-card running" @click="goToTracking('running')">
           <template #content>
             <div class="status-card-inner">
               <div class="icon-circle">
@@ -131,7 +143,7 @@ onUnmounted(() => {
           </template>
         </Card>
 
-        <Card class="summary-card status-card idle">
+        <Card class="summary-card status-card idle" @click="goToTracking('idle')">
           <template #content>
             <div class="status-card-inner">
               <div class="icon-circle">
@@ -147,7 +159,7 @@ onUnmounted(() => {
           </template>
         </Card>
 
-        <Card class="summary-card status-card acc-on">
+        <Card class="summary-card status-card acc-on" @click="goToTracking('acc_on')">
           <template #content>
             <div class="status-card-inner">
               <div class="icon-circle">
@@ -163,7 +175,7 @@ onUnmounted(() => {
           </template>
         </Card>
 
-        <Card class="summary-card status-card parking">
+        <Card class="summary-card status-card parking" @click="goToTracking('parking')">
           <template #content>
             <div class="status-card-inner">
               <div class="icon-circle">
@@ -179,7 +191,7 @@ onUnmounted(() => {
           </template>
         </Card>
 
-        <Card class="summary-card status-card no-gps">
+        <Card class="summary-card status-card no-gps" @click="goToTracking('no_gps')">
           <template #content>
             <div class="status-card-inner">
               <div class="icon-circle">
@@ -195,7 +207,7 @@ onUnmounted(() => {
           </template>
         </Card>
 
-        <Card class="summary-card status-card offline">
+        <Card class="summary-card status-card offline" @click="goToTracking('offline')">
           <template #content>
             <div class="status-card-inner">
               <div class="icon-circle">
@@ -255,7 +267,10 @@ onUnmounted(() => {
       <h2>Driver Card</h2>
 
       <div class="wide-grid">
-        <Card class="summary-card wide-card no-card">
+        <Card
+            class="summary-card wide-card no-card"
+            @click="goToTracking(undefined, { no_driver_card: 1 })"
+        >
           <template #content>
             <div class="wide-card-inner">
               <div class="large-icon-circle">
