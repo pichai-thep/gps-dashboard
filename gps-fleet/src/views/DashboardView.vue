@@ -1,115 +1,3 @@
-<script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import Card from 'primevue/card'
-import api from "@/services/api";
-import {useRouter} from "vue-router";
-
-type DashboardSummary = {
-  running: number
-  idle: number
-  acc_on: number
-  parking: number
-  no_gps: number
-  offline: number
-  in_station: number
-  out_station: number
-  driving_without_card: number
-  card_inserted: number
-}
-
-const summary = ref<DashboardSummary>({
-  running: 0,
-  idle: 0,
-  acc_on: 0,
-  parking: 0,
-  no_gps: 0,
-  offline: 0,
-  in_station: 0,
-  out_station: 0,
-  driving_without_card: 0,
-  card_inserted: 0,
-})
-
-const loading = ref(false)
-const lastUpdated = ref('')
-const router = useRouter();
-
-let timer: number | undefined
-
-const vehicleTotal = computed(() => {
-  return (
-      summary.value.running +
-      summary.value.idle +
-      summary.value.acc_on +
-      summary.value.parking +
-      summary.value.no_gps +
-      summary.value.offline
-  )
-})
-
-function goToTracking(status?: string, extraQuery: Record<string, string | number> = {}) {
-  router.push({
-    name: 'tracking',
-    query: {
-      ...(status ? { status } : {}),
-      ...extraQuery,
-    },
-  })
-}
-
-function percent(value: number) {
-  if (!vehicleTotal.value) return '0%'
-  return `${((value / vehicleTotal.value) * 100).toFixed(1)}%`
-}
-
-function formatDateTime() {
-  return new Date().toLocaleString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
-}
-
-async function loadDashboard() {
-  loading.value = true
-
-  try {
-
-    const res = await api.get('/dashboard/summary')
-    summary.value = res.data.data
-
-    // summary.value = {
-    //   running: 15,
-    //   idle: 8,
-    //   acc_on: 4,
-    //   parking: 62,
-    //   no_gps: 3,
-    //   offline: 7,
-    //   in_station: 31,
-    //   out_station: 60,
-    //   driving_without_card: 2,
-    //   card_inserted: 18,
-    // }
-
-    lastUpdated.value = formatDateTime()
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(() => {
-  loadDashboard()
-  timer = window.setInterval(loadDashboard, 30000)
-})
-
-onUnmounted(() => {
-  if (timer) window.clearInterval(timer)
-})
-</script>
-
 <template>
   <div class="dashboard-page">
     <div class="page-header">
@@ -313,6 +201,118 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import Card from 'primevue/card'
+import api from "@/services/api";
+import {useRouter} from "vue-router";
+
+type DashboardSummary = {
+  running: number
+  idle: number
+  acc_on: number
+  parking: number
+  no_gps: number
+  offline: number
+  in_station: number
+  out_station: number
+  driving_without_card: number
+  card_inserted: number
+}
+
+const summary = ref<DashboardSummary>({
+  running: 0,
+  idle: 0,
+  acc_on: 0,
+  parking: 0,
+  no_gps: 0,
+  offline: 0,
+  in_station: 0,
+  out_station: 0,
+  driving_without_card: 0,
+  card_inserted: 0,
+})
+
+const loading = ref(false)
+const lastUpdated = ref('')
+const router = useRouter();
+
+let timer: number | undefined
+
+const vehicleTotal = computed(() => {
+  return (
+      summary.value.running +
+      summary.value.idle +
+      summary.value.acc_on +
+      summary.value.parking +
+      summary.value.no_gps +
+      summary.value.offline
+  )
+})
+
+function goToTracking(status?: string, extraQuery: Record<string, string | number> = {}) {
+  router.push({
+    name: 'tracking',
+    query: {
+      ...(status ? { status } : {}),
+      ...extraQuery,
+    },
+  })
+}
+
+function percent(value: number) {
+  if (!vehicleTotal.value) return '0%'
+  return `${((value / vehicleTotal.value) * 100).toFixed(1)}%`
+}
+
+function formatDateTime() {
+  return new Date().toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+async function loadDashboard() {
+  loading.value = true
+
+  try {
+
+    const res = await api.get('/dashboard/summary')
+    summary.value = res.data.data
+
+    // summary.value = {
+    //   running: 15,
+    //   idle: 8,
+    //   acc_on: 4,
+    //   parking: 62,
+    //   no_gps: 3,
+    //   offline: 7,
+    //   in_station: 31,
+    //   out_station: 60,
+    //   driving_without_card: 2,
+    //   card_inserted: 18,
+    // }
+
+    lastUpdated.value = formatDateTime()
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadDashboard()
+  timer = window.setInterval(loadDashboard, 30000)
+})
+
+onUnmounted(() => {
+  if (timer) window.clearInterval(timer)
+})
+</script>
 
 <style scoped>
 .dashboard-page {

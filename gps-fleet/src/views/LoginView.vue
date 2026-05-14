@@ -68,7 +68,7 @@ async function login() {
     error.value = ''
 
     await auth.login(username.value, password.value)
-    router.push('/tracking')
+    router.push('/')
   } catch (e) {
     error.value = e.response?.data?.message || 'Login failed'
   } finally {

@@ -134,7 +134,7 @@
           :first="(page - 1) * perPage"
           :rowsPerPageOptions="[10, 20, 50, 100]"
           scrollable
-          scrollHeight="calc(150vh - 450px)"
+          scrollHeight="calc(150vh - 200px)"
           class="vehicle-table"
           selectionMode="single"
           tableStyle="width: 100%; table-layout: fixed;"
@@ -243,10 +243,13 @@ import {
   getCurrentTracking,
   getVehicleGroups,
   type VehicleGroup,
-} from '@/services/tracking'
-import { useAuthStore } from '@/stores/auth'
-import type { Vehicle, VehicleStatus } from '@/types/fleet'
-import {getRecentNotifications} from "@/services/notificationApi";
+} from '../services/tracking'
+import { useAuthStore } from '../stores/auth'
+import type { Vehicle, VehicleStatus } from '../types/fleet'
+import { useRoute, useRouter } from 'vue-router'
+
+const route = useRoute()
+const router = useRouter()
 
 type StatusCount = Record<VehicleStatus, number>
 type DriverStatus = 'ok' | 'missing' | 'no_license' | 'hide'
@@ -338,11 +341,35 @@ const noDriverCardCount = computed(() => {
   return vehicles.value.filter(isNoDriverCard).length
 })
 
-onMounted(async () => {
-  // const items = await getRecentNotifications()
 
-  // console.log(items)
+onMounted(async () => {
+  statusFilter.value = getStatusFromQuery()
 })
+
+watch(
+    () => route.query.status,
+    () => {
+      const nextStatus = getStatusFromQuery()
+
+      if (statusFilter.value === nextStatus) return
+
+      statusFilter.value = nextStatus
+      resetListState()
+      loadVehicles()
+    }
+)
+
+function getStatusFromQuery(): VehicleStatus | null {
+  const status = route.query.status
+
+  if (typeof status !== 'string') return null
+
+  const allowStatuses = statusOptions.map((item) => item.value)
+
+  return allowStatuses.includes(status as VehicleStatus)
+      ? status as VehicleStatus
+      : null
+}
 
 async function loadVehicles() {
   if (isLoading) return
@@ -399,9 +426,23 @@ function resetListState() {
   selectedVehicleId.value = null
 }
 
+// function setStatusAndLoad(status: VehicleStatus | null) {
+//   statusFilter.value = status
+//   resetListState()
+//   loadVehicles()
+// }
+
 function setStatusAndLoad(status: VehicleStatus | null) {
   statusFilter.value = status
   resetListState()
+
+  router.replace({
+    query: {
+      ...route.query,
+      status: status || undefined,
+    },
+  })
+
   loadVehicles()
 }
 
@@ -902,7 +943,22 @@ onBeforeUnmount(() => {
 .vehicle-table {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+}
+
+.vehicle-table :deep(.p-datatable-wrapper),
+.vehicle-table :deep(.p-datatable-table-container) {
+  flex: 1;
+  min-height: 0;
+}
+
+.vehicle-table :deep(.p-paginator) {
+  flex-shrink: 0;
+  display: flex !important;
+  background: #111827;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 :deep(.p-datatable-table-container) {
