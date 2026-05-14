@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\TrackingController;
@@ -25,6 +26,8 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::get('/notifications/recent', [NotificationController::class, 'recent']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
+
+    Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
 
 });
 

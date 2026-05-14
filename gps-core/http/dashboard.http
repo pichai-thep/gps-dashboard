@@ -1,0 +1,25 @@
+@baseUrl = http://127.0.0.1:8000
+
+### Login
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "pichai20",
+    "password": "1234"
+}
+
+###
+
+#@token = {{login.response.body.$.token}}
+#@token = 'dev-token-16564'
+### Notifications
+GET {{baseUrl}}/api/dashboard/summary
+Accept: application/json
+Authorization: Bearer dev-token-16186
+
+###
+
+
+
