@@ -143,3 +143,33 @@ done | awk '{sum+=$1} END {print sum}'
 for k in $(redis-cli -a 'PASSWORD' --scan --pattern 'notify:user:*'); do
   redis-cli -a 'PASSWORD' LLEN "$k"
 done | awk '{sum+=$1} END {print sum}'
+
+********************************
+INSTALL Redis
+********************************
+
+sudo yum install epel-release -y
+sudo yum install \
+https://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+
+sudo yum install redis -y
+
+sudo systemctl enable redis
+sudo systemctl start redis
+sudo systemctl status redis
+
+sudo nano /etc/redis.conf
+sudo nano /etc/redis/redis.conf ==> Almalinux
+
+bind 127.0.0.1 202.129.206.53
+protected-mode yes
+port 6379
+requirepass GpsPushRedis@2026
+maxmemory 1gb
+maxmemory-policy allkeys-lru
+
+sudo systemctl restart redis
+sudo systemctl status redis
+
+sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="202.129.206.55" port protocol="tcp" port="6379" accept'
+sudo firewall-cmd --reload

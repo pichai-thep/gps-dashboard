@@ -65,7 +65,8 @@
 <!--                host: {{ gpsConnection }} ({{ dbHost }}) role: {{ roleName }}-->
 <!--              </div>-->
               <div class="user-role">
-                {{ gpsConnection }} ({{ dbEndpoint }}) · {{ roleName }}
+<!--                {{ gpsConnection }} ({{ dbEndpoint }}) · {{ roleName }}-->
+                {{ gpsConnection }} · {{ roleName }}
               </div>
 
             </div>
