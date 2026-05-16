@@ -7,10 +7,10 @@ git clean -fd
 
 bash deploy.sh
 
+cd gps-core
 rm .env
 mv .env.prod .env
 
-cd gps-core
 sudo php artisan config:clear
 sudo php artisan cache:clear
 sudo php artisan config:cache
