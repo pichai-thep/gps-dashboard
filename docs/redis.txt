@@ -161,7 +161,7 @@ sudo systemctl status redis
 sudo nano /etc/redis.conf
 sudo nano /etc/redis/redis.conf ==> Almalinux
 
-bind 127.0.0.1 202.129.206.52
+bind 127.0.0.1 202.129.206.44
 protected-mode yes
 port 6379
 requirepass GpsPushRedis@2026
