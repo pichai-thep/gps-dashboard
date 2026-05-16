@@ -16,6 +16,11 @@ composer install --no-dev --optimize-autoloader
 php artisan optimize:clear
 sudo systemctl reload php-fpm || true
 
+sudo mkdir -p /var/www/tmp
+sudo chown -R apache:apache /var/www/tmp
+sudo chmod -R 777 /var/www/tmp
+sudo chcon -R -t httpd_sys_rw_content_t /var/www/tmp || true
+
 echo "Build gps-fleet..."
 cd $BASE_DIR/gps-fleet
 
