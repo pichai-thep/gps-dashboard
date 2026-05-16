@@ -5,10 +5,12 @@ mkdir -p bootstrap/cache
 
 chmod -R 775 storage bootstrap/cache
 
-php artisan config:clear
-php artisan cache:clear
-php artisan key:generate
+sudo php artisan config:clear
+sudo php artisan cache:clear
+sudo php artisan config:cache
 
-php artisan config:cache
+sudo php artisan key:generate
+
+
 
 sudo -u apache php artisan optimize:clear

@@ -28,7 +28,6 @@ api.interceptors.response.use(
         const status = err.response?.status
         const url = err.config?.url || ''
 
-        // ❌ อย่าจับ login
         if (status === 401 && !isRedirecting && !url.includes('/auth/login')) {
             isRedirecting = true
 
