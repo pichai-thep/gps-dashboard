@@ -10,3 +10,11 @@ git add .
 git commit -m "fix tracking filter and notification badge"
 
 git push
+
+
+
+cd /var/www/gps-dashboard
+
+git fetch origin
+git reset --hard origin/main
+git clean -fd

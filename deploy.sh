@@ -1,22 +1,25 @@
-#!/usr/bin/env bash
+#!/bin/bash
+
 set -e
 
-echo "Deploy gps-core..."
-cd /var/www/gps-dashboard/gps-core
-git pull
-composer install --no-dev --optimize-autoloader
-sudo chown -R apache:apache storage bootstrap/cache
-sudo -u apache php artisan optimize:clear
-sudo -u apache php artisan optimize
-sudo systemctl restart php-fpm
+BASE_DIR=/var/www/gps-dashboard
 
-echo "Deploy gps-fleet..."
-cd /var/www/gps-dashboard/gps-fleet
-git pull
+echo "Deploy gps-core..."
+cd $BASE_DIR
+git fetch origin
+git reset --hard origin/main
+git clean -fd
+
+echo "Build gps-core..."
+cd gps-core
+composer install --no-dev --optimize-autoloader
+php artisan optimize:clear
+sudo systemctl reload php-fpm || true
+
+echo "Build gps-fleet..."
+cd $BASE_DIR/gps-fleet
+
 npm install
 npm run build
-sudo chown -R nginx:nginx dist
 
-sudo systemctl reload nginx
-
-echo "Done."
+echo "Deploy complete"
