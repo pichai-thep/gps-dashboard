@@ -36,6 +36,14 @@ sudo systemctl reload nginx
 curl -I https://core.gpsthaistar.com
 curl -I https://fleet.gpsthaistar.com
 
+git pull
+composer install
+php artisan migrate
+php artisan config:clear
+php artisan cache:clear
+npm run build
+
+
 ใช้ script ดีกว่า
 
 #!/usr/bin/env bash

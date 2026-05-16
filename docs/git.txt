@@ -1,0 +1,12 @@
+git add .
+git commit -m "update dashboard and notification system"
+
+git push origin main
+
+git status
+
+git add .
+
+git commit -m "fix tracking filter and notification badge"
+
+git push
