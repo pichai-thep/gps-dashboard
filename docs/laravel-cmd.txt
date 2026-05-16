@@ -10,3 +10,5 @@ php artisan cache:clear
 php artisan key:generate
 
 php artisan config:cache
+
+sudo -u apache php artisan optimize:clear
