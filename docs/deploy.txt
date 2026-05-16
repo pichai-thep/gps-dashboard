@@ -70,3 +70,17 @@ sudo systemctl reload nginx
 echo "Done."
 chmod +x /var/www/gps-dashboard/deploy.sh
 /var/www/gps-dashboard/deploy.sh
+
+
+
+
+cd /var/www/gps-dashboard
+
+git fetch origin
+git reset --hard origin/main
+git clean -fd
+
+bash deploy.sh
+
+rm .env
+mv .env.prod .env
