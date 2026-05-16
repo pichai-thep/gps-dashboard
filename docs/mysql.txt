@@ -1,0 +1,7 @@
+mysql -u myroot -p
+pwd: Gpsthaistar10@2026!
+
+
+CREATE USER 'gpscore'@'202.129.206.%' IDENTIFIED BY 'gpsCore@2026';
+GRANT ALL PRIVILEGES ON gps_db2.* TO 'gpscore'@'202.129.206.%';
+FLUSH PRIVILEGES;
