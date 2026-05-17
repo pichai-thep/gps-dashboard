@@ -10,27 +10,20 @@ export interface HistoryTrackingParams {
 
 export interface HistoryPoint {
     gpsdata_id?: number
-
     imei?: string
-
     gps_time?: string
     server_time?: string
-
     lat?: number
     lng?: number
-
     latitude?: number
     longitude?: number
-
     speed?: number
-
     course?: number
     heading?: number
-
     status?: string | number
-
     acc_state?: boolean | number
-
+    state?: string | number
+    gps_status?: string
     fuel?: number
     fuel_per?: number
 }

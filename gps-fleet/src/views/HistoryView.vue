@@ -361,15 +361,6 @@ watch(
     { immediate: true }
 )
 
-watch(selectedGroup, (groupId) => {
-  selectedVehicle.value = null
-  selectedHistoryIndex.value = null
-  rows.value = []
-  errorMessage.value = ''
-
-  filterVehiclesByGroup(groupId)
-})
-
 async function initPage() {
   errorMessage.value = ''
   pageLoading.value = true
@@ -453,46 +444,6 @@ async function loadVehicles(groupId: string | number | null = -1) {
   }
 }
 
-function filterVehiclesByGroup(groupId: string) {
-
-  console.log('GROUP ID', groupId)
-
-  if (!groupId) {
-    vehicles.value = [...allVehicles.value]
-    return
-  }
-
-  const selectedGroup =
-      groups.value.find((group) => {
-        return String(group.group_id) === String(groupId)
-      })
-
-  vehicles.value =
-      allVehicles.value.filter((vehicle) => {
-
-        const vehicleGroupId =
-            String(vehicle.group_id ?? '')
-                .trim()
-
-        const selectedId =
-            String(groupId).trim()
-
-        const byId =
-            vehicleGroupId !== '' &&
-            vehicleGroupId === selectedId
-
-        const byName =
-            normalizeText(vehicle.group_name) ===
-            normalizeText(selectedGroup?.group_name)
-
-        return byId || byName
-      })
-
-  console.log(
-      'FILTERED VEHICLES',
-      vehicles.value
-  )
-}
 
 function normalizeText(value: any): string {
   return String(value ?? '')
@@ -544,7 +495,6 @@ async function loadHistory() {
 
 
 function normalizeHistoryPoint(item: any): HistoryPoint {
-
   const gpsTime =
       item.gps_time ??
       item.data_date ??
@@ -556,8 +506,6 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
       item.time ??
       null
 
-
-
   return {
     ...item,
     gps_time: gpsTime,
@@ -568,18 +516,22 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
     speed: item.speed ?? item.vspeed ?? item.gps_speed ?? 0,
     heading: item.heading ?? item.course ?? item.direction ?? item.angle ?? 0,
     status: item.status ?? item.status_name ?? item.vehicle_status ?? item.gps_status ?? '-',
+
     state:
         item.state ??
         item.acc_state ??
         item.acc ??
         item.engine_state ??
-        item.status,
+        item.status ??
+        undefined,
 
-    gps_status:
+    gps_status: String(
         item.gps_status ??
         item.gpsStatus ??
         item.valid ??
-        item.valid_status,
+        item.valid_status ??
+        ''
+    ),
   }
 }
 
