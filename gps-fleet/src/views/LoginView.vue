@@ -2,9 +2,15 @@
   <main class="login-page">
     <section class="login-card">
       <div class="brand">
-        <div class="brand-icon">GF</div>
+        <img
+            :src="logoUrl"
+            class="brand-logo"
+            alt="Brand Logo"
+            @error="onLogoError"
+        />
+
         <div>
-          <h1>GPS Fleet</h1>
+          <h1>{{ brandName }}</h1>
           <p>Fleet command dashboard</p>
         </div>
       </div>
@@ -19,7 +25,6 @@
             placeholder="Username"
             class="w-full p-inputtext-sm"
             autocomplete="username"
-
         />
 
         <InputText
@@ -39,15 +44,13 @@
             :loading="loading"
             raised
         />
-
-
       </form>
     </section>
   </main>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
@@ -61,6 +64,24 @@ const username = ref('gpsthaistar')
 const password = ref('1234')
 const loading = ref(false)
 const error = ref('')
+
+const hostname = window.location.hostname
+
+const logoUrl = computed(() => {
+  console.log(`hostname:${hostname}`)
+  return `/logos/${hostname}.png`
+})
+
+const brandName = computed(() => {
+  return hostname.split('.')[0].toUpperCase()
+})
+
+function onLogoError(event) {
+  if (!event.target.dataset.fallback) {
+    event.target.dataset.fallback = 'true'
+    event.target.src = '/logos/default.png'
+  }
+}
 
 async function login() {
   try {
@@ -107,15 +128,12 @@ async function login() {
   margin-bottom: 28px;
 }
 
-.brand-icon {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border-radius: 16px;
-  font-weight: 800;
-  color: #06130d;
-  background: linear-gradient(135deg, #34d399, #22c55e);
+.brand-logo {
+  width: 100px;
+  object-fit: contain;
+  border-radius: 0px;
+  background: white;
+  padding: 0px;
 }
 
 .brand h1 {
@@ -123,6 +141,7 @@ async function login() {
   font-size: 28px;
   font-weight: 800;
   letter-spacing: -0.04em;
+  color: #cbd5e0;
 }
 
 .brand p {

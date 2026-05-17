@@ -2,7 +2,19 @@
   <div class="layout">
     <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-header">
-        <div v-if="!sidebarCollapsed" class="logo">GPS Fleet</div>
+        <div v-if="!sidebarCollapsed" class="logo-wrap">
+          <img
+              :src="brandLogo"
+              class="sidebar-logo"
+              alt="Brand Logo"
+              @error="onLogoError"
+          />
+
+<!--          <div class="logo">-->
+<!--            {{ brandName }}-->
+<!--          </div>-->
+
+        </div>
 
         <Button
             icon="pi pi-bars"
@@ -42,10 +54,16 @@
     <div class="main">
       <header class="topbar">
         <div class="topbar-title">
-          <div class="topbar-logo">GF</div>
+          <img
+              :src="brandLogo"
+              class="topbar-logo"
+              alt="Brand Logo"
+              @error="onLogoError"
+          />
 
           <div>
-            <div class="topbar-heading">GPS Fleet</div>
+            <div class="topbar-heading">{{ brandName }}</div>
+
             <div class="topbar-subtitle">{{ currentPageTitle }}</div>
           </div>
         </div>
@@ -99,6 +117,14 @@ const sidebarCollapsed = ref(true)
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const hostname = window.location.hostname
+
+const brandLogo = ref(`/logos/${hostname}.png`)
+
+const brandName = computed(() => {
+  return hostname.split('.')[0].toUpperCase()
+})
+
 const user = computed(() => auth.user)
 const userName = computed(() => {
   return user.value?.name || user.value?.username || 'User'
@@ -154,6 +180,15 @@ async function logout() {
   router.push('/login')
 }
 
+function onLogoError(event: Event) {
+  const target = event.target as HTMLImageElement
+
+  if (!target.dataset.fallback) {
+    target.dataset.fallback = 'true'
+    target.src = '/brands/default.png'
+  }
+}
+
 
 </script>
 
@@ -194,6 +229,22 @@ async function logout() {
   color: #fff;
   letter-spacing: 0.3px;
   white-space: nowrap;
+}
+
+.logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.sidebar-logo {
+  width: 40px;
+  object-fit: contain;
+  border-radius: 2px;
+  background: #fff;
+  padding: 1px;
+  flex-shrink: 0;
 }
 
 .menu {
@@ -238,7 +289,7 @@ async function logout() {
 }
 
 .topbar {
-  height: 72px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -256,8 +307,8 @@ async function logout() {
 }
 
 .topbar-logo {
-  width: 38px;
-  height: 38px;
+  width: 80px;
+  height: 60px;
   border-radius: 14px;
   display: grid;
   place-items: center;
