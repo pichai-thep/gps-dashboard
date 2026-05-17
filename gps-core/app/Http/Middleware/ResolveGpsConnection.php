@@ -26,6 +26,7 @@ class ResolveGpsConnection
             ->where('active', 1)
             ->first();
 
+
         if (!$authUser) {
             return response()->json([
                 'message' => 'User not found',
@@ -48,15 +49,30 @@ class ResolveGpsConnection
             ], 500);
         }
 
+//        dd($gpsConnection);
+
+//        dd($userId);
+
+        $gpsUserCustomer = DB::connection($gpsConnection)->table('user')
+            ->leftJoin('customer_user', 'user.user_id', '=', 'customer_user.user_user_id')
+            ->leftJoin('customer', 'customer_user.customer_customer_id', '=', 'customer.customer_id')
+            ->select('user.*', 'customer.*')
+            ->where('user.login', $authUser->login)
+            ->first();
+        ;
+
+//        dd($gpsUserCustomer);
+
+//        logger()->info('GPS CONNECTION RESOLVED', [
+//            'server_name' => $authUser->server_name ?? null,
+//            'gps_connection' => $gpsConnection,
+//            'db_host' => config("database.connections.$gpsConnection.host"),
+//            'db_port' => config("database.connections.$gpsConnection.port"),
+//        ]);
+
         $request->attributes->set('gps_connection', $gpsConnection);
         $request->attributes->set('auth_user', $authUser);
-
-        logger()->info('GPS CONNECTION RESOLVED', [
-            'server_name' => $authUser->server_name ?? null,
-            'gps_connection' => $gpsConnection,
-            'db_host' => config("database.connections.$gpsConnection.host"),
-            'db_port' => config("database.connections.$gpsConnection.port"),
-        ]);
+        $request->attributes->set('gpsUserCustomer', $gpsUserCustomer);
 
         return $next($request);
     }

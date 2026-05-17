@@ -41,10 +41,11 @@
           <span v-if="!sidebarCollapsed">History</span>
         </RouterLink>
 
-<!--        <RouterLink to="/notifications" class="menu-item">-->
-<!--          <i class="pi pi-bell"></i>-->
-<!--          <span v-if="!sidebarCollapsed">Notifications</span>-->
-<!--        </RouterLink>-->
+        <RouterLink to="/vehicles" class="menu-item">
+          <i class="pi pi-car"></i>
+          <span v-if="!sidebarCollapsed">Vehicle Management</span>
+        </RouterLink>
+
 
         <NotificationBell />
 
@@ -162,6 +163,7 @@ const currentPageTitle = computed(() => {
     '/': 'Dashboard',
     '/tracking': 'Live Tracking',
     '/history': 'History',
+    '/vehicles': 'Vehicle Management',
     '/notifications': 'Notifications',
   }
 
@@ -332,10 +334,10 @@ function onLogoError(event: Event) {
 
 .content {
   flex: 1;
-  display: flex;
+  display: block;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding: 16px;
   background: #020617;
 }

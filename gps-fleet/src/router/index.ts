@@ -60,7 +60,15 @@ const router = createRouter({
                     component:
                     TrackingView,
                 },
-
+                {
+                    path: '/vehicles',
+                    name: 'vehicles',
+                    component: () => import('@/views/VehicleManagementView.vue'),
+                    meta: {
+                        requiresAuth: true,
+                        title: 'Vehicle Management',
+                    },
+                },
                 {
                     path: 'history',
 
