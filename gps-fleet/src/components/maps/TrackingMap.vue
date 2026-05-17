@@ -276,6 +276,7 @@ let popupOverlay: any = null
 function handleMapReady(payload: any) {
 
   map.value = payload.map
+  if (!map.value) return
 
   popupOverlay =
       payload.popupOverlay
@@ -388,21 +389,17 @@ function renderVehicles() {
 function fitVehicles() {
 
   if (!map.value) return
+  const coordinates = vehicleSource.getFeatures()
+                        .map((feature) => {
+                          const geometry = feature.getGeometry()
 
-  const coordinates =
-      vehicleSource
-          .getFeatures()
-          .map((feature) =>
-              feature
-                  .getGeometry()
-                  ?.getCoordinates()
-          )
-          .filter(
-              (
-                  item
-              ): item is number[] =>
-                  Array.isArray(item)
-          )
+                          if (geometry instanceof Point) {
+                            return geometry.getCoordinates()
+                          }
+
+                          return null
+                        })
+                        .filter((item): item is number[] => Array.isArray(item))
 
   if (!coordinates.length) {
     return

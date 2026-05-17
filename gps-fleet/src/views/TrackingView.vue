@@ -251,7 +251,15 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-type StatusCount = Record<VehicleStatus, number>
+// type StatusCount = Record<VehicleStatus, number>
+type StatusCount = {
+  running: number
+  idle: number
+  acc_on: number
+  parking: number
+  no_gps: number
+  offline: number
+}
 type DriverStatus = 'ok' | 'missing' | 'no_license' | 'hide'
 const showFilters = ref(false)
 // const showFilters = ref(window.innerWidth > 768)

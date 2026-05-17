@@ -14,11 +14,7 @@ export type TrackingMeta = {
     has_next_page: boolean
     sort_by: string
     sort_dir: 'asc' | 'desc'
-}
-
-export type TrackingResponse = {
-    vehicles: Vehicle[]
-    meta: TrackingMeta
+    status_counts: number
 }
 
 export type TrackingParams = {
@@ -29,6 +25,7 @@ export type TrackingParams = {
     search?: string
     sort_by?: string
     sort_dir?: 'asc' | 'desc'
+    no_driver_card: number | null
 }
 
 export async function getVehicleGroups(
@@ -51,4 +48,22 @@ export async function getCurrentTracking(
     })
 
     return res.data
+}
+
+export type StatusCount = {
+    running: number
+    idle: number
+    acc_on: number
+    parking: number
+    no_gps: number
+    offline: number
+}
+
+export type TrackingResponse = {
+    vehicles: Vehicle[]
+
+    meta: {
+        total: number
+        status_counts?: StatusCount | null
+    }
 }

@@ -4,17 +4,6 @@
       @ready="handleMapReady"
       @fit="fitHistory"
   >
-    <template #controls>
-      <button
-          title="Show Popup"
-          type="button"
-          :class="{ active: showPopup }"
-          @click.stop="togglePopup"
-      >
-        <i class="pi pi-info-circle"></i>
-      </button>
-    </template>
-
     <template #popup>
       <div v-if="popupData">
         <div class="popup-title">
@@ -171,6 +160,7 @@ let popupOverlay: any = null
 function handleMapReady(payload: any) {
 
   map.value = payload.map
+  if (!map.value) return
 
   popupOverlay =
       payload.popupOverlay
@@ -546,11 +536,7 @@ function getHistoryLatLng(point: HistoryPoint) {
       )
 
   const lng =
-      Number(
-          point.lng ??
-          point.lon ??
-          point.longitude
-      )
+      Number(point.lng)
 
   if (
       Number.isNaN(lat) ||
@@ -756,7 +742,7 @@ function focusHistoryPoint(
 
   map.value.getView().animate({
     center: coordinate,
-    zoom: 17,
+    zoom: 16,
     duration: 300,
   })
 }

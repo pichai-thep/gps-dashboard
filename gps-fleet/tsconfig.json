@@ -1,12 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-
     "module": "ESNext",
-
     "moduleResolution": "Bundler",
 
-    "lib": ["ES2020", "DOM"],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
 
     "types": ["node"],
 
@@ -15,11 +13,24 @@
     "jsx": "preserve",
 
     "resolveJsonModule": true,
-
     "isolatedModules": true,
-
     "esModuleInterop": true,
+    "skipLibCheck": true,
 
-    "skipLibCheck": true
-  }
+    "allowJs": false,
+    "noImplicitAny": true,
+
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": true,
+
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue"
+  ]
 }
