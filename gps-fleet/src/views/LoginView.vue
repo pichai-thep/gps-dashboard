@@ -60,8 +60,8 @@ import { useAuthStore } from '../stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 
-const username = ref('gpsthaistar')
-const password = ref('1234')
+const username = ref('')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
