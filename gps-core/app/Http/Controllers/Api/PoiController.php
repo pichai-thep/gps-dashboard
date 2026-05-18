@@ -29,8 +29,8 @@ class PoiController extends Controller
                 poi_id,
                 poi_name,
                 icon,
-                X(g_poi) AS lng,
-                Y(g_poi) AS lat,
+                st_X(g_poi) AS lng,
+                st_Y(g_poi) AS lat,
                 customer_customer_id
             FROM poi
             WHERE customer_customer_id = ?
