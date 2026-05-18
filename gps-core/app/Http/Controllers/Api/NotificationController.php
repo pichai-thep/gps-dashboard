@@ -20,7 +20,8 @@ class NotificationController extends Controller
 
 //        dd("connection: " .$connection);
 
-        $login = strtolower($user->login);
+//        $login = strtolower($user->login);
+        $login = $user->login;
         $serverName = strtolower($user->server_name);
 
         logger()->info("Api NotificationController recent", [
