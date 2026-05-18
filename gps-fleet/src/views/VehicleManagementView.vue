@@ -1,24 +1,23 @@
 <template>
+  <ConfirmPopup/>
   <div class="vehicle-page">
-    <ConfirmPopup />
 
-    <div class="page-header">
-      <div>
-        <h2>Vehicle Management</h2>
-        <p>Manage vehicle information and vehicle groups</p>
-      </div>
+<!--        <div class="page-header">-->
+<!--          <div>-->
+<!--            <h2>Vehicle Management</h2>-->
+<!--            <p>Manage vehicle information and vehicle groups</p>-->
+<!--          </div>-->
 
-      <Button
-          label="Refresh"
-          icon="pi pi-refresh"
-          outlined
-          size="small"
-          @click="loadVehicles"
-      />
-    </div>
+<!--          <Button-->
+<!--              label="Refresh"-->
+<!--              icon="pi pi-refresh"-->
+<!--              outlined-->
+<!--              size="small"-->
+<!--              @click="loadVehicles"-->
+<!--          />-->
+<!--        </div>-->
 
     <div class="toolbar card compact-toolbar">
-
       <Dropdown
           v-model="targetGroup"
           :options="groups"
@@ -38,13 +37,13 @@
       />
 
       <Button v-if="targetGroup"
-          label="Delete Group"
-          icon="pi pi-trash"
-          severity="danger"
-          outlined
-          size="small"
-          :disabled="!targetGroup"
-          @click="confirmDeleteGroup($event)"
+              label="Delete Group"
+              icon="pi pi-trash"
+              severity="danger"
+              outlined
+              size="small"
+              :disabled="!targetGroup"
+              @click="confirmDeleteGroup($event)"
       />
 
       <button
@@ -52,13 +51,13 @@
           class="toolbar-link"
           @click="showCreateGroupPanel = !showCreateGroupPanel"
       >
-        <i class="pi pi-plus" />
+        <i class="pi pi-plus"/>
         Create Group
       </button>
 
       <span class="selected-label">
-    Selected: {{ selectedRows.length }}
-  </span>
+        Selected: {{ selectedRows.length }}
+      </span>
 
     </div>
 
@@ -86,16 +85,16 @@
       <div class="vehicle-list card">
         <div class="list-header">
 
-<!--          <div class="list-title">-->
-<!--            <div>-->
-<!--              Vehicle List-->
-<!--              <span class="vehicle-count">{{ vehicles.length }}</span>-->
-<!--            </div>-->
+          <!--          <div class="list-title">-->
+          <!--            <div>-->
+          <!--              Vehicle List-->
+          <!--              <span class="vehicle-count">{{ vehicles.length }}</span>-->
+          <!--            </div>-->
 
-<!--            <div class="list-subtitle">-->
-<!--              {{ filterGroup ? 'Filtered by group' : 'All vehicles' }}-->
-<!--            </div>-->
-<!--          </div>-->
+          <!--            <div class="list-subtitle">-->
+          <!--              {{ filterGroup ? 'Filtered by group' : 'All vehicles' }}-->
+          <!--            </div>-->
+          <!--          </div>-->
 
           <div class="list-search">
 
@@ -246,32 +245,32 @@
                 >
                   <div class="field">
                     <label>IMEI</label>
-                    <InputText v-model="form.imei" readonly />
+                    <InputText v-model="form.imei" readonly/>
                   </div>
 
                   <div class="field">
                     <label>Plate</label>
-                    <InputText v-model="form.plate_no" />
+                    <InputText v-model="form.plate_no"/>
                   </div>
 
                   <div class="field">
                     <label>Sequence No</label>
-                    <InputNumber v-model="form.sequen_no" />
+                    <InputNumber v-model="form.sequen_no"/>
                   </div>
 
                   <div class="field">
                     <label>Driver License</label>
-                    <InputText v-model="form.driver_id" />
+                    <InputText v-model="form.driver_id"/>
                   </div>
 
                   <div class="field">
                     <label>Driver Name</label>
-                    <InputText v-model="form.driver_name" />
+                    <InputText v-model="form.driver_name"/>
                   </div>
 
                   <div class="field">
                     <label>Driver Phone</label>
-                    <InputText v-model="form.driver_phone" />
+                    <InputText v-model="form.driver_phone"/>
                   </div>
 
                   <div class="field full">
@@ -451,9 +450,9 @@
                     <Dropdown
                         v-model="form.ur_rate_type"
                         :options="[
-        { label: 'Time-Base', value: 'A' },
-        { label: 'Engine-Base', value: 'B' },
-      ]"
+                                    { label: 'Time-Base', value: 'A' },
+                                    { label: 'Engine-Base', value: 'B' },
+                                  ]"
                         option-label="label"
                         option-value="value"
                         placeholder="Select UR Rate Type"
@@ -483,6 +482,18 @@
                     />
                   </div>
 
+                  <div class="field checkbox-field">
+                    <Checkbox
+                        v-model="form.export_to_active"
+                        binary
+                        input-id="export-to-active"
+                    />
+
+                    <label for="export-to-active">
+                      Synch/Export External API
+                    </label>
+                  </div>
+
                   <div class="actions full">
                     <Button
                         label="Save Config"
@@ -502,9 +513,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { useToast } from 'primevue/usetoast'
-import { useConfirm } from 'primevue/useconfirm'
+import {onMounted, reactive, ref} from 'vue'
+import {useToast} from 'primevue/usetoast'
+import {useConfirm} from 'primevue/useconfirm'
 
 import Button from 'primevue/button'
 import Card from 'primevue/card'
@@ -606,6 +617,8 @@ const form = reactive<VehicleDetail>({
   ur_rate_type: 'A',
   ur_rate_satsun: false,
   ur_rate_work_hour: 8,
+
+  export_to_active: 0
 })
 
 function boolValue(value: unknown): boolean {
@@ -647,6 +660,7 @@ async function selectVehicle(row: VehicleListItem) {
       ur_rate_satsun: boolValue(data.ur_rate_satsun),
       ur_rate_type: data.ur_rate_type || 'A',
       ur_rate_work_hour: data.ur_rate_work_hour ?? 8,
+      export_to_active: boolValue(data.export_to_active),
     })
   } catch (error) {
     console.error(error)
@@ -685,6 +699,9 @@ async function saveVehicle() {
       ur_rate_type: form.ur_rate_type,
       ur_rate_satsun: form.ur_rate_satsun ? 1 : 0,
       ur_rate_work_hour: form.ur_rate_work_hour,
+
+      export_to_active: form.export_to_active ? 1 : 0,
+
     })
 
     toast.add({
@@ -729,6 +746,8 @@ async function saveVehicleConfig() {
       ur_rate_type: form.ur_rate_type,
       ur_rate_satsun: form.ur_rate_satsun ? 1 : 0,
       ur_rate_work_hour: form.ur_rate_work_hour,
+
+      export_to_active: form.export_to_active ? 1 : 0,
     })
 
     toast.add({
@@ -838,6 +857,7 @@ function confirmRemoveFromGroup(event: Event) {
     },
   })
 }
+
 async function removeVehiclesFromCurrentGroup() {
   if (!filterGroup.value) return
   if (selectedRows.value.length === 0) return
@@ -866,11 +886,21 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+
 .vehicle-page {
   width: 100%;
   min-height: 100%;
-  padding: 1rem;
+  padding: 0.4rem 0.2rem 0.2rem 0.2rem;
   color: #e5e7eb;
+
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.vehicle-page *,
+.vehicle-page *::before,
+.vehicle-page *::after {
+  box-sizing: border-box;
 }
 
 .page-header {
@@ -893,6 +923,7 @@ onMounted(async () => {
 }
 
 .card {
+  width: 100%;
   background: #0f172a;
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 14px;
@@ -900,16 +931,18 @@ onMounted(async () => {
 }
 
 .toolbar {
+  width: 100%;
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: center;
-  margin-bottom: 0.75rem;
   flex-wrap: wrap;
+
+  margin-bottom: 0.75rem;
 }
 
 .compact-toolbar,
 .sub-toolbar {
-  padding: 0.75rem;
+  padding: 0.55rem 0.75rem;
 }
 
 .group-dropdown,
@@ -925,20 +958,40 @@ onMounted(async () => {
 
 .main-layout {
   display: grid;
-  grid-template-columns: 35% 65%;
+
+  grid-template-columns:
+    minmax(360px, 35%)
+    minmax(0, 1fr);
+
   gap: 1rem;
+
+  width: 100%;
+  align-items: start;
+}
+
+.vehicle-list,
+.edit-panel {
+  min-width: 0;
 }
 
 .vehicle-list {
   min-height: calc(100vh - 250px);
 }
 
+.edit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   gap: 1rem;
   margin-bottom: 0.9rem;
+
   color: #e5e7eb;
   font-weight: 800;
 }
@@ -952,9 +1005,12 @@ onMounted(async () => {
 .vehicle-count {
   margin-left: 0.4rem;
   padding: 0.12rem 0.48rem;
+
   border-radius: 999px;
+
   background: #334155;
   color: #e5e7eb;
+
   font-size: 0.8rem;
 }
 
@@ -968,6 +1024,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+
   flex-wrap: wrap;
 }
 
@@ -981,22 +1038,28 @@ onMounted(async () => {
 
 .vehicle-row-button {
   width: 100%;
+
   display: block;
   text-align: left;
+
   cursor: pointer;
 
   border: 0;
   border-radius: 10px;
+
   background: transparent;
 
   color: #e5e7eb;
+
   font-size: 17px;
   font-weight: 800;
   line-height: 1.25;
 
   padding: 0.55rem 0.4rem;
 
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+      background 0.15s ease,
+      color 0.15s ease;
 }
 
 .vehicle-row-button:hover {
@@ -1009,14 +1072,9 @@ onMounted(async () => {
   background: rgba(52, 211, 153, 0.14);
 }
 
-.edit-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
 .empty-state {
   padding: 2rem;
+
   text-align: center;
   color: #94a3b8;
 }
@@ -1025,32 +1083,38 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   width: 100%;
 }
 
 .vehicle-plate {
   font-size: 1.25rem;
   font-weight: 900;
+
   color: #34d399;
   line-height: 1.1;
 }
 
 .vehicle-imei {
   margin-top: 0.25rem;
+
   font-size: 0.8rem;
   color: #94a3b8;
+
   font-family: monospace;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+
   gap: 1rem;
 }
 
 .field {
   display: flex;
   flex-direction: column;
+
   gap: 0.35rem;
 }
 
@@ -1063,6 +1127,7 @@ onMounted(async () => {
 .checkbox-field {
   flex-direction: row;
   align-items: center;
+
   padding-top: 1.6rem;
 }
 
@@ -1081,17 +1146,19 @@ onMounted(async () => {
 
 .custom-tab-nav {
   display: inline-flex;
+
   width: auto;
   max-width: 100%;
-  gap: 0.35rem;
 
+  gap: 0.35rem;
   padding: 0.35rem;
+
+  overflow-x: auto;
 
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.22);
 
   background: #020617;
-  overflow-x: auto;
 }
 
 .custom-tab-nav button {
@@ -1109,7 +1176,10 @@ onMounted(async () => {
   font-weight: 800;
 
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+
+  transition:
+      background 0.15s ease,
+      color 0.15s ease;
 }
 
 .custom-tab-nav button:hover {
@@ -1120,7 +1190,9 @@ onMounted(async () => {
 .custom-tab-nav button.active {
   background: rgba(52, 211, 153, 0.14);
   color: #34d399;
-  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.5);
+
+  box-shadow:
+      inset 0 0 0 1px rgba(52, 211, 153, 0.5);
 }
 
 .custom-tab-panel {
@@ -1130,7 +1202,10 @@ onMounted(async () => {
 
 .icon-picker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+
+  grid-template-columns:
+    repeat(auto-fill, minmax(120px, 1fr));
+
   gap: 0.75rem;
 }
 
@@ -1138,6 +1213,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
+
   gap: 0.55rem;
 
   padding: 0.85rem 0.5rem;
@@ -1149,12 +1225,14 @@ onMounted(async () => {
   color: #cbd5e1;
 
   cursor: pointer;
+
   transition: all 0.15s ease;
 }
 
 .icon-choice img {
   width: 56px;
   height: 56px;
+
   object-fit: contain;
 }
 
@@ -1170,9 +1248,12 @@ onMounted(async () => {
 
 .icon-choice.active {
   border-color: #34d399;
+
   background: rgba(52, 211, 153, 0.14);
   color: #34d399;
-  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.15);
+
+  box-shadow:
+      0 0 0 2px rgba(52, 211, 153, 0.15);
 }
 
 .icon-actions {
@@ -1182,12 +1263,14 @@ onMounted(async () => {
 .toolbar-link {
   display: inline-flex;
   align-items: center;
+
   gap: 0.45rem;
 
   background: transparent;
   border: 0;
 
   color: #34d399;
+
   cursor: pointer;
 
   font-size: 0.9rem;
@@ -1202,10 +1285,14 @@ onMounted(async () => {
 }
 
 :deep(.p-card) {
+  width: 100%;
+
   background: #0f172a !important;
   color: #e5e7eb !important;
+
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 14px;
+
   box-shadow: none;
 }
 
@@ -1229,7 +1316,9 @@ onMounted(async () => {
 :deep(textarea) {
   background: #111827 !important;
   color: #e5e7eb !important;
-  border-color: rgba(148, 163, 184, 0.35) !important;
+
+  border-color:
+      rgba(148, 163, 184, 0.35) !important;
 }
 
 :deep(.p-inputtext:enabled:focus),
@@ -1238,7 +1327,9 @@ onMounted(async () => {
 :deep(.p-select:not(.p-disabled).p-focus),
 :deep(.p-textarea:enabled:focus) {
   border-color: #34d399 !important;
-  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.18) !important;
+
+  box-shadow:
+      0 0 0 2px rgba(52, 211, 153, 0.18) !important;
 }
 
 :deep(.p-inputtext::placeholder) {
@@ -1253,7 +1344,9 @@ onMounted(async () => {
 :deep(.p-datatable-tbody > tr > td) {
   background: #0f172a !important;
   color: #e5e7eb !important;
-  border-color: rgba(148, 163, 184, 0.18) !important;
+
+  border-color:
+      rgba(148, 163, 184, 0.18) !important;
 }
 
 :deep(.p-datatable-thead > tr > th) {
@@ -1270,20 +1363,23 @@ onMounted(async () => {
   border-color: #cbd5e1;
 }
 
-
-.table-group-filter {
-  width: 230px;
-}
-
-.list-search {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+@media (max-width: 1200px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
+
   .table-group-filter,
-  .table-search-input {
+  .table-search-input,
+  .group-dropdown,
+  .group-input {
+    width: 100%;
+  }
+
+  .toolbar,
+  .list-search {
     width: 100%;
   }
 
@@ -1292,13 +1388,18 @@ onMounted(async () => {
     align-items: stretch;
   }
 
-  .list-search {
-    width: 100%;
-  }
-
   .vehicle-form-header {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
 }
+
 </style>

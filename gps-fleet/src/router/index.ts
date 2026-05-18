@@ -16,6 +16,10 @@ import TrackingView from '@/views/TrackingView.vue'
 import HistoryView from '@/views/HistoryView.vue'
 
 import NotificationsView from '@/views/NotificationsView.vue'
+import StationManagementView from '@/views/StationManagementView.vue'
+import VehicleManagementView from "@/views/VehicleManagementView.vue";
+
+
 
 const router = createRouter({
     history: createWebHistory(),
@@ -23,11 +27,8 @@ const router = createRouter({
     routes: [
         {
             path: '/login',
-
             name: 'login',
-
             component: LoginView,
-
             meta: {
                 guestOnly: true,
             },
@@ -35,9 +36,7 @@ const router = createRouter({
 
         {
             path: '/',
-
             component: DashboardLayout,
-
             meta: {
                 requiresAuth: true,
             },
@@ -45,46 +44,48 @@ const router = createRouter({
             children: [
                 {
                     path: '',
-
                     name: 'dashboard',
-
                     component:
                     DashboardView,
                 },
 
                 {
                     path: 'tracking',
-
                     name: 'tracking',
-
-                    component:
-                    TrackingView,
+                    component: TrackingView,
+                },
+                {
+                    path: 'history',
+                    name: 'history',
+                    component: HistoryView,
                 },
                 {
                     path: '/vehicles',
                     name: 'vehicles',
-                    component: () => import('@/views/VehicleManagementView.vue'),
+                    component: VehicleManagementView,
                     meta: {
                         requiresAuth: true,
                         title: 'Vehicle Management',
                     },
                 },
                 {
-                    path: 'history',
+                    path: '/stations',
+                    name: 'stations',
+                    component: StationManagementView,
+                    meta: { requiresAuth: true },
+                },
+                {
+                    path: '/pois',
+                    name: 'pois',
+                    component: () => import('@/views/PoiManagementView.vue'),
 
-                    name: 'history',
-
-                    component:
-                    HistoryView,
+                    meta: { requiresAuth: true },
                 },
 
                 {
                     path: 'notifications',
-
                     name: 'notifications',
-
-                    component:
-                    NotificationsView,
+                    component: NotificationsView,
                 },
             ],
         },

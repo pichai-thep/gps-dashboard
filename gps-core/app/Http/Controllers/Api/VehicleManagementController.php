@@ -143,6 +143,8 @@ class VehicleManagementController extends Controller
                 't.ur_rate_type',
                 't.ur_rate_satsun',
                 't.ur_rate_work_hour',
+
+                't.export_to_active',
             ])
             ->where('t.imei', $imei)
             ->first();
@@ -205,6 +207,8 @@ class VehicleManagementController extends Controller
             'ur_rate_type' => ['nullable', 'in:A,B'],
             'ur_rate_satsun' => ['nullable', 'boolean'],
             'ur_rate_work_hour' => ['nullable', 'integer', 'min:0', 'max:24'],
+
+            'export_to_active' => ['nullable', 'boolean'],
         ]);
 
         // normalize boolean -> tinyint
@@ -216,6 +220,9 @@ class VehicleManagementController extends Controller
 
         $data['ur_rate_satsun'] =
             !empty($data['ur_rate_satsun']) ? 1 : 0;
+
+        $data['export_to_active'] =
+            !empty($data['export_to_active']) ? 1 : 0;
 
         // audit
         $data['changed_date'] = now();

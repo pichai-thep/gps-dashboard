@@ -46,6 +46,18 @@
           <span v-if="!sidebarCollapsed">Vehicle Management</span>
         </RouterLink>
 
+        <RouterLink to="/stations" class="menu-item">
+          <i class="pi pi-warehouse"></i>
+          <span v-if="!sidebarCollapsed">Station Management</span>
+        </RouterLink>
+
+        <RouterLink to="/pois" class="menu-item">
+          <i class="pi pi-map-marker"></i>
+          <span v-if="!sidebarCollapsed">POIs Management</span>
+        </RouterLink>
+
+
+
 
         <NotificationBell />
 

@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PoiController;
+use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\TrackingController;
 use App\Http\Controllers\Api\VehicleManagementController;
 
@@ -43,6 +45,16 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::delete('/vehicle-groups/{id}', [VehicleManagementController::class, 'deleteGroup']);
     Route::post('/vehicle-groups/move', [VehicleManagementController::class, 'moveToGroup']);
     Route::post('/vehicle-groups/remove-vehicles', [VehicleManagementController::class, 'removeVehiclesFromGroup']);
+
+    Route::get('/stations', [StationController::class, 'index']);
+    Route::post('/stations', [StationController::class, 'store']);
+    Route::put('/stations/{id}', [StationController::class, 'update']);
+    Route::delete('/stations/{id}', [StationController::class, 'destroy']);
+
+    Route::get('/pois', [PoiController::class, 'index']);
+    Route::post('/pois', [PoiController::class, 'store']);
+    Route::put('/pois/{id}', [PoiController::class, 'update']);
+    Route::delete('/pois/{id}', [PoiController::class, 'destroy']);
 
 });
 
