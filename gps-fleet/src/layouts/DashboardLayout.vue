@@ -175,9 +175,11 @@ const currentPageTitle = computed(() => {
   const map: Record<string, string> = {
     '/': 'Dashboard',
     '/tracking': 'Live Tracking',
-    '/history': 'History',
+    '/history': 'History Tracking',
     '/vehicles': 'Vehicle Management',
     '/notifications': 'Notifications',
+    '/stations': 'Stations',
+    '/pois': 'POI',
   }
 
   return map[route.path] || 'Fleet Command Center'
