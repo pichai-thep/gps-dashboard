@@ -167,7 +167,7 @@ const emit = defineEmits<{
 
 const baseMapRef = ref()
 
-const map = ref<Map | null>(null)
+const map = ref<OlMap | null>(null)
 
 const vehicleSource =
     new VectorSource()
@@ -183,6 +183,8 @@ const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
 const addressCache = ref<Record<string, string>>({})
 const clickedFromMap = ref(false)
+const vehicleFeatureMap = new globalThis.Map<string, Feature<Point>>()
+let selectedFeatureKey: string | null = null
 
 async function loadSelectedAddress() {
   if (!popupVehicle.value) return
@@ -337,52 +339,50 @@ function handleMapClick(event: any) {
 }
 
 function renderVehicles() {
-
-  vehicleSource.clear()
-
-  const vehicles =
-      props.vehicles || []
+  const vehicles = props.vehicles || []
+  const nextKeys = new Set<string>()
 
   vehicles.forEach((vehicle) => {
+    if (vehicle.lat == null || vehicle.lng == null) return
 
-    if (
-        vehicle.lat == null ||
-        vehicle.lng == null
-    ) {
-      return
+    const key = getVehicleKey(vehicle)
+    nextKeys.add(key)
+
+    const coordinate = fromLonLat([
+      Number(vehicle.lng),
+      Number(vehicle.lat),
+    ])
+
+    let feature = vehicleFeatureMap.get(key)
+
+    if (!feature) {
+      feature = new Feature({
+        geometry: new Point(coordinate),
+        vehicle,
+      })
+
+      vehicleFeatureMap.set(key, feature)
+      vehicleSource.addFeature(feature)
+    } else {
+      feature.set('vehicle', vehicle)
+
+      const geometry = feature.getGeometry()
+      geometry?.setCoordinates(coordinate)
     }
-
-    const feature =
-        new Feature({
-
-          geometry:
-              new Point(
-                  fromLonLat([
-                    Number(vehicle.lng),
-                    Number(vehicle.lat),
-                  ])
-              ),
-
-          vehicle,
-        })
-
-    const isSelected =
-        Boolean(
-            props.focusVehicleId
-        ) &&
-        getVehicleKey(vehicle) ===
-        props.focusVehicleId
 
     feature.setStyle(
         createVehicleStyle(
             vehicle,
-            isSelected
+            key === selectedFeatureKey
         )
     )
+  })
 
-    vehicleSource.addFeature(
-        feature
-    )
+  vehicleFeatureMap.forEach((feature, key) => {
+    if (nextKeys.has(key)) return
+
+    vehicleSource.removeFeature(feature)
+    vehicleFeatureMap.delete(key)
   })
 }
 
@@ -421,59 +421,51 @@ function fitVehicles() {
 function focusVehicle(
     vehicleId: string,
     animate = true
-){
-
+) {
   if (!map.value) return
 
-  const feature =
-      vehicleSource
-          .getFeatures()
-          .find((feature) => {
+  const feature = vehicleFeatureMap.get(vehicleId)
+  selectedFeatureKey = vehicleId
 
-            const vehicle =
-                feature.get('vehicle')
-
-            return (
-                getVehicleKey(
-                    vehicle
-                ) === vehicleId
-            )
-          })
+  vehicleFeatureMap.forEach((itemFeature, key) => {
+    const itemVehicle = itemFeature.get('vehicle')
+    itemFeature.setStyle(
+        createVehicleStyle(
+            itemVehicle,
+            key === selectedFeatureKey
+        )
+    )
+  })
 
   if (!feature) return
 
-  const geometry =
-      feature.getGeometry()
+  const geometry = feature.getGeometry()
 
-  if (!(geometry instanceof Point)) {
-    return
-  }
+  if (!(geometry instanceof Point)) return
 
-  const coordinate =
-      geometry.getCoordinates()
-
-  const vehicle =
-      feature.get('vehicle')
+  const coordinate = geometry.getCoordinates()
+  const vehicle = feature.get('vehicle')
 
   if (showPopup.value) {
-
     selectedAddress.value = null
     addressLoading.value = false
-
     popupVehicle.value = vehicle
-
-    popupOverlay?.setPosition(
-        coordinate
-    )
+    popupOverlay?.setPosition(coordinate)
   }
 
-  if (animate) {
-    map.value.getView().animate({
-      center: coordinate,
-      zoom: 16,
-      duration: 300,
-    })
-  }
+  if (!animate) return
+
+  const view = map.value.getView()
+  const currentZoom = view.getZoom() ?? 16
+  const targetZoom = currentZoom < 15 ? 16 : currentZoom
+
+  view.cancelAnimations()
+
+  view.animate({
+    center: coordinate,
+    zoom: targetZoom,
+    duration: 250,
+  })
 }
 
 function closePopup() {
@@ -679,28 +671,34 @@ function formatDriverName(
 watch(
     () => props.vehicles,
     async () => {
-
       await nextTick()
 
       renderVehicles()
 
-      if (props.focusVehicleId) {
+      if (
+          props.focusVehicleId &&
+          followVehicle.value
+      ) {
         focusVehicle(
             props.focusVehicleId,
-            followVehicle.value
+            true
         )
       }
-    },
-    { deep: true }
+    }
 )
 
 watch(
     () => props.focusVehicleId,
-    async (vehicleId) => {
+    async (vehicleId, oldVehicleId) => {
       await nextTick()
 
       if (!vehicleId) {
         closePopup()
+        return
+      }
+
+      if (vehicleId === oldVehicleId) {
+        clickedFromMap.value = false
         return
       }
 
