@@ -131,6 +131,7 @@ import BaseMap from './BaseMap.vue'
 
 import Map from 'ol/Map'
 import Feature from 'ol/Feature'
+import type { FeatureLike } from 'ol/Feature'
 import Point from 'ol/geom/Point'
 
 import VectorLayer from 'ol/layer/Vector'
@@ -167,7 +168,8 @@ const emit = defineEmits<{
 
 const baseMapRef = ref()
 
-const map = ref<OlMap | null>(null)
+// const map = ref<OlMap | null>(null)
+const map = ref<Map | null>(null)
 
 const vehicleSource =
     new VectorSource()
@@ -302,7 +304,12 @@ function handleMapClick(event: any) {
 
   map.value.forEachFeatureAtPixel(
       event.pixel,
-      (feature) => {
+      (feature: FeatureLike) => {
+
+        if (!(feature instanceof Feature)) {
+          return
+        }
+
         const vehicle = feature.get('vehicle')
 
         if (!vehicle) return
@@ -324,7 +331,6 @@ function handleMapClick(event: any) {
 
           popupOverlay?.setPosition(coordinate)
         }
-
 
         clickedFromMap.value = true
         emit('vehicle-click', vehicle)
@@ -389,17 +395,23 @@ function renderVehicles() {
 function fitVehicles() {
 
   if (!map.value) return
-  const coordinates = vehicleSource.getFeatures()
-                        .map((feature) => {
-                          const geometry = feature.getGeometry()
 
-                          if (geometry instanceof Point) {
-                            return geometry.getCoordinates()
-                          }
+  const coordinates = vehicleSource
+      .getFeatures()
+      .map((feature: Feature) => {
 
-                          return null
-                        })
-                        .filter((item): item is number[] => Array.isArray(item))
+        const geometry = feature.getGeometry()
+
+        if (geometry instanceof Point) {
+          return geometry.getCoordinates()
+        }
+
+        return null
+      })
+      .filter(
+          (item): item is number[] =>
+              Array.isArray(item)
+      )
 
   if (!coordinates.length) {
     return
@@ -408,11 +420,8 @@ function fitVehicles() {
   map.value.getView().fit(
       boundingExtent(coordinates),
       {
-        padding:
-            [80, 80, 80, 80],
-
+        padding: [80, 80, 80, 80],
         duration: 400,
-
         maxZoom: 15,
       }
   )
