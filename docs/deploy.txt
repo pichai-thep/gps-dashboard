@@ -1,11 +1,11 @@
 สำหรับการ update deploy script ก่อนการ deploy
 cd /var/www/gps-dashboard
 
+# bash deploy.sh  ==> คำสั่งเดียวจบ  ดึงอัพเดทจาก github มา deploy และ build ให้เลย
+
 git fetch origin
 git reset --hard origin/main
 git clean -fd
-
-bash deploy.sh
 
 cd gps-core
 rm .env

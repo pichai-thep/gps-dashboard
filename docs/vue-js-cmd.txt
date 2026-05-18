@@ -1,1 +1,7 @@
-npm install @primeuix/themes
+npm run dev
+npm run build
+
+npm run type-check
+npm run build
+
+

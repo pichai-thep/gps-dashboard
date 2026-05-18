@@ -1,55 +1,8 @@
-เปิด Terminal 2 อัน:
-# terminal 1
-cd gps-core
-php artisan serve --port=8000
+gps-core
+# ./start-tunnel.sh
 
-# terminal 2
-cd gps-fleet
-npm run dev
-
-ถ้า apple block
-# xattr -dr com.apple.quarantine node_modules
-
-git remote add origin git@github.com:pichai-thep/gps-dashboard.git
+gps-fleet
+# npm run dev
 
 
 
-เช็กค่าจริงด้วย tinker
-รัน:
-
-php artisan tinker
-แล้วพิมพ์:
-config('database.connections.gps5.host')
-
-php artisan optimize:clear
-php artisan config:clear
-php artisan cache:clear
-
-php artisan serve --port=8000
-
-% php artisan tinker
-% config('database.connections.gps5.host')
-% config('database.connections.gps5.username')
-
-
-for i in {1..20}; do
-  curl -H "Authorization: Bearer dev-token-20960" \
-       http://127.0.0.1:8000/api/tracking/current;
-done
-
-run on client
-ssh -N -L 63005:127.0.0.1:63005 gpsroot@202.129.206.54 -p 22000
-ssh -N -L 63020:127.0.0.1:63020 gpsroot@202.129.206.53 -p 22000
-
-run start.sh ==> ssh tunnel + start web
-ืneed to ssh-key upload to server first, if you don't have pls do it.
-% ssh-keygen
-% ssh-copy-id user@202.129.206.54
-
-% ./start.sh
-
-need to install autossh
-$ brew install autossh
-
-เช็ค port listening
-lsof -iTCP:7305 -sTCP:LISTEN
