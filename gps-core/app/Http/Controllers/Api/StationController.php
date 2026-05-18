@@ -28,8 +28,8 @@ class StationController extends Controller
             SELECT
                 station_id,
                 station_name,
-                X(station_point) AS lng,
-                Y(station_point) AS lat,
+                st_X(station_point) AS lng,
+                st_Y(station_point) AS lat,
                 radius,
                 station_type,
                 ST_AsText(station_polygon) AS polygon_wkt,
