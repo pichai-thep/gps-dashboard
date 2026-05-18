@@ -32,7 +32,10 @@ export interface VehicleDetail {
     remark?: string | null
 
     current_mileage?: number | null
-    ur_rate_type?: 'A' | 'B' | null
+
+    ur_rate_type: 'A' | 'B' | null
+    ur_rate_satsun: boolean | number | null
+    ur_rate_work_hour: number | null
 }
 
 export interface VehicleGroup {
@@ -53,8 +56,16 @@ export async function getVehicle(imei: string) {
     return res.data.data as VehicleDetail
 }
 
-export async function updateVehicle(imei: string, payload: Partial<VehicleDetail>) {
-    return api.put(`/vehicles/${imei}`, payload)
+// export async function updateVehicle(imei: string, payload: Partial<VehicleDetail>) {
+//     return api.put(`/vehicles/${imei}`, payload)
+// }
+export async function updateVehicle(imei: string, payload: Partial<VehicleDetail>,) {
+    const response = await api.put(
+        `/vehicles/${imei}`,
+        payload,
+    )
+
+    return response.data
 }
 
 export async function updateMileage(imei: string, current_mileage: number) {

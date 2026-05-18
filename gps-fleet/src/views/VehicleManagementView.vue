@@ -274,6 +274,14 @@
                     <InputText v-model="form.driver_phone" />
                   </div>
 
+                  <div class="field full">
+                    <label>Remark</label>
+                    <Textarea
+                        v-model="form.remark"
+                        rows="4"
+                    />
+                  </div>
+
                   <div class="actions full">
                     <Button
                         label="Save Info"
@@ -437,11 +445,41 @@
                     />
                   </div>
 
-                  <div class="field full">
-                    <label>Remark</label>
-                    <Textarea
-                        v-model="form.remark"
-                        rows="4"
+                  <div class="field">
+                    <label>UR Rate Type</label>
+
+                    <Dropdown
+                        v-model="form.ur_rate_type"
+                        :options="[
+        { label: 'Time-Base', value: 'A' },
+        { label: 'Engine-Base', value: 'B' },
+      ]"
+                        option-label="label"
+                        option-value="value"
+                        placeholder="Select UR Rate Type"
+                    />
+                  </div>
+
+                  <div class="field checkbox-field">
+                    <Checkbox
+                        v-model="form.ur_rate_satsun"
+                        binary
+                        input-id="ur-rate-satsun"
+                    />
+
+                    <label for="ur-rate-satsun">
+                      Include Saturday / Sunday
+                    </label>
+                  </div>
+
+                  <div class="field">
+                    <label>Working Hour / Day</label>
+
+                    <InputNumber
+                        v-model="form.ur_rate_work_hour"
+                        :min="0"
+                        :max="24"
+                        suffix=" hr"
                     />
                   </div>
 
@@ -450,7 +488,7 @@
                         label="Save Config"
                         icon="pi pi-save"
                         :loading="saving"
-                        @click="saveVehicle"
+                        @click="saveVehicleConfig"
                     />
                   </div>
                 </div>
@@ -564,6 +602,10 @@ const form = reactive<VehicleDetail>({
   remark: '',
 
   current_mileage: null,
+
+  ur_rate_type: 'A',
+  ur_rate_satsun: false,
+  ur_rate_work_hour: 8,
 })
 
 function boolValue(value: unknown): boolean {
@@ -602,6 +644,9 @@ async function selectVehicle(row: VehicleListItem) {
     Object.assign(form, data, {
       input_fuel_reverse: boolValue(data.input_fuel_reverse),
       fuel_mont: boolValue(data.fuel_mont),
+      ur_rate_satsun: boolValue(data.ur_rate_satsun),
+      ur_rate_type: data.ur_rate_type || 'A',
+      ur_rate_work_hour: data.ur_rate_work_hour ?? 8,
     })
   } catch (error) {
     console.error(error)
@@ -636,6 +681,10 @@ async function saveVehicle() {
 
       fuel_mont: !!form.fuel_mont,
       remark: form.remark,
+
+      ur_rate_type: form.ur_rate_type,
+      ur_rate_satsun: form.ur_rate_satsun ? 1 : 0,
+      ur_rate_work_hour: form.ur_rate_work_hour,
     })
 
     toast.add({
@@ -665,6 +714,34 @@ async function saveMileage() {
     detail: 'Mileage updated',
     life: 2500,
   })
+}
+
+async function saveVehicleConfig() {
+  if (!form.imei) return
+
+  saving.value = true
+
+  try {
+    await updateVehicle(form.imei, {
+      speed_limited: form.speed_limited,
+      remark: form.remark,
+
+      ur_rate_type: form.ur_rate_type,
+      ur_rate_satsun: form.ur_rate_satsun ? 1 : 0,
+      ur_rate_work_hour: form.ur_rate_work_hour,
+    })
+
+    toast.add({
+      severity: 'success',
+      summary: 'Saved',
+      detail: 'Vehicle config updated',
+      life: 2500,
+    })
+
+    await loadVehicles()
+  } finally {
+    saving.value = false
+  }
 }
 
 async function createGroup() {

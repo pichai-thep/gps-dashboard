@@ -98,19 +98,56 @@ class VehicleManagementController extends Controller
         $conn = $this->conn($request);
         $customerId = $this->customerId($request);
 
-        $row = DB::connection($conn)
-            ->table('customer_tracker as ct')
-            ->join('tracker as t', 't.imei', '=', 'ct.tracker_imei')
+        $allowed = DB::connection($conn)
+            ->table('customer_tracker')
+            ->where('customer_customer_id', $customerId)
+            ->where('tracker_imei', $imei)
+            ->exists();
+
+        if (!$allowed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vehicle not found or permission denied',
+            ], 404);
+        }
+
+        $vehicle = DB::connection($conn)
+            ->table('tracker as t')
             ->leftJoin('tracker_mileage as tm', 'tm.imei', '=', 't.imei')
             ->select([
-                't.*',
-                'tm.mileage as current_mileage',
+                't.imei',
+                't.plate_no',
+                't.sequen_no',
+
+                't.driver_id',
+                't.driver_name',
+                't.driver_phone',
+
+                't.speed_limited',
+                't.icon_path',
+
+                't.fuel_min_vol',
+                't.fuel_max_vol',
+                't.input_fuel_reverse',
+
+                't.fuel_kmpl',
+                't.fuel_lph',
+                't.fuel_tank_size',
+                't.fuel_price',
+
+                't.fuel_mont',
+                't.remark',
+
+                DB::raw('tm.mileage as current_mileage'),
+
+                't.ur_rate_type',
+                't.ur_rate_satsun',
+                't.ur_rate_work_hour',
             ])
-            ->where('ct.customer_customer_id', $customerId)
             ->where('t.imei', $imei)
             ->first();
 
-        if (!$row) {
+        if (!$vehicle) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vehicle not found',
@@ -119,7 +156,7 @@ class VehicleManagementController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $row,
+            'data' => $vehicle,
         ]);
     }
 
@@ -164,8 +201,23 @@ class VehicleManagementController extends Controller
 
             'fuel_mont' => ['nullable', 'boolean'],
             'remark' => ['nullable', 'string', 'max:100'],
+
+            'ur_rate_type' => ['nullable', 'in:A,B'],
+            'ur_rate_satsun' => ['nullable', 'boolean'],
+            'ur_rate_work_hour' => ['nullable', 'integer', 'min:0', 'max:24'],
         ]);
 
+        // normalize boolean -> tinyint
+        $data['input_fuel_reverse'] =
+            !empty($data['input_fuel_reverse']) ? 1 : 0;
+
+        $data['fuel_mont'] =
+            !empty($data['fuel_mont']) ? 1 : 0;
+
+        $data['ur_rate_satsun'] =
+            !empty($data['ur_rate_satsun']) ? 1 : 0;
+
+        // audit
         $data['changed_date'] = now();
         $data['changed_by'] = $user->login ?? null;
 
