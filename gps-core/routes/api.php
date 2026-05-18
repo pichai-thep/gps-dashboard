@@ -5,7 +5,10 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\TrackingController;
+use App\Http\Controllers\Api\VehicleManagementController;
+
 use Illuminate\Support\Facades\Route;
+
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -29,5 +32,17 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
 
     Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
 
+    Route::get('/vehicles', [VehicleManagementController::class, 'index']);
+    Route::get('/vehicles/{imei}', [VehicleManagementController::class, 'show']);
+    Route::put('/vehicles/{imei}', [VehicleManagementController::class, 'updateVehicle']);
+    Route::put('/vehicles/{imei}/mileage', [VehicleManagementController::class, 'updateMileage']);
+    Route::put('/vehicles/{imei}/ur-rate', [VehicleManagementController::class, 'updateUrRate']);
+
+    Route::get('/vehicle-groups', [VehicleManagementController::class, 'groups']);
+    Route::post('/vehicle-groups', [VehicleManagementController::class, 'createGroup']);
+    Route::delete('/vehicle-groups/{id}', [VehicleManagementController::class, 'deleteGroup']);
+    Route::post('/vehicle-groups/move', [VehicleManagementController::class, 'moveToGroup']);
+
 });
+
 

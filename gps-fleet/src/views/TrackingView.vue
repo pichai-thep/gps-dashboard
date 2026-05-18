@@ -134,7 +134,6 @@
           :first="(page - 1) * perPage"
           :rowsPerPageOptions="[10, 20, 50, 100]"
           scrollable
-          scrollHeight="calc(150vh - 200px)"
           class="vehicle-table"
           selectionMode="single"
           tableStyle="width: 100%; table-layout: fixed;"
@@ -949,8 +948,7 @@ onBeforeUnmount(() => {
 }
 
 .vehicle-table {
-  flex: 1;
-  min-height: 0;
+  height: calc(100vh - 150px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
