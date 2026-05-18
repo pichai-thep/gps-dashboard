@@ -90,3 +90,10 @@ export async function moveVehiclesToGroup(imeis: string[], customer_group_id: nu
         customer_group_id,
     })
 }
+
+export async function removeVehiclesFromGroup(groupId: number, imeis: string[],) {
+    await api.post('/vehicle-groups/remove-vehicles', {
+        group_id: groupId,
+        imeis,
+    })
+}

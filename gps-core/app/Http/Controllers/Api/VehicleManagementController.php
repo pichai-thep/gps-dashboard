@@ -355,4 +355,26 @@ class VehicleManagementController extends Controller
             'message' => 'Vehicles moved to group',
         ]);
     }
+
+    public function removeVehiclesFromGroup(Request $request)
+    {
+        $conn = $this->conn($request);
+        $customerId = $this->customerId($request);
+
+        $data = $request->validate([
+            'group_id' => ['required', 'integer'],
+            'imeis' => ['required', 'array', 'min:1'],
+            'imeis.*' => ['required', 'string'],
+        ]);
+
+        DB::connection($conn)
+            ->table('customer_group_tracker')
+            ->where('customer_group_id', $data['group_id'])
+            ->whereIn('imei', $data['imeis'])
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+        ]);
+    }
 }

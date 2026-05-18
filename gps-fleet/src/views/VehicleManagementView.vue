@@ -1,10 +1,8 @@
 <template>
   <div class="vehicle-page">
-
     <ConfirmPopup />
 
     <div class="page-header">
-
       <div>
         <h2>Vehicle Management</h2>
         <p>Manage vehicle information and vehicle groups</p>
@@ -17,39 +15,35 @@
           size="small"
           @click="loadVehicles"
       />
-
     </div>
 
     <div class="toolbar card compact-toolbar">
 
       <Dropdown
-          v-model="selectedGroup"
+          v-model="targetGroup"
           :options="groups"
           option-label="customer_group_name"
           option-value="customer_group_id"
-          placeholder="Group"
+          placeholder="Change / move to group"
           show-clear
           class="group-dropdown"
-          @change="loadVehicles"
-      />
-      <Button
-          label="Move"
-          icon="pi pi-arrow-right"
-          size="small"
-          :disabled="
-          selectedRows.length === 0 ||
-          !selectedGroup
-        "
-          @click="moveGroup"
       />
 
       <Button
-          label="Delete"
+          label="Move to Group"
+          icon="pi pi-arrow-right"
+          size="small"
+          :disabled="selectedRows.length === 0 || !targetGroup"
+          @click="moveGroup"
+      />
+
+      <Button v-if="targetGroup"
+          label="Delete Group"
           icon="pi pi-trash"
           severity="danger"
           outlined
           size="small"
-          :disabled="!selectedGroup"
+          :disabled="!targetGroup"
           @click="confirmDeleteGroup($event)"
       />
 
@@ -59,18 +53,12 @@
           @click="showCreateGroupPanel = !showCreateGroupPanel"
       >
         <i class="pi pi-plus" />
-
-        {{
-          showCreateGroupPanel
-              ? 'Hide Create Group'
-              : 'Create Group'
-        }}
+        Create Group
       </button>
 
       <span class="selected-label">
-        Selected:
-        {{ selectedRows.length }}
-      </span>
+    Selected: {{ selectedRows.length }}
+  </span>
 
     </div>
 
@@ -78,7 +66,6 @@
         v-if="showCreateGroupPanel"
         class="toolbar card sub-toolbar"
     >
-
       <InputText
           v-model="newGroupName"
           placeholder="New Group"
@@ -93,36 +80,35 @@
           size="small"
           @click="createGroup"
       />
-
     </div>
 
     <div class="main-layout">
-
       <div class="vehicle-list card">
-
         <div class="list-header">
 
-          <div class="list-title">
+<!--          <div class="list-title">-->
+<!--            <div>-->
+<!--              Vehicle List-->
+<!--              <span class="vehicle-count">{{ vehicles.length }}</span>-->
+<!--            </div>-->
 
-            <div>
-              Vehicle List
-
-              <span class="vehicle-count">
-        {{ vehicles.length }}
-      </span>
-            </div>
-
-            <div class="list-subtitle">
-              {{
-                selectedGroup
-                    ? 'Filtered by group'
-                    : 'All vehicles'
-              }}
-            </div>
-
-          </div>
+<!--            <div class="list-subtitle">-->
+<!--              {{ filterGroup ? 'Filtered by group' : 'All vehicles' }}-->
+<!--            </div>-->
+<!--          </div>-->
 
           <div class="list-search">
+
+            <Dropdown
+                v-model="filterGroup"
+                :options="groups"
+                option-label="customer_group_name"
+                option-value="customer_group_id"
+                placeholder="Filter group"
+                show-clear
+                class="table-group-filter"
+                @change="loadVehicles"
+            />
 
             <InputText
                 v-model="keyword"
@@ -137,8 +123,18 @@
                 @click="loadVehicles"
             />
 
-          </div>
+            <Button
+                v-if="filterGroup"
+                label="Remove from Group"
+                icon="pi pi-times"
+                severity="danger"
+                outlined
+                size="small"
+                :disabled="selectedRows.length === 0 || !filterGroup"
+                @click="confirmRemoveFromGroup"
+            />
 
+          </div>
         </div>
 
         <DataTable
@@ -150,48 +146,46 @@
             scroll-height="calc(100vh - 320px)"
             size="small"
         >
-
           <Column
               selection-mode="multiple"
               header-style="width: 3rem"
           />
 
-          <Column header="Vehicle">
-
+          <Column header="Vehicle name">
             <template #body="{ data }">
-
               <button
                   type="button"
                   class="vehicle-row-button"
-                  :class="{
-                  active:
-                    selectedVehicle?.imei === data.imei
-                }"
-                  @click.stop.prevent="
-                  selectVehicle(data)
-                "
+                  :class="{ active: selectedVehicle?.imei === data.imei }"
+                  @click.stop.prevent="selectVehicle(data)"
               >
                 {{ data.plate_no || '-' }}
               </button>
-
             </template>
-
           </Column>
-
         </DataTable>
-
       </div>
 
       <div class="edit-panel">
-
         <Card>
-
           <template #title>
-            General Info
+            <div class="vehicle-form-header">
+              <div>
+                <div class="vehicle-plate">
+                  {{ form.plate_no || '-' }}
+                </div>
+
+                <div
+                    v-if="form.imei"
+                    class="vehicle-imei"
+                >
+                  IMEI: {{ form.imei }}
+                </div>
+              </div>
+            </div>
           </template>
 
           <template #content>
-
             <div
                 v-if="!form.imei"
                 class="empty-state"
@@ -201,221 +195,289 @@
 
             <div
                 v-else
-                class="form-grid"
+                class="custom-tabs"
             >
+              <div class="custom-tab-nav">
+                <button
+                    type="button"
+                    :class="{ active: activeTab === 'info' }"
+                    @click="activeTab = 'info'"
+                >
+                  Vehicle Info
+                </button>
 
-              <div class="field">
-                <label>IMEI</label>
+                <button
+                    type="button"
+                    :class="{ active: activeTab === 'icon' }"
+                    @click="activeTab = 'icon'"
+                >
+                  Vehicle Icon
+                </button>
 
-                <InputText
-                    v-model="form.imei"
-                    readonly
-                />
+                <button
+                    type="button"
+                    :class="{ active: activeTab === 'fuel' }"
+                    @click="activeTab = 'fuel'"
+                >
+                  Fuel Setting
+                </button>
+
+                <button
+                    type="button"
+                    :class="{ active: activeTab === 'mileage' }"
+                    @click="activeTab = 'mileage'"
+                >
+                  Mileage
+                </button>
+
+                <button
+                    type="button"
+                    :class="{ active: activeTab === 'config' }"
+                    @click="activeTab = 'config'"
+                >
+                  Vehicle Config
+                </button>
               </div>
 
-              <div class="field">
-                <label>Plate</label>
+              <div class="custom-tab-panel">
+                <div
+                    v-if="activeTab === 'info'"
+                    class="form-grid"
+                >
+                  <div class="field">
+                    <label>IMEI</label>
+                    <InputText v-model="form.imei" readonly />
+                  </div>
 
-                <InputText
-                    v-model="form.plate_no"
-                />
+                  <div class="field">
+                    <label>Plate</label>
+                    <InputText v-model="form.plate_no" />
+                  </div>
+
+                  <div class="field">
+                    <label>Sequence No</label>
+                    <InputNumber v-model="form.sequen_no" />
+                  </div>
+
+                  <div class="field">
+                    <label>Driver License</label>
+                    <InputText v-model="form.driver_id" />
+                  </div>
+
+                  <div class="field">
+                    <label>Driver Name</label>
+                    <InputText v-model="form.driver_name" />
+                  </div>
+
+                  <div class="field">
+                    <label>Driver Phone</label>
+                    <InputText v-model="form.driver_phone" />
+                  </div>
+
+                  <div class="actions full">
+                    <Button
+                        label="Save Info"
+                        icon="pi pi-save"
+                        :loading="saving"
+                        @click="saveVehicle"
+                    />
+                  </div>
+                </div>
+
+                <div v-else-if="activeTab === 'icon'">
+                  <div class="icon-picker-grid">
+                    <button
+                        v-for="item in vehicleIcons"
+                        :key="item.value"
+                        type="button"
+                        class="icon-choice"
+                        :class="{ active: form.icon_path === item.value }"
+                        @click="form.icon_path = item.value"
+                    >
+                      <img
+                          :src="item.image"
+                          :alt="item.label"
+                      />
+
+                      <span>{{ item.label }}</span>
+                    </button>
+                  </div>
+
+                  <div class="actions full icon-actions">
+                    <Button
+                        label="Save Vehicle Icon"
+                        icon="pi pi-save"
+                        :loading="saving"
+                        @click="saveVehicle"
+                    />
+                  </div>
+                </div>
+
+                <div
+                    v-else-if="activeTab === 'fuel'"
+                    class="form-grid"
+                >
+                  <div class="field">
+                    <label>Fuel Min Voltage</label>
+                    <InputNumber
+                        v-model="form.fuel_min_vol"
+                        mode="decimal"
+                        :min-fraction-digits="2"
+                    />
+                  </div>
+
+                  <div class="field">
+                    <label>Fuel Max Voltage</label>
+                    <InputNumber
+                        v-model="form.fuel_max_vol"
+                        mode="decimal"
+                        :min-fraction-digits="2"
+                    />
+                  </div>
+
+                  <div class="field checkbox-field">
+                    <Checkbox
+                        v-model="form.input_fuel_reverse"
+                        binary
+                        input-id="reverse"
+                    />
+
+                    <label for="reverse">
+                      Inverse Calculation
+                    </label>
+                  </div>
+
+                  <div class="field">
+                    <label>Km / Litre</label>
+                    <InputNumber
+                        v-model="form.fuel_kmpl"
+                        mode="decimal"
+                    />
+                  </div>
+
+                  <div class="field">
+                    <label>Litre / Hr</label>
+                    <InputNumber
+                        v-model="form.fuel_lph"
+                        mode="decimal"
+                    />
+                  </div>
+
+                  <div class="field">
+                    <label>Fuel Tank Size</label>
+                    <InputNumber
+                        v-model="form.fuel_tank_size"
+                        suffix=" L"
+                    />
+                  </div>
+
+                  <div class="field">
+                    <label>Fuel Price</label>
+                    <InputNumber
+                        v-model="form.fuel_price"
+                        mode="currency"
+                        currency="THB"
+                        locale="th-TH"
+                    />
+                  </div>
+
+                  <div class="field checkbox-field">
+                    <Checkbox
+                        v-model="form.fuel_mont"
+                        binary
+                        input-id="fuelmont"
+                    />
+
+                    <label for="fuelmont">
+                      Fuel Monitor
+                    </label>
+                  </div>
+
+                  <div class="actions full">
+                    <Button
+                        label="Save Fuel Setting"
+                        icon="pi pi-save"
+                        :loading="saving"
+                        @click="saveVehicle"
+                    />
+                  </div>
+                </div>
+
+                <div
+                    v-else-if="activeTab === 'mileage'"
+                    class="form-grid"
+                >
+                  <div class="field">
+                    <label>Current Mileage</label>
+                    <InputNumber
+                        v-model="form.current_mileage"
+                        suffix=" km"
+                    />
+                  </div>
+
+                  <div class="actions full">
+                    <Button
+                        label="Save Mileage"
+                        icon="pi pi-save"
+                        severity="success"
+                        @click="saveMileage"
+                    />
+                  </div>
+                </div>
+
+                <div
+                    v-else-if="activeTab === 'config'"
+                    class="form-grid"
+                >
+                  <div class="field">
+                    <label>Speed Limit</label>
+                    <InputNumber
+                        v-model="form.speed_limited"
+                        suffix=" km/h"
+                    />
+                  </div>
+
+                  <div class="field full">
+                    <label>Remark</label>
+                    <Textarea
+                        v-model="form.remark"
+                        rows="4"
+                    />
+                  </div>
+
+                  <div class="actions full">
+                    <Button
+                        label="Save Config"
+                        icon="pi pi-save"
+                        :loading="saving"
+                        @click="saveVehicle"
+                    />
+                  </div>
+                </div>
               </div>
-
-              <div class="field">
-                <label>Sequence No</label>
-
-                <InputNumber
-                    v-model="form.sequen_no"
-                />
-              </div>
-
-              <div class="field">
-                <label>Driver License</label>
-
-                <InputText
-                    v-model="form.driver_id"
-                />
-              </div>
-
-              <div class="field">
-                <label>Driver Name</label>
-
-                <InputText
-                    v-model="form.driver_name"
-                />
-              </div>
-
-              <div class="field">
-                <label>Driver Phone</label>
-
-                <InputText
-                    v-model="form.driver_phone"
-                />
-              </div>
-
-              <div class="field">
-                <label>Speed Limit</label>
-
-                <InputNumber
-                    v-model="form.speed_limited"
-                    suffix=" km/h"
-                />
-              </div>
-
-              <div class="field">
-
-                <label>Vehicle Icon</label>
-
-                <Dropdown
-                    v-model="form.icon_path"
-                    :options="vehicleIcons"
-                    option-label="label"
-                    option-value="value"
-                    placeholder="Select Icon"
-                />
-
-              </div>
-
-              <div class="section-title">
-                Fuel Setting
-              </div>
-
-              <div class="field">
-                <label>Fuel Min Voltage</label>
-
-                <InputNumber
-                    v-model="form.fuel_min_vol"
-                    mode="decimal"
-                    :min-fraction-digits="2"
-                />
-              </div>
-
-              <div class="field">
-                <label>Fuel Max Voltage</label>
-
-                <InputNumber
-                    v-model="form.fuel_max_vol"
-                    mode="decimal"
-                    :min-fraction-digits="2"
-                />
-              </div>
-
-              <div class="field checkbox-field">
-
-                <Checkbox
-                    v-model="form.input_fuel_reverse"
-                    binary
-                    input-id="reverse"
-                />
-
-                <label for="reverse">
-                  Inverse Calculation
-                </label>
-
-              </div>
-
-              <div class="field">
-                <label>Km / Litre</label>
-
-                <InputNumber
-                    v-model="form.fuel_kmpl"
-                    mode="decimal"
-                />
-              </div>
-
-              <div class="field">
-                <label>Litre / Hr</label>
-
-                <InputNumber
-                    v-model="form.fuel_lph"
-                    mode="decimal"
-                />
-              </div>
-
-              <div class="field">
-                <label>Fuel Tank Size</label>
-
-                <InputNumber
-                    v-model="form.fuel_tank_size"
-                    suffix=" L"
-                />
-              </div>
-
-              <div class="field">
-                <label>Fuel Price</label>
-
-                <InputNumber
-                    v-model="form.fuel_price"
-                    mode="currency"
-                    currency="THB"
-                    locale="th-TH"
-                />
-              </div>
-
-              <div class="field checkbox-field">
-
-                <Checkbox
-                    v-model="form.fuel_mont"
-                    binary
-                    input-id="fuelmont"
-                />
-
-                <label for="fuelmont">
-                  Fuel Monitor
-                </label>
-
-              </div>
-
-              <div class="field full">
-
-                <label>Remark</label>
-
-                <Textarea
-                    v-model="form.remark"
-                    rows="3"
-                />
-
-              </div>
-
-              <div class="actions full">
-
-                <Button
-                    label="Save Vehicle"
-                    icon="pi pi-save"
-                    :loading="saving"
-                    @click="saveVehicle"
-                />
-
-              </div>
-
             </div>
-
           </template>
-
         </Card>
-
       </div>
-
     </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
+import ConfirmPopup from 'primevue/confirmpopup'
 import DataTable from 'primevue/datatable'
 import Dropdown from 'primevue/dropdown'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import ConfirmPopup from 'primevue/confirmpopup'
-import { useConfirm } from 'primevue/useconfirm'
 
 import {
   createVehicleGroup,
@@ -423,13 +485,15 @@ import {
   getVehicle,
   getVehicleGroups,
   getVehicles,
-  moveVehiclesToGroup,
+  moveVehiclesToGroup, removeVehiclesFromGroup,
   updateMileage,
   updateVehicle,
   type VehicleDetail,
   type VehicleGroup,
   type VehicleListItem,
 } from '@/services/vehicleManagement'
+
+type ActiveTab = 'info' | 'icon' | 'fuel' | 'mileage' | 'config'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -438,19 +502,42 @@ const loading = ref(false)
 const saving = ref(false)
 
 const keyword = ref('')
-
-const selectedGroup = ref<number | null>(null)
-
+const filterGroup = ref<number | null>(null)
+const targetGroup = ref<number | null>(null)
 const showCreateGroupPanel = ref(false)
-
 const newGroupName = ref('')
+const activeTab = ref<ActiveTab>('info')
 
 const vehicles = ref<VehicleListItem[]>([])
 const groups = ref<VehicleGroup[]>([])
-
 const selectedRows = ref<VehicleListItem[]>([])
 const selectedVehicle = ref<VehicleListItem | null>(null)
 
+const vehicleIcons = [
+  'backhole',
+  'boat',
+  'bus',
+  'cement',
+  'crane',
+  'crane_truck',
+  'crawler_tractor',
+  'dump',
+  'excavator',
+  'grader',
+  'sedan',
+  'trailer',
+  'truck1',
+  'truck2',
+  'truck3',
+  'truck_danger',
+  'van',
+  'water_spray',
+  'water_truck',
+].map((name) => ({
+  label: name,
+  value: name,
+  image: `/cars/${name}/run.png`,
+}))
 
 const form = reactive<VehicleDetail>({
   imei: '',
@@ -479,13 +566,6 @@ const form = reactive<VehicleDetail>({
   current_mileage: null,
 })
 
-const vehicleIcons = [
-  { label: 'Truck', value: 'truck.png' },
-  { label: 'Car', value: 'car.png' },
-  { label: 'Van', value: 'van.png' },
-  { label: 'Motorcycle', value: 'motorcycle.png' },
-]
-
 function boolValue(value: unknown): boolean {
   return value === true || value === 1 || value === '1'
 }
@@ -500,7 +580,7 @@ async function loadVehicles() {
   try {
     vehicles.value = await getVehicles({
       keyword: keyword.value,
-      group_id: selectedGroup.value,
+      group_id: filterGroup.value,
     })
   } finally {
     loading.value = false
@@ -608,23 +688,16 @@ async function createGroup() {
 }
 
 function confirmDeleteGroup(event: Event) {
-  if (!selectedGroup.value) return
+  if (!targetGroup.value) return
 
   confirm.require({
     target: event.currentTarget as HTMLElement,
-
-    message:
-        'Delete this vehicle group ?',
-
+    message: 'Delete this vehicle group ?',
     header: 'Confirm Delete',
-
     icon: 'pi pi-exclamation-triangle',
-
     rejectLabel: 'Cancel',
     acceptLabel: 'Delete',
-
     acceptClass: 'p-button-danger',
-
     accept: async () => {
       await removeGroup()
     },
@@ -632,11 +705,12 @@ function confirmDeleteGroup(event: Event) {
 }
 
 async function removeGroup() {
-  if (!selectedGroup.value) return
+  if (!targetGroup.value) return
 
-  await deleteVehicleGroup(selectedGroup.value)
+  await deleteVehicleGroup(targetGroup.value)
 
-  selectedGroup.value = null
+  filterGroup.value = null
+  targetGroup.value = null
 
   await loadGroups()
   await loadVehicles()
@@ -650,12 +724,12 @@ async function removeGroup() {
 }
 
 async function moveGroup() {
-  if (!selectedGroup.value) return
+  if (!targetGroup.value) return
   if (selectedRows.value.length === 0) return
 
   await moveVehiclesToGroup(
       selectedRows.value.map(v => v.imei),
-      selectedGroup.value,
+      targetGroup.value,
   )
 
   selectedRows.value = []
@@ -666,6 +740,44 @@ async function moveGroup() {
     severity: 'success',
     summary: 'Moved',
     detail: 'Vehicles moved to group',
+    life: 2500,
+  })
+}
+
+
+function confirmRemoveFromGroup(event: Event) {
+  if (!filterGroup.value) return
+
+  confirm.require({
+    target: event.currentTarget as HTMLElement,
+    message: 'Remove this vehicle from group ?',
+    header: 'Confirm Remove',
+    icon: 'pi pi-exclamation-triangle',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Remove',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      await removeVehiclesFromCurrentGroup()
+    },
+  })
+}
+async function removeVehiclesFromCurrentGroup() {
+  if (!filterGroup.value) return
+  if (selectedRows.value.length === 0) return
+
+  await removeVehiclesFromGroup(
+      filterGroup.value,
+      selectedRows.value.map(v => v.imei),
+  )
+
+  selectedRows.value = []
+
+  await loadVehicles()
+
+  toast.add({
+    severity: 'success',
+    summary: 'Removed',
+    detail: 'Vehicles removed from current group',
     life: 2500,
   })
 }
@@ -693,17 +805,20 @@ onMounted(async () => {
 
 .page-header h2 {
   margin: 0;
+  color: #f8fafc;
+  font-size: 1.55rem;
+  font-weight: 900;
 }
 
 .page-header p {
-  margin-top: 0.25rem;
-  opacity: 0.7;
+  margin: 0.25rem 0 0;
+  color: #94a3b8;
 }
 
 .card {
   background: #0f172a;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
   padding: 1rem;
 }
 
@@ -715,27 +830,20 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-.compact-toolbar {
-  padding: 0.75rem;
-  gap: 0.5rem;
-}
-
+.compact-toolbar,
 .sub-toolbar {
   padding: 0.75rem;
 }
 
-.search-input {
-  width: 320px;
-}
-
 .group-dropdown,
 .group-input {
-  width: 220px;
+  width: 240px;
 }
 
 .selected-label {
-  opacity: 0.7;
-  font-size: 0.85rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .main-layout {
@@ -752,14 +860,21 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
   color: #e5e7eb;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.list-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .vehicle-count {
   margin-left: 0.4rem;
-  padding: 0.12rem 0.45rem;
+  padding: 0.12rem 0.48rem;
   border-radius: 999px;
   background: #334155;
   color: #e5e7eb;
@@ -769,7 +884,22 @@ onMounted(async () => {
 .list-subtitle {
   font-size: 0.8rem;
   color: #94a3b8;
-  font-weight: 400;
+  font-weight: 500;
+}
+
+.list-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.table-group-filter {
+  width: 230px;
+}
+
+.table-search-input {
+  width: 220px;
 }
 
 .vehicle-row-button {
@@ -777,19 +907,29 @@ onMounted(async () => {
   display: block;
   text-align: left;
   cursor: pointer;
+
   border: 0;
+  border-radius: 10px;
   background: transparent;
+
   color: #e5e7eb;
-  font-size: 16px;
-  padding: 0.45rem 0;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+
+  padding: 0.55rem 0.4rem;
+
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .vehicle-row-button:hover {
   color: #34d399;
+  background: rgba(52, 211, 153, 0.08);
 }
 
 .vehicle-row-button.active {
   color: #34d399;
+  background: rgba(52, 211, 153, 0.14);
 }
 
 .edit-panel {
@@ -801,13 +941,33 @@ onMounted(async () => {
 .empty-state {
   padding: 2rem;
   text-align: center;
-  opacity: 0.65;
   color: #94a3b8;
+}
+
+.vehicle-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.vehicle-plate {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #34d399;
+  line-height: 1.1;
+}
+
+.vehicle-imei {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-family: monospace;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2,minmax(0,1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -818,8 +978,9 @@ onMounted(async () => {
 }
 
 .field label {
+  color: #cbd5e1;
   font-size: 0.85rem;
-  opacity: 0.8;
+  font-weight: 700;
 }
 
 .checkbox-field {
@@ -832,28 +993,129 @@ onMounted(async () => {
   grid-column: 1 / -1;
 }
 
-.section-title {
-  grid-column: 1 / -1;
-  padding-top: 1rem;
-  margin-top: 0.5rem;
-  font-weight: 700;
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.custom-tabs {
+  margin-top: 0.75rem;
+}
+
+.custom-tab-nav {
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+  gap: 0.35rem;
+
+  padding: 0.35rem;
+
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+
+  background: #020617;
+  overflow-x: auto;
+}
+
+.custom-tab-nav button {
+  flex: 0 0 auto;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: transparent;
+  color: #94a3b8;
+
+  padding: 0.65rem 0.9rem;
+
+  font-size: 0.9rem;
+  font-weight: 800;
+
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.custom-tab-nav button:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: #e5e7eb;
+}
+
+.custom-tab-nav button.active {
+  background: rgba(52, 211, 153, 0.14);
+  color: #34d399;
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.5);
+}
+
+.custom-tab-panel {
+  padding-top: 1rem;
+  color: #e5e7eb;
+}
+
+.icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.icon-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+
+  padding: 0.85rem 0.5rem;
+
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+
+  background: #111827;
+  color: #cbd5e1;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icon-choice img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.icon-choice span {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.icon-choice:hover {
+  border-color: rgba(52, 211, 153, 0.6);
+  background: #0f1f1c;
+}
+
+.icon-choice.active {
+  border-color: #34d399;
+  background: rgba(52, 211, 153, 0.14);
+  color: #34d399;
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.15);
+}
+
+.icon-actions {
+  margin-top: 1rem;
 }
 
 .toolbar-link {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+
   background: transparent;
   border: 0;
+
   color: #34d399;
   cursor: pointer;
+
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 800;
+
   padding: 0.35rem 0.2rem;
 }
 
@@ -862,15 +1124,16 @@ onMounted(async () => {
   text-decoration: underline;
 }
 
-.toolbar-link .pi {
-  font-size: 0.85rem;
+:deep(.p-card) {
+  background: #0f172a !important;
+  color: #e5e7eb !important;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  box-shadow: none;
 }
 
-:deep(.p-card) {
-  background: #0f172a;
-  color: #e5e7eb;
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: none;
+:deep(.p-card-body) {
+  padding: 1rem;
 }
 
 :deep(.p-card-title) {
@@ -881,42 +1144,58 @@ onMounted(async () => {
   color: #cbd5e1;
 }
 
+:deep(.p-inputtext),
+:deep(.p-inputnumber-input),
+:deep(.p-dropdown),
+:deep(.p-select),
+:deep(.p-textarea),
+:deep(textarea) {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+:deep(.p-inputtext:enabled:focus),
+:deep(.p-inputnumber-input:enabled:focus),
+:deep(.p-dropdown:not(.p-disabled).p-focus),
+:deep(.p-select:not(.p-disabled).p-focus),
+:deep(.p-textarea:enabled:focus) {
+  border-color: #34d399 !important;
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.18) !important;
+}
+
+:deep(.p-inputtext::placeholder) {
+  color: #64748b !important;
+}
+
 :deep(.p-datatable),
 :deep(.p-datatable-wrapper),
 :deep(.p-datatable-table),
 :deep(.p-datatable-thead > tr > th),
 :deep(.p-datatable-tbody > tr),
 :deep(.p-datatable-tbody > tr > td) {
-  background: #0f172a;
-  color: #e5e7eb;
-  border-color: rgba(255,255,255,0.1);
+  background: #0f172a !important;
+  color: #e5e7eb !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+:deep(.p-datatable-thead > tr > th) {
+  font-size: 0.95rem;
+  font-weight: 900;
 }
 
 :deep(.p-datatable-tbody > tr:hover) {
-  background: #1e293b;
+  background: #1e293b !important;
 }
 
-:deep(.p-inputtext),
-:deep(.p-inputnumber-input),
-:deep(.p-dropdown),
-:deep(.p-textarea) {
-  background: #111827;
-  color: #e5e7eb;
-  border-color: rgba(255,255,255,0.18);
+:deep(.p-checkbox-box) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
 }
 
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
 
-.list-title {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.table-group-filter {
+  width: 230px;
 }
 
 .list-search {
@@ -925,11 +1204,11 @@ onMounted(async () => {
   gap: 0.5rem;
 }
 
-.table-search-input {
-  width: 320px;
-}
-
 @media (max-width: 900px) {
+  .table-group-filter,
+  .table-search-input {
+    width: 100%;
+  }
 
   .list-header {
     flex-direction: column;
@@ -940,9 +1219,9 @@ onMounted(async () => {
     width: 100%;
   }
 
-  .table-search-input {
-    width: 100%;
+  .vehicle-form-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
-
 </style>

@@ -42,6 +42,7 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::post('/vehicle-groups', [VehicleManagementController::class, 'createGroup']);
     Route::delete('/vehicle-groups/{id}', [VehicleManagementController::class, 'deleteGroup']);
     Route::post('/vehicle-groups/move', [VehicleManagementController::class, 'moveToGroup']);
+    Route::post('/vehicle-groups/remove-vehicles', [VehicleManagementController::class, 'removeVehiclesFromGroup']);
 
 });
 
