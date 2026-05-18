@@ -1,253 +1,7 @@
-```vue
-<script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { useToast } from 'primevue/usetoast'
-
-import Button from 'primevue/button'
-import Card from 'primevue/card'
-import Checkbox from 'primevue/checkbox'
-import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
-import Dropdown from 'primevue/dropdown'
-import InputNumber from 'primevue/inputnumber'
-import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
-
-import {
-  createVehicleGroup,
-  deleteVehicleGroup,
-  getVehicle,
-  getVehicleGroups,
-  getVehicles,
-  moveVehiclesToGroup,
-  updateMileage,
-  updateVehicle,
-  type VehicleDetail,
-  type VehicleGroup,
-  type VehicleListItem,
-} from '@/services/vehicleManagement'
-
-const toast = useToast()
-
-const loading = ref(false)
-const saving = ref(false)
-
-const keyword = ref('')
-
-const selectedGroup = ref<number | null>(null)
-
-const showCreateGroupPanel = ref(false)
-
-const newGroupName = ref('')
-
-const vehicles = ref<VehicleListItem[]>([])
-const groups = ref<VehicleGroup[]>([])
-
-const selectedRows = ref<VehicleListItem[]>([])
-const selectedVehicle = ref<VehicleListItem | null>(null)
-
-const form = reactive<VehicleDetail>({
-  imei: '',
-  plate_no: '',
-  sequen_no: null,
-
-  driver_id: '',
-  driver_name: '',
-  driver_phone: '',
-
-  speed_limited: null,
-  icon_path: null,
-
-  fuel_min_vol: null,
-  fuel_max_vol: null,
-  input_fuel_reverse: false,
-
-  fuel_kmpl: null,
-  fuel_lph: null,
-  fuel_tank_size: null,
-  fuel_price: null,
-
-  fuel_mont: false,
-  remark: '',
-
-  current_mileage: null,
-})
-
-const vehicleIcons = [
-  { label: 'Truck', value: 'truck.png' },
-  { label: 'Car', value: 'car.png' },
-  { label: 'Van', value: 'van.png' },
-  { label: 'Motorcycle', value: 'motorcycle.png' },
-]
-
-function boolValue(value: unknown): boolean {
-  return value === true || value === 1 || value === '1'
-}
-
-async function loadGroups() {
-  groups.value = await getVehicleGroups()
-}
-
-async function loadVehicles() {
-  loading.value = true
-
-  try {
-    vehicles.value = await getVehicles({
-      keyword: keyword.value,
-      group_id: selectedGroup.value,
-    })
-  } finally {
-    loading.value = false
-  }
-}
-
-async function selectVehicle(row: VehicleListItem) {
-  selectedVehicle.value = row
-
-  Object.assign(form, {
-    imei: row.imei,
-    plate_no: row.plate_no || '',
-    sequen_no: row.sequen_no ?? null,
-  })
-
-  try {
-    const data = await getVehicle(row.imei)
-
-    Object.assign(form, data, {
-      input_fuel_reverse: boolValue(data.input_fuel_reverse),
-      fuel_mont: boolValue(data.fuel_mont),
-    })
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-async function saveVehicle() {
-  if (!form.imei) return
-
-  saving.value = true
-
-  try {
-    await updateVehicle(form.imei, {
-      plate_no: form.plate_no,
-      sequen_no: form.sequen_no,
-
-      driver_id: form.driver_id,
-      driver_name: form.driver_name,
-      driver_phone: form.driver_phone,
-
-      speed_limited: form.speed_limited,
-      icon_path: form.icon_path,
-
-      fuel_min_vol: form.fuel_min_vol,
-      fuel_max_vol: form.fuel_max_vol,
-      input_fuel_reverse: !!form.input_fuel_reverse,
-
-      fuel_kmpl: form.fuel_kmpl,
-      fuel_lph: form.fuel_lph,
-      fuel_tank_size: form.fuel_tank_size,
-      fuel_price: form.fuel_price,
-
-      fuel_mont: !!form.fuel_mont,
-      remark: form.remark,
-    })
-
-    toast.add({
-      severity: 'success',
-      summary: 'Saved',
-      detail: 'Vehicle updated',
-      life: 2500,
-    })
-
-    await loadVehicles()
-  } finally {
-    saving.value = false
-  }
-}
-
-async function saveMileage() {
-  if (!form.imei || form.current_mileage == null) return
-
-  await updateMileage(
-      form.imei,
-      Number(form.current_mileage),
-  )
-
-  toast.add({
-    severity: 'success',
-    summary: 'Saved',
-    detail: 'Mileage updated',
-    life: 2500,
-  })
-}
-
-async function createGroup() {
-  const name = newGroupName.value.trim()
-
-  if (!name) return
-
-  await createVehicleGroup(name)
-
-  newGroupName.value = ''
-  showCreateGroupPanel.value = false
-
-  await loadGroups()
-
-  toast.add({
-    severity: 'success',
-    summary: 'Created',
-    detail: 'Group created',
-    life: 2500,
-  })
-}
-
-async function removeGroup() {
-  if (!selectedGroup.value) return
-
-  await deleteVehicleGroup(selectedGroup.value)
-
-  selectedGroup.value = null
-
-  await loadGroups()
-  await loadVehicles()
-
-  toast.add({
-    severity: 'success',
-    summary: 'Deleted',
-    detail: 'Group deleted',
-    life: 2500,
-  })
-}
-
-async function moveGroup() {
-  if (!selectedGroup.value) return
-  if (selectedRows.value.length === 0) return
-
-  await moveVehiclesToGroup(
-      selectedRows.value.map(v => v.imei),
-      selectedGroup.value,
-  )
-
-  selectedRows.value = []
-
-  await loadVehicles()
-
-  toast.add({
-    severity: 'success',
-    summary: 'Moved',
-    detail: 'Vehicles moved to group',
-    life: 2500,
-  })
-}
-
-onMounted(async () => {
-  await loadGroups()
-  await loadVehicles()
-})
-</script>
-
 <template>
   <div class="vehicle-page">
+
+    <ConfirmPopup />
 
     <div class="page-header">
 
@@ -268,13 +22,6 @@ onMounted(async () => {
 
     <div class="toolbar card compact-toolbar">
 
-      <InputText
-          v-model="keyword"
-          placeholder="Search IMEI / Plate / Driver"
-          class="search-input"
-          @keyup.enter="loadVehicles"
-      />
-
       <Dropdown
           v-model="selectedGroup"
           :options="groups"
@@ -285,14 +32,6 @@ onMounted(async () => {
           class="group-dropdown"
           @change="loadVehicles"
       />
-
-      <Button
-          label="Search"
-          icon="pi pi-search"
-          size="small"
-          @click="loadVehicles"
-      />
-
       <Button
           label="Move"
           icon="pi pi-arrow-right"
@@ -311,7 +50,7 @@ onMounted(async () => {
           outlined
           size="small"
           :disabled="!selectedGroup"
-          @click="removeGroup"
+          @click="confirmDeleteGroup($event)"
       />
 
       <button
@@ -363,20 +102,41 @@ onMounted(async () => {
 
         <div class="list-header">
 
-          <div>
-            Vehicle List
+          <div class="list-title">
 
-            <span class="vehicle-count">
-              {{ vehicles.length }}
-            </span>
+            <div>
+              Vehicle List
+
+              <span class="vehicle-count">
+        {{ vehicles.length }}
+      </span>
+            </div>
+
+            <div class="list-subtitle">
+              {{
+                selectedGroup
+                    ? 'Filtered by group'
+                    : 'All vehicles'
+              }}
+            </div>
+
           </div>
 
-          <div class="list-subtitle">
-            {{
-              selectedGroup
-                  ? 'Filtered by group'
-                  : 'All vehicles'
-            }}
+          <div class="list-search">
+
+            <InputText
+                v-model="keyword"
+                placeholder="Search IMEI / Plate / Driver"
+                class="table-search-input"
+                @keyup.enter="loadVehicles"
+            />
+
+            <Button
+                icon="pi pi-search"
+                size="small"
+                @click="loadVehicles"
+            />
+
           </div>
 
         </div>
@@ -641,6 +401,281 @@ onMounted(async () => {
   </div>
 </template>
 
+<script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue'
+import { useToast } from 'primevue/usetoast'
+
+import Button from 'primevue/button'
+import Card from 'primevue/card'
+import Checkbox from 'primevue/checkbox'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import Dropdown from 'primevue/dropdown'
+import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
+import ConfirmPopup from 'primevue/confirmpopup'
+import { useConfirm } from 'primevue/useconfirm'
+
+import {
+  createVehicleGroup,
+  deleteVehicleGroup,
+  getVehicle,
+  getVehicleGroups,
+  getVehicles,
+  moveVehiclesToGroup,
+  updateMileage,
+  updateVehicle,
+  type VehicleDetail,
+  type VehicleGroup,
+  type VehicleListItem,
+} from '@/services/vehicleManagement'
+
+const toast = useToast()
+const confirm = useConfirm()
+
+const loading = ref(false)
+const saving = ref(false)
+
+const keyword = ref('')
+
+const selectedGroup = ref<number | null>(null)
+
+const showCreateGroupPanel = ref(false)
+
+const newGroupName = ref('')
+
+const vehicles = ref<VehicleListItem[]>([])
+const groups = ref<VehicleGroup[]>([])
+
+const selectedRows = ref<VehicleListItem[]>([])
+const selectedVehicle = ref<VehicleListItem | null>(null)
+
+
+const form = reactive<VehicleDetail>({
+  imei: '',
+  plate_no: '',
+  sequen_no: null,
+
+  driver_id: '',
+  driver_name: '',
+  driver_phone: '',
+
+  speed_limited: null,
+  icon_path: null,
+
+  fuel_min_vol: null,
+  fuel_max_vol: null,
+  input_fuel_reverse: false,
+
+  fuel_kmpl: null,
+  fuel_lph: null,
+  fuel_tank_size: null,
+  fuel_price: null,
+
+  fuel_mont: false,
+  remark: '',
+
+  current_mileage: null,
+})
+
+const vehicleIcons = [
+  { label: 'Truck', value: 'truck.png' },
+  { label: 'Car', value: 'car.png' },
+  { label: 'Van', value: 'van.png' },
+  { label: 'Motorcycle', value: 'motorcycle.png' },
+]
+
+function boolValue(value: unknown): boolean {
+  return value === true || value === 1 || value === '1'
+}
+
+async function loadGroups() {
+  groups.value = await getVehicleGroups()
+}
+
+async function loadVehicles() {
+  loading.value = true
+
+  try {
+    vehicles.value = await getVehicles({
+      keyword: keyword.value,
+      group_id: selectedGroup.value,
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+async function selectVehicle(row: VehicleListItem) {
+  selectedVehicle.value = row
+
+  Object.assign(form, {
+    imei: row.imei,
+    plate_no: row.plate_no || '',
+    sequen_no: row.sequen_no ?? null,
+  })
+
+  try {
+    const data = await getVehicle(row.imei)
+
+    Object.assign(form, data, {
+      input_fuel_reverse: boolValue(data.input_fuel_reverse),
+      fuel_mont: boolValue(data.fuel_mont),
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+async function saveVehicle() {
+  if (!form.imei) return
+
+  saving.value = true
+
+  try {
+    await updateVehicle(form.imei, {
+      plate_no: form.plate_no,
+      sequen_no: form.sequen_no,
+
+      driver_id: form.driver_id,
+      driver_name: form.driver_name,
+      driver_phone: form.driver_phone,
+
+      speed_limited: form.speed_limited,
+      icon_path: form.icon_path,
+
+      fuel_min_vol: form.fuel_min_vol,
+      fuel_max_vol: form.fuel_max_vol,
+      input_fuel_reverse: !!form.input_fuel_reverse,
+
+      fuel_kmpl: form.fuel_kmpl,
+      fuel_lph: form.fuel_lph,
+      fuel_tank_size: form.fuel_tank_size,
+      fuel_price: form.fuel_price,
+
+      fuel_mont: !!form.fuel_mont,
+      remark: form.remark,
+    })
+
+    toast.add({
+      severity: 'success',
+      summary: 'Saved',
+      detail: 'Vehicle updated',
+      life: 2500,
+    })
+
+    await loadVehicles()
+  } finally {
+    saving.value = false
+  }
+}
+
+async function saveMileage() {
+  if (!form.imei || form.current_mileage == null) return
+
+  await updateMileage(
+      form.imei,
+      Number(form.current_mileage),
+  )
+
+  toast.add({
+    severity: 'success',
+    summary: 'Saved',
+    detail: 'Mileage updated',
+    life: 2500,
+  })
+}
+
+async function createGroup() {
+  const name = newGroupName.value.trim()
+
+  if (!name) return
+
+  await createVehicleGroup(name)
+
+  newGroupName.value = ''
+  showCreateGroupPanel.value = false
+
+  await loadGroups()
+
+  toast.add({
+    severity: 'success',
+    summary: 'Created',
+    detail: 'Group created',
+    life: 2500,
+  })
+}
+
+function confirmDeleteGroup(event: Event) {
+  if (!selectedGroup.value) return
+
+  confirm.require({
+    target: event.currentTarget as HTMLElement,
+
+    message:
+        'Delete this vehicle group ?',
+
+    header: 'Confirm Delete',
+
+    icon: 'pi pi-exclamation-triangle',
+
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Delete',
+
+    acceptClass: 'p-button-danger',
+
+    accept: async () => {
+      await removeGroup()
+    },
+  })
+}
+
+async function removeGroup() {
+  if (!selectedGroup.value) return
+
+  await deleteVehicleGroup(selectedGroup.value)
+
+  selectedGroup.value = null
+
+  await loadGroups()
+  await loadVehicles()
+
+  toast.add({
+    severity: 'success',
+    summary: 'Deleted',
+    detail: 'Group deleted',
+    life: 2500,
+  })
+}
+
+async function moveGroup() {
+  if (!selectedGroup.value) return
+  if (selectedRows.value.length === 0) return
+
+  await moveVehiclesToGroup(
+      selectedRows.value.map(v => v.imei),
+      selectedGroup.value,
+  )
+
+  selectedRows.value = []
+
+  await loadVehicles()
+
+  toast.add({
+    severity: 'success',
+    summary: 'Moved',
+    detail: 'Vehicles moved to group',
+    life: 2500,
+  })
+}
+
+onMounted(async () => {
+  await loadGroups()
+  await loadVehicles()
+})
+</script>
+
 <style scoped>
 .vehicle-page {
   width: 100%;
@@ -745,7 +780,7 @@ onMounted(async () => {
   border: 0;
   background: transparent;
   color: #e5e7eb;
-  font-weight: 600;
+  font-size: 16px;
   padding: 0.45rem 0;
 }
 
@@ -799,7 +834,6 @@ onMounted(async () => {
 
 .section-title {
   grid-column: 1 / -1;
-  border-top: 1px solid var(--surface-border);
   padding-top: 1rem;
   margin-top: 0.5rem;
   font-weight: 700;
@@ -871,22 +905,44 @@ onMounted(async () => {
   border-color: rgba(255,255,255,0.18);
 }
 
-@media (max-width: 1100px) {
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
 
-  .main-layout {
-    grid-template-columns: 1fr;
+.list-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.list-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table-search-input {
+  width: 320px;
+}
+
+@media (max-width: 900px) {
+
+  .list-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .search-input,
-  .group-dropdown,
-  .group-input {
+  .list-search {
     width: 100%;
   }
 
+  .table-search-input {
+    width: 100%;
+  }
 }
+
 </style>
-```

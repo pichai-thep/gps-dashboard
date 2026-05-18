@@ -8,6 +8,7 @@ import router from './router'
 import './style.css'
 import 'primeicons/primeicons.css'
 import ToastService from 'primevue/toastservice'
+import {ConfirmationService} from "primevue";
 
 createApp(App)
     .use(createPinia())
@@ -22,6 +23,7 @@ createApp(App)
         ripple: true,
     })
     .use(ToastService)
+    .use(ConfirmationService)
     .mount('#app')
 
 // console.log('APP START')

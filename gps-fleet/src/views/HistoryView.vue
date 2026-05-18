@@ -1,112 +1,126 @@
 <template>
   <div class="history-page">
     <div class="left-panel">
+
       <div class="filter-card">
         <div class="card-header">
           <div>
             <h2>History Tracking</h2>
             <p>ดึงประวัติการเดินรถ</p>
           </div>
+          <div class="filter-toggle">
+            <Button
+                :label="showFilters ? 'Hide Filters' : 'Show Filters'"
+                :icon="showFilters ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+                text
+                size="small"
+                @click="showFilters = !showFilters"
+            />
+          </div>
         </div>
 
-        <div class="field-grid">
-          <div class="form-group">
-            <label>Group</label>
 
-            <select
-                v-model="selectedGroup"
-                :disabled="pageLoading"
-            >
-              <option :value="null">All Group</option>
 
-              <option
-                  v-for="group in groups"
-                  :key="group.group_id"
-                  :value="group.group_id"
+        <div v-show="showFilters" class="tracking-filters">
+          <div class="field-grid">
+            <div class="form-group">
+              <label>Group</label>
+
+              <select
+                  v-model="selectedGroup"
+                  :disabled="pageLoading"
               >
-                {{ group.group_name }}
-              </option>
-            </select>
-          </div>
+                <option :value="null">All Group</option>
 
-          <div class="form-group">
-            <label>Vehicle</label>
+                <option
+                    v-for="group in groups"
+                    :key="group.group_id"
+                    :value="group.group_id"
+                >
+                  {{ group.group_name }}
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Vehicle</label>
 
-            <select
-                v-model="selectedVehicle"
-                :disabled="pageLoading"
-            >
-              <option :value="null">
-                {{ pageLoading ? 'Loading...' : 'Select Vehicle' }}
-              </option>
-
-              <option
-                  v-for="vehicle in vehicles"
-                  :key="vehicle.vehicle_id"
-                  :value="vehicle.vehicle_id"
+              <select
+                  v-model="selectedVehicle"
+                  :disabled="pageLoading"
               >
-                {{ vehicle.plate_no }}
-              </option>
-            </select>
+                <option :value="null">
+                  {{ pageLoading ? 'Loading...' : 'Select Vehicle' }}
+                </option>
+
+                <option
+                    v-for="vehicle in vehicles"
+                    :key="vehicle.vehicle_id"
+                    :value="vehicle.vehicle_id"
+                >
+                  {{ vehicle.plate_no }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="date-grid">
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" v-model="startDate" />
+            </div>
+
+            <div class="form-group">
+              <label>Start Time</label>
+              <input type="time" v-model="startTime" />
+            </div>
+          </div>
+
+          <div class="date-grid">
+            <div class="form-group">
+              <label>End Date</label>
+              <input type="date" v-model="endDate" />
+            </div>
+
+            <div class="form-group">
+              <label>End Time</label>
+              <input type="time" v-model="endTime" />
+            </div>
+          </div>
+
+          <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
+          </div>
+
+          <div class="button-row">
+            <button
+                type="button"
+                class="primary-button"
+                :disabled="loading || pageLoading"
+                @click="loadHistory"
+            >
+              {{ loading ? 'Loading...' : 'Load History' }}
+            </button>
+
+            <button
+                type="button"
+                class="secondary-button"
+                :disabled="!rows.length"
+                @click="exportXls"
+            >
+              Save XLS
+            </button>
           </div>
         </div>
 
-        <div class="date-grid">
-          <div class="form-group">
-            <label>Start Date</label>
-            <input type="date" v-model="startDate" />
-          </div>
-
-          <div class="form-group">
-            <label>Start Time</label>
-            <input type="time" v-model="startTime" />
-          </div>
-        </div>
-
-        <div class="date-grid">
-          <div class="form-group">
-            <label>End Date</label>
-            <input type="date" v-model="endDate" />
-          </div>
-
-          <div class="form-group">
-            <label>End Time</label>
-            <input type="time" v-model="endTime" />
-          </div>
-        </div>
-
-        <div v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
-
-        <div class="button-row">
-          <button
-              type="button"
-              class="primary-button"
-              :disabled="loading || pageLoading"
-              @click="loadHistory"
-          >
-            {{ loading ? 'Loading...' : 'Load History' }}
-          </button>
-
-          <button
-              type="button"
-              class="secondary-button"
-              :disabled="!rows.length"
-              @click="exportXls"
-          >
-            Save XLS
-          </button>
-        </div>
       </div>
 
       <div class="table-card">
-        <div class="table-header">
-          <div>
-            <h3>Data List</h3>
-            <p>{{ rows.length }} records</p>
-          </div>
-        </div>
+<!--        <div class="table-header">-->
+<!--          <div>-->
+<!--            <h3>Data List</h3>-->
+<!--            <p>{{ rows.length }} records</p>-->
+<!--          </div>-->
+<!--        </div>-->
 
         <div class="table-scroll">
           <table>
@@ -195,6 +209,7 @@ import {
 
 import { getGroups } from '@/services/groups'
 import { getVehicles } from '@/services/vehicles'
+import Button from "primevue/button";
 
 type GroupItem = {
   group_id: number | string
@@ -247,6 +262,8 @@ const startDate = ref(todayText)
 const endDate = ref(todayText)
 const startTime = ref('00:00')
 const endTime = ref('23:59')
+
+const showFilters = ref(false)
 
 function normalizeStatus(
     state: any,
@@ -724,7 +741,6 @@ watch(selectedGroup, async (groupId) => {
 .card-header h2,
 .table-header h3 {
   margin: 0;
-  font-size: 18px;
   font-weight: 800;
 }
 

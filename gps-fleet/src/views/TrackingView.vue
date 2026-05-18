@@ -1,6 +1,7 @@
 <template>
   <div class="tracking-page">
     <aside class="vehicle-panel">
+
       <div class="panel-header">
         <Message v-show="error" severity="error" class="tracking-error">
           {{ error }}
