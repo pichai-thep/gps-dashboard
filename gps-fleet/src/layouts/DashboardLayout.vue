@@ -3,16 +3,16 @@
     <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-header">
         <div v-if="!sidebarCollapsed" class="logo-wrap">
-          <img
-              :src="brandLogo"
-              class="sidebar-logo"
-              alt="Brand Logo"
-              @error="onLogoError"
-          />
+<!--          <img-->
+<!--              :src="brandLogo"-->
+<!--              class="sidebar-logo"-->
+<!--              alt="Brand Logo"-->
+<!--              @error="onLogoError"-->
+<!--          />-->
 
-<!--          <div class="logo">-->
-<!--            {{ brandName }}-->
-<!--          </div>-->
+          <div class="logo">
+            {{ brandName }}
+          </div>
 
         </div>
 
@@ -62,7 +62,7 @@
           />
 
           <div>
-            <div class="topbar-heading">{{ brandName }}</div>
+            <div v-if="sidebarCollapsed" class="topbar-heading">{{ brandName }}</div>
 
             <div class="topbar-subtitle">{{ currentPageTitle }}</div>
           </div>
@@ -118,6 +118,7 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const hostname = window.location.hostname
+
 
 const brandLogo = ref(`/logos/${hostname}.png`)
 

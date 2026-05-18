@@ -21,7 +21,7 @@
           :class="{ active: showPopup }"
           @click.stop="toggleShowPopup"
       >
-        <i class="pi pi-list"></i>
+        <i class="pi pi-comment"></i>
       </button>
     </template>
 
