@@ -5,7 +5,7 @@ import {
   watch,
 } from 'vue'
 
-import Map from 'ol/Map'
+import type OlMap from 'ol/Map'
 import Feature from 'ol/Feature'
 
 import Point from 'ol/geom/Point'
@@ -31,10 +31,14 @@ import {
 } from '@/services/mapLayer'
 
 import {poiIconRegistry} from '@/constants/poiIcons'
+type OlMapLike = Pick<
+    OlMap,
+    'getLayers' | 'addLayer' | 'removeLayer'
+>
 
 const props = withDefaults(
     defineProps<{
-      map: Map
+      map: OlMapLike
 
       showPois?: boolean
       showStations?: boolean
@@ -44,7 +48,7 @@ const props = withDefaults(
       showPois: false,
       showStations: false,
       showForbiddenZones: false,
-    }
+    },
 )
 
 const panelVisible = ref(false)
