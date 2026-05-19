@@ -1,6 +1,7 @@
 <template>
   <BaseMap
       ref="baseMapRef"
+
       @ready="handleMapReady"
       @fit="fitVehicles"
   >
@@ -37,8 +38,96 @@
     </template>
 
     <template #popup>
-      <!-- popup เดิมทั้งหมด -->
+      <div v-if="popupVehicle">
+
+        <div class="popup-title">{{ popupVehicle.plate_no }}</div>
+
+        <div class="popup-row">
+          <span>IMEI</span>
+          <strong>{{ popupVehicle.imei }}</strong>
+        </div>
+
+        <div class="popup-row">
+          <span>Status</span>
+          <strong>{{ popupVehicle.status }}</strong>
+        </div>
+
+        <div class="popup-row">
+          <span>Speed</span>
+          <strong>
+            {{ popupVehicle.speed ?? 0 }}
+            km/h
+          </strong>
+        </div>
+
+        <div class="popup-row" v-if="popupVehicle.fuel_left">
+          <span>Fuel left</span>
+          <strong>{{ popupVehicle.fuel_left ?? '' }} %</strong>
+        </div>
+
+        <div class="popup-row">
+          <span>GPS Time</span>
+          <strong>
+            {{ popupVehicle.gps_time ?? '-' }}
+          </strong>
+        </div>
+        <div class="popup-row">
+          <span>Updated Time</span>
+          <strong>
+            {{ popupVehicle.received_time ?? '-' }}
+          </strong>
+        </div>
+
+        <div class="popup-row">
+          <span>Lat/Lon</span>
+          <strong>{{ popupVehicle.lat }}, {{ popupVehicle.lng }}</strong>
+        </div>
+
+        <div class="popup-row" v-if="popupVehicle.driver_name">
+          <span>Driver name</span>
+          <strong>
+            {{ popupVehicle.driver_name }}
+          </strong>
+        </div>
+
+        <div class="popup-row" v-if="popupVehicle.driver_phone">
+          <span>Driver phone</span>
+          <strong>
+            {{ popupVehicle.driver_phone }}
+          </strong>
+        </div>
+
+        <div class="popup-row" v-if="popupVehicle.track3">
+          <span>License-no</span>
+          <strong>{{popupVehicle.track3 ?? '-' }}</strong>
+        </div>
+
+        <div class="popup-row" v-if="popupVehicle.track1">
+          <span>License-name</span>
+          <strong>{{ formatDriverName(popupVehicle?.track1) }}</strong>
+        </div>
+
+        <div class="popup-row">
+          <span>Address</span>
+
+          <button
+              v-if="!selectedAddress"
+              type="button"
+              class="address-link"
+              :disabled="addressLoading"
+              @click.stop="loadSelectedAddress"
+          >
+            {{ addressLoading ? 'Loading...' : 'Show address' }}
+          </button>
+        </div>
+
+        <div v-if="selectedAddress" class="popup-address">
+          {{ selectedAddress }}
+        </div>
+
+      </div>
     </template>
+
   </BaseMap>
 </template>
 
@@ -244,17 +333,27 @@ function handleMapClick(event: any) {
 
         const coordinate = geometry.getCoordinates()
 
-        if (showPopup.value && clickedFromMap.value) {
+        if (showPopup.value) {
           selectedAddress.value = null
           addressLoading.value = false
           popupVehicle.value = vehicle
           popupOverlay?.setPosition(coordinate)
-        } else {
-          closePopup()
         }
 
         clickedFromMap.value = true
         emit('vehicle-click', vehicle)
+
+        // if (showPopup.value && clickedFromMap.value) {
+        //   selectedAddress.value = null
+        //   addressLoading.value = false
+        //   popupVehicle.value = vehicle
+        //   popupOverlay?.setPosition(coordinate)
+        // } else {
+        //   closePopup()
+        // }
+        //
+        // clickedFromMap.value = true
+        // emit('vehicle-click', vehicle)
 
         found = true
       }
@@ -376,13 +475,11 @@ function focusVehicle(
   const coordinate = geometry.getCoordinates()
   const vehicle = feature.get('vehicle')
 
-  if (showPopup.value && clickedFromMap.value) {
+  if (showPopup.value) {
     selectedAddress.value = null
     addressLoading.value = false
     popupVehicle.value = vehicle
     popupOverlay?.setPosition(coordinate)
-  } else {
-    closePopup()
   }
 
   if (!animate) return
@@ -395,7 +492,6 @@ function focusVehicle(
 
   view.animate({
     center: coordinate,
-    zoom: targetZoom,
     duration: 250,
   })
 }
@@ -634,11 +730,11 @@ watch(
         return
       }
 
+      const fromMap = clickedFromMap.value
       focusVehicle(
           vehicleId,
-          !clickedFromMap.value
+          !fromMap
       )
-
       clickedFromMap.value = false
     }
 )

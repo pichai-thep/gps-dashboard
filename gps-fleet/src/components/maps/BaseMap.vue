@@ -4,8 +4,10 @@
   >
     <div ref="mapEl" class="base-map"></div>
 
-    <div class="map-provider-label">
-      {{ providerLabel }}
+    <div class="base-map-ui">
+      <div class="map-provider-label">
+        {{ providerLabel }}
+      </div>
     </div>
 
     <div class="map-actions">
@@ -70,6 +72,8 @@
       <slot name="popup" />
     </div>
   </div>
+
+
 </template>
 
 <script setup lang="ts">
@@ -90,7 +94,7 @@ import TileLayer from 'ol/layer/Tile'
 import XYZ from 'ol/source/XYZ'
 import { defaults as defaultControls } from 'ol/control'
 import { fromLonLat } from 'ol/proj'
-
+import Control from 'ol/control/Control'
 import { useAuthStore } from '@/stores/auth'
 
 import {
@@ -134,6 +138,7 @@ const emit = defineEmits<{
   fit: []
 }>()
 
+let providerLabelEl: HTMLDivElement | null = null
 const auth = useAuthStore()
 
 const mapEl = ref<HTMLDivElement | null>(null)
@@ -182,6 +187,7 @@ onMounted(async () => {
     offset: [0, -20],
   })
 
+
   const olMap = new Map({
     target: mapEl.value,
 
@@ -199,6 +205,16 @@ onMounted(async () => {
       zoom: props.zoom,
     }),
   })
+
+  providerLabelEl = document.createElement('div')
+  providerLabelEl.className = 'ol-provider-label'
+  providerLabelEl.innerText = providerLabel.value
+
+  olMap.addControl(
+      new Control({
+        element: providerLabelEl,
+      }),
+  )
 
   map.value = olMap
   baseLayer.value = tileLayer
@@ -229,6 +245,10 @@ watch(
 
       baseLayer.value.setSource(source)
       source.refresh()
+
+      if (providerLabelEl) {
+        providerLabelEl.innerText = providerLabel.value
+      }
     }
 )
 
@@ -358,37 +378,51 @@ defineExpose({
 </script>
 
 <style scoped>
+
 .base-map-shell {
   position: relative;
   flex: 1;
   width: 100%;
   height: 100%;
-  overflow: hidden;
   border-radius: 18px;
+  overflow: hidden;
+  background: #020817;
 }
 
 .base-map {
   width: 100%;
   height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.base-map-ui {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 999999 !important;
+  pointer-events: none !important;
 }
 
 .map-provider-label {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  z-index: 20;
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 16px !important;
 
-  padding: 4px 8px;
-  border-radius: 6px;
+  display: inline-flex !important;
+  align-items: center;
 
-  background: rgba(15, 23, 42, 0.7);
-  color: #cbd5f5;
+  padding: 5px 9px;
+  border-radius: 8px;
+
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
 
   font-size: 11px;
-
-  pointer-events: none;
-  backdrop-filter: blur(6px);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
+
 
 .map-actions {
   position: absolute;
@@ -517,4 +551,23 @@ defineExpose({
   height: 100%;
 }
 
+:global(.ol-provider-label) {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9999;
+
+  padding: 5px 9px;
+  border-radius: 8px;
+
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+
+  pointer-events: none;
+}
 </style>

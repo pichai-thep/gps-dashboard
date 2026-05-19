@@ -169,10 +169,15 @@ const forbiddenZoneLayer =
 forbiddenZoneLayer.setZIndex(10)
 
 onMounted(() => {
-  restoreLayerState()
+  props.map.addLayer(poiLayer)
+  props.map.addLayer(stationLayer)
+  props.map.addLayer(forbiddenZoneLayer)
 
-  // ไม่โหลด API ตอนเปิดหน้า
-  // ไม่ add layer ตอนเปิดหน้า
+  poiLayer.setVisible(false)
+  stationLayer.setVisible(false)
+  forbiddenZoneLayer.setVisible(false)
+
+  restoreLayerState()
 })
 
 // =========================
@@ -292,20 +297,9 @@ function toggleLayer(
     layer: VectorLayer<any>,
     visible: boolean,
 ) {
-  const exists = props.map
-      .getLayers()
-      .getArray()
-      .includes(layer)
+  layer.setVisible(visible)
 
-  if (visible) {
-    if (!exists) {
-      props.map.addLayer(layer)
-    }
-  } else {
-    if (exists) {
-      props.map.removeLayer(layer)
-    }
-  }
+  props.map.render()
 }
 
 // =========================
@@ -551,7 +545,7 @@ function parsePolygonWkt(
 
 .customer-layer-control {
   position: relative;
-  z-index: 50;
+  z-index: 49;
 }
 
 .layer-toggle-button {
