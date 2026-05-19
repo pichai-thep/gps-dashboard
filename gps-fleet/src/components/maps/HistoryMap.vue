@@ -742,7 +742,7 @@ function focusHistoryPoint(
 
   map.value.getView().animate({
     center: coordinate,
-    zoom: 16,
+    // zoom: 16,
     duration: 300,
   })
 }
