@@ -11,11 +11,9 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 
+import BaseMap from '@/components/maps/BaseMap.vue'
 import Map from 'ol/Map'
-import View from 'ol/View'
-import TileLayer from 'ol/layer/Tile'
 import VectorLayer from 'ol/layer/Vector'
-import OSM from 'ol/source/OSM'
 import VectorSource from 'ol/source/Vector'
 import Draw from 'ol/interaction/Draw'
 import Feature from 'ol/Feature'
@@ -51,6 +49,9 @@ let draw: Draw | null = null
 
 const stationSource = new VectorSource()
 const previewSource = new VectorSource()
+const shouldFocusAfterMapReady = ref(false)
+
+const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null)
 
 const stationLayer = new VectorLayer({
   source: stationSource,
@@ -113,6 +114,36 @@ onMounted(async () => {
   await loadStations()
 })
 
+function onMapReady(payload: { map: Map }) {
+  map = payload.map
+
+  if (!map.getLayers().getArray().includes(stationLayer)) {
+    map.addLayer(stationLayer)
+  }
+
+  if (!map.getLayers().getArray().includes(previewLayer)) {
+    map.addLayer(previewLayer)
+  }
+
+  map.on('click', (event) => {
+    if (form.station_type !== 'circle') return
+
+    const [lng, lat] = toLonLat(event.coordinate)
+
+    form.lng = Number(lng.toFixed(7))
+    form.lat = Number(lat.toFixed(7))
+
+    renderPreview()
+  })
+
+  setTimeout(() => {
+    map?.updateSize()
+    if (shouldFocusAfterMapReady.value && editingId.value) {
+      renderPreview()
+      focusCurrentShape()
+    }
+  }, 100)
+}
 async function loadStations() {
   loading.value = true
 
@@ -133,8 +164,60 @@ async function openCreate() {
   renderPreview()
 }
 
+function focusCurrentShape(retry = 0) {
+  if (!map) {
+    if (retry < 10) {
+      setTimeout(() => focusCurrentShape(retry + 1), 150)
+    }
+    return
+  }
+
+  setTimeout(() => {
+    map?.updateSize()
+
+    if (
+        form.station_type === 'circle' &&
+        form.lng !== null &&
+        form.lat !== null
+    ) {
+      const center = fromLonLat([form.lng, form.lat])
+      const radius = Number(form.radius || 300)
+
+      const circle = new CircleGeom(center, radius)
+
+      map?.getView().fit(circle.getExtent(), {
+        padding: [80, 80, 80, 80],
+        duration: 500,
+        maxZoom: 17,
+      })
+
+      shouldFocusAfterMapReady.value = false
+      return
+    }
+
+    if (
+        form.station_type === 'polygon' &&
+        form.polygon.length
+    ) {
+      const coords = form.polygon.map((p) =>
+          fromLonLat([p.lng, p.lat])
+      )
+
+      const polygon = new Polygon([coords])
+
+      map?.getView().fit(polygon.getExtent(), {
+        padding: [80, 80, 80, 80],
+        duration: 500,
+        maxZoom: 17,
+      })
+
+      shouldFocusAfterMapReady.value = false
+    }
+  }, 300)
+}
 async function openEdit(row: Station) {
   editingId.value = row.station_id
+  shouldFocusAfterMapReady.value = true
 
   form.station_name = row.station_name
   form.station_type = row.station_type || 'circle'
@@ -148,13 +231,7 @@ async function openEdit(row: Station) {
   await nextTick()
   initMap()
   renderPreview()
-
-  if (form.lng && form.lat) {
-    map?.getView().animate({
-      center: fromLonLat([form.lng, form.lat]),
-      zoom: 16,
-    })
-  }
+  focusCurrentShape()
 }
 
 function resetForm() {
@@ -168,38 +245,19 @@ function resetForm() {
 }
 
 function initMap() {
-  if (!mapEl.value) return
+  map = baseMapRef.value?.getMap() || null
 
-  if (!map) {
-    map = new Map({
-      target: mapEl.value,
-      layers: [
-        new TileLayer({
-          source: new OSM(),
-        }),
-        stationLayer,
-        previewLayer,
-      ],
-      view: new View({
-        center: fromLonLat([100.5018, 13.7563]),
-        zoom: 12,
-      }),
-    })
+  if (!map) return
 
-    map.on('click', (event) => {
-      if (form.station_type !== 'circle') return
-
-      const [lng, lat] = toLonLat(event.coordinate)
-
-      form.lng = Number(lng.toFixed(7))
-      form.lat = Number(lat.toFixed(7))
-
-      renderPreview()
-    })
-  } else {
-    map.setTarget(mapEl.value)
-    setTimeout(() => map?.updateSize(), 100)
+  if (!map.getLayers().getArray().includes(stationLayer)) {
+    map.addLayer(stationLayer)
   }
+
+  if (!map.getLayers().getArray().includes(previewLayer)) {
+    map.addLayer(previewLayer)
+  }
+
+  setTimeout(() => map?.updateSize(), 100)
 }
 
 function clearDraw() {
@@ -267,7 +325,7 @@ function renderPreview() {
   previewSource.clear()
 
   if (form.station_type === 'circle') {
-    if (!form.lng || !form.lat) return
+    if (form.lng === null || form.lat === null) return
 
     const center = fromLonLat([form.lng, form.lat])
     const radius = Number(form.radius || 300)
@@ -414,7 +472,7 @@ function onTypeChange() {
         <div>
           <h1 class="page-title">Station Management</h1>
           <div class="page-subtitle">
-            จัดการจุดจอด / Geofence / Polygon Area
+            จัดการสถานี / Geofence / Polygon Area
           </div>
         </div>
       </div>
@@ -486,6 +544,7 @@ function onTypeChange() {
         :header="editingId ? 'Edit Station' : 'Add Station'"
         class="station-dialog"
         :style="{ width: '960px', maxWidth: '96vw' }"
+        @show="focusCurrentShape"
         @hide="clearDraw"
     >
       <div class="form-grid">
@@ -565,8 +624,28 @@ function onTypeChange() {
         </div>
 
         <div class="map-panel">
-          <div ref="mapEl" class="station-map"></div>
+          <BaseMap
+              ref="baseMapRef"
+              class="station-map"
+              :center="[100.5018, 13.7563]"
+              :zoom="12"
+              :show-zoom-control="true"
+              :show-fit-control="false"
+              :show-fullscreen-control="false"
+              @ready="onMapReady"
+          >
+            <template #map-controls>
+              <button
+                  type="button"
+                  title="Clear shape"
+                  @click.stop="clearShape"
+              >
+                <i class="pi pi-times"></i>
+              </button>
+            </template>
+          </BaseMap>
         </div>
+
       </div>
 
       <template #footer>

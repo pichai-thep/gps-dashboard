@@ -4,6 +4,8 @@
       @ready="handleMapReady"
       @fit="fitVehicles"
   >
+    <template #default="{ map }">
+    </template>
 
     <template #map-controls>
       <button
@@ -23,100 +25,20 @@
       >
         <i class="pi pi-comment"></i>
       </button>
+
+      <CustomerLayerMap
+          v-if="map"
+          :map="map"
+          :show-pois="false"
+          :show-stations="false"
+          :show-forbidden-zones="false"
+      />
+
     </template>
 
     <template #popup>
-
-      <div v-if="popupVehicle">
-
-        <div class="popup-title">{{ popupVehicle.plate_no }}</div>
-
-        <div class="popup-row">
-          <span>IMEI</span>
-          <strong>{{ popupVehicle.imei }}</strong>
-        </div>
-
-        <div class="popup-row">
-          <span>Status</span>
-          <strong>{{ popupVehicle.status }}</strong>
-        </div>
-
-        <div class="popup-row">
-          <span>Speed</span>
-          <strong>
-            {{ popupVehicle.speed ?? 0 }}
-            km/h
-          </strong>
-        </div>
-
-        <div class="popup-row" v-if="popupVehicle.fuel_left">
-          <span>Fuel left</span>
-          <strong>{{ popupVehicle.fuel_left ?? '' }} %</strong>
-        </div>
-
-        <div class="popup-row">
-          <span>GPS Time</span>
-          <strong>
-            {{ popupVehicle.gps_time ?? '-' }}
-          </strong>
-        </div>
-        <div class="popup-row">
-          <span>Updated Time</span>
-          <strong>
-            {{ popupVehicle.received_time ?? '-' }}
-          </strong>
-        </div>
-
-        <div class="popup-row">
-          <span>Lat/Lon</span>
-          <strong>{{ popupVehicle.lat }}, {{ popupVehicle.lng }}</strong>
-        </div>
-
-        <div class="popup-row" v-if="popupVehicle.driver_name">
-          <span>Driver name</span>
-          <strong>
-            {{ popupVehicle.driver_name }}
-          </strong>
-        </div>
-
-        <div class="popup-row" v-if="popupVehicle.driver_phone">
-          <span>Driver phone</span>
-          <strong>
-            {{ popupVehicle.driver_phone }}
-          </strong>
-        </div>
-
-        <div class="popup-row" v-if="popupVehicle.track3">
-          <span>License-no</span>
-          <strong>{{popupVehicle.track3 ?? '-' }}</strong>
-        </div>
-
-        <div class="popup-row" v-if="popupVehicle.track1">
-          <span>License-name</span>
-          <strong>{{ formatDriverName(popupVehicle?.track1) }}</strong>
-        </div>
-
-        <div class="popup-row">
-          <span>Address</span>
-
-          <button
-              v-if="!selectedAddress"
-              type="button"
-              class="address-link"
-              :disabled="addressLoading"
-              @click.stop="loadSelectedAddress"
-          >
-            {{ addressLoading ? 'Loading...' : 'Show address' }}
-          </button>
-        </div>
-
-        <div v-if="selectedAddress" class="popup-address">
-          {{ selectedAddress }}
-        </div>
-
-      </div>
+      <!-- popup เดิมทั้งหมด -->
     </template>
-
   </BaseMap>
 </template>
 
@@ -139,6 +61,7 @@ import VectorSource from 'ol/source/Vector'
 
 import { fromLonLat } from 'ol/proj'
 import { boundingExtent } from 'ol/extent'
+import CustomerLayerMap from '@/components/maps/CustomerLayerMap.vue'
 
 import {
   Fill,
@@ -153,7 +76,6 @@ import type {
   VehicleStatus,
 } from '@/types/fleet'
 import {useAuthStore} from "@/stores/auth";
-
 
 const auth = useAuthStore()
 
@@ -322,14 +244,13 @@ function handleMapClick(event: any) {
 
         const coordinate = geometry.getCoordinates()
 
-        if (showPopup.value) {
-
+        if (showPopup.value && clickedFromMap.value) {
           selectedAddress.value = null
           addressLoading.value = false
-
           popupVehicle.value = vehicle
-
           popupOverlay?.setPosition(coordinate)
+        } else {
+          closePopup()
         }
 
         clickedFromMap.value = true
@@ -455,11 +376,13 @@ function focusVehicle(
   const coordinate = geometry.getCoordinates()
   const vehicle = feature.get('vehicle')
 
-  if (showPopup.value) {
+  if (showPopup.value && clickedFromMap.value) {
     selectedAddress.value = null
     addressLoading.value = false
     popupVehicle.value = vehicle
     popupOverlay?.setPosition(coordinate)
+  } else {
+    closePopup()
   }
 
   if (!animate) return

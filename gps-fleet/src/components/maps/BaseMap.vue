@@ -9,23 +9,15 @@
     </div>
 
     <div class="map-actions">
-      <button type="button" title="Zoom in" @click.stop="zoomIn">
-        +
-      </button>
+      <button v-if="showZoomControl" type="button" title="Zoom in" @click.stop="zoomIn">+</button>
 
-      <button type="button" title="Zoom out" @click.stop="zoomOut">
-        −
-      </button>
+      <button v-if="showZoomControl" type="button" title="Zoom out" @click.stop="zoomOut">−</button>
 
-      <button type="button" title="Fit map" @click.stop="emitFit">
+      <button v-if="showFitControl" type="button" title="Fit map" @click.stop="emitFit">
         <i class="pi pi-map-marker"></i>
       </button>
 
-      <button
-          type="button"
-          title="Fullscreen"
-          @click.stop="toggleFullscreen"
-      >
+      <button v-if="showFullscreenControl" type="button" title="Fullscreen" @click.stop="toggleFullscreen">
         <i
             class="pi"
             :class="
@@ -114,12 +106,20 @@ const props = withDefaults(
       layer?: MapLayerType
       center?: [number, number]
       zoom?: number
+
+      showZoomControl?: boolean
+      showFitControl?: boolean
+      showFullscreenControl?: boolean
     }>(),
     {
       provider: null,
       layer: 'default',
       center: () => [100.5018, 13.7563],
       zoom: 6,
+
+      showZoomControl: true,
+      showFitControl: true,
+      showFullscreenControl: true,
     }
 )
 

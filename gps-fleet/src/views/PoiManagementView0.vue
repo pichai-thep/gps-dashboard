@@ -10,16 +10,17 @@ import Dropdown from 'primevue/dropdown'
 
 import {useConfirm} from 'primevue/useconfirm'
 import {useToast} from 'primevue/usetoast'
-import BaseMap from '@/components/maps/BaseMap.vue'
+
 import Map from 'ol/Map'
+import View from 'ol/View'
+import TileLayer from 'ol/layer/Tile'
 import VectorLayer from 'ol/layer/Vector'
+import OSM from 'ol/source/OSM'
 import VectorSource from 'ol/source/Vector'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
 import {fromLonLat, toLonLat} from 'ol/proj'
-import {Style, Fill, Stroke, Circle as CircleStyle, Text} from 'ol/style'
-import { poiIconRegistry } from '@/constants/poiIcons'
-import Icon from 'ol/style/Icon'
+import {Style, Fill, Stroke, Circle as CircleStyle} from 'ol/style'
 
 import {
   getPois,
@@ -39,15 +40,18 @@ const dialogVisible = ref(false)
 const saving = ref(false)
 const editingId = ref<number | null>(null)
 
-const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null)
-
-const poiIconOptions = Object.entries(poiIconRegistry).map(
-    ([value, item]) => ({
-      value,
-      label: item.label,
-      icon: item.pi,
-    }),
-)
+const mapEl = ref<HTMLDivElement | null>(null)
+const poiIconOptions = [
+  {label: 'Gas Station', value: 'gas', icon: 'pi pi-bolt'},
+  {label: 'Warehouse', value: 'warehouse', icon: 'pi pi-building'},
+  {label: 'Office', value: 'office', icon: 'pi pi-briefcase'},
+  {label: 'Home', value: 'home', icon: 'pi pi-home'},
+  {label: 'Customer', value: 'customer', icon: 'pi pi-user'},
+  {label: 'Factory', value: 'factory', icon: 'pi pi-box'},
+  {label: 'Parking', value: 'parking', icon: 'pi pi-car'},
+  {label: 'Restaurant', value: 'restaurant', icon: 'pi pi-shop'},
+  {label: 'Hospital', value: 'hospital', icon: 'pi pi-heart-fill'},
+]
 
 let map: Map | null = null
 
@@ -55,25 +59,13 @@ const previewSource = new VectorSource()
 
 const previewLayer = new VectorLayer({
   source: previewSource,
-  style: () => [
-    // BG circle
-    new Style({
-      image: new CircleStyle({
-        radius: 18,
-        fill: new Fill({ color: '#f8fafc' }),
-        stroke: new Stroke({ color: '#2563eb', width: 2 }),
-      }),
+  style: new Style({
+    image: new CircleStyle({
+      radius: 8,
+      fill: new Fill({color: '#10b981'}),
+      stroke: new Stroke({color: '#ffffff', width: 2}),
     }),
-
-    // SVG icon
-    new Style({
-      image: new Icon({
-        src: getPoiMapIcon(form.icon),
-        scale: 0.9,
-        anchor: [0.5, 0.5],
-      }),
-    }),
-  ],
+  }),
 })
 
 const form = reactive<{
@@ -91,29 +83,6 @@ const form = reactive<{
 onMounted(async () => {
   await loadPois()
 })
-
-// function getPoiMapIcon(value?: string | null) {
-//   return poiIconRegistry[value as keyof typeof poiIconRegistry]?.emoji
-//       || '📍'
-// }
-
-// function getPoiMapIcon(value?: string | null) {
-//   return poiIconRegistry[value as keyof typeof poiIconRegistry]?.pi
-//       || '📍'
-// }
-
-function getPoiMapIcon(value?: string | null) {
-  return poiIconRegistry[value as keyof typeof poiIconRegistry]?.mapIcon
-      || '/poi-icons/map-pin-pen.svg'
-}
-
-
-function findPoiIcon(value?: string | null) {
-  return poiIconRegistry[value as keyof typeof poiIconRegistry]?.pi
-      || 'pi pi-map-marker'
-}
-
-
 
 async function loadPois() {
   loading.value = true
@@ -134,26 +103,6 @@ async function openCreate() {
   renderPreview()
 }
 
-function focusCurrentPoi(retry = 0) {
-  if (!map) {
-    if (retry < 10) {
-      setTimeout(() => focusCurrentPoi(retry + 1), 150)
-    }
-    return
-  }
-
-  if (form.lng === null || form.lat === null) return
-
-  setTimeout(() => {
-    map?.updateSize()
-
-    map?.getView().animate({
-      center: fromLonLat([form.lng!, form.lat!]),
-      zoom: 16,
-      duration: 500,
-    })
-  }, 300)
-}
 async function openEdit(row: Poi) {
   editingId.value = row.poi_id
   form.poi_name = row.poi_name
@@ -166,7 +115,13 @@ async function openEdit(row: Poi) {
   await nextTick()
   initMap()
   renderPreview()
-  focusCurrentPoi()
+
+  if (form.lng && form.lat) {
+    map?.getView().animate({
+      center: fromLonLat([form.lng, form.lat]),
+      zoom: 16,
+    })
+  }
 }
 
 function resetForm() {
@@ -178,45 +133,41 @@ function resetForm() {
 }
 
 function initMap() {
-  map = baseMapRef.value?.getMap() || null
+  if (!mapEl.value) return
 
-  if (!map) return
+  if (!map) {
+    map = new Map({
+      target: mapEl.value,
+      layers: [
+        new TileLayer({
+          source: new OSM(),
+        }),
+        previewLayer,
+      ],
+      view: new View({
+        center: fromLonLat([100.5018, 13.7563]),
+        zoom: 12,
+      }),
+    })
 
-  if (!map.getLayers().getArray().includes(previewLayer)) {
-    map.addLayer(previewLayer)
-  }
+    map.on('click', (event) => {
+      const [lng, lat] = toLonLat(event.coordinate)
 
-  setTimeout(() => map?.updateSize(), 100)
-}
+      form.lng = Number(lng.toFixed(7))
+      form.lat = Number(lat.toFixed(7))
 
-function onMapReady(payload: { map: Map }) {
-  map = payload.map
-
-  if (!map.getLayers().getArray().includes(previewLayer)) {
-    map.addLayer(previewLayer)
-  }
-
-  map.on('click', (event) => {
-    const [lng, lat] = toLonLat(event.coordinate)
-
-    form.lng = Number(lng.toFixed(7))
-    form.lat = Number(lat.toFixed(7))
-
-    renderPreview()
-  })
-
-  setTimeout(() => {
-    map?.updateSize()
-    if (editingId.value) {
       renderPreview()
-      focusCurrentPoi()
-    }
-  }, 100)
+    })
+  } else {
+    map.setTarget(mapEl.value)
+    setTimeout(() => map?.updateSize(), 100)
+  }
 }
+
 function renderPreview() {
   previewSource.clear()
 
-  if (form.lng === null || form.lat === null) return
+  if (!form.lng || !form.lat) return
 
   previewSource.addFeature(
       new Feature(new Point(fromLonLat([form.lng, form.lat]))),
@@ -299,6 +250,12 @@ function confirmDelete(row: Poi) {
   })
 }
 
+function findPoiIcon(value?: string | null) {
+  return (
+      poiIconOptions.find((x) => x.value === value)?.icon
+      || 'pi pi-map-marker'
+  )
+}
 
 function findPoiLabel(value?: string | null) {
   return (
@@ -350,10 +307,7 @@ function findPoiLabel(value?: string | null) {
       <Column header="Icon">
         <template #body="{ data }">
           <div class="poi-icon-cell">
-            <img
-                :src="getPoiMapIcon(data.icon)"
-                class="poi-table-icon"
-            />
+            <i :class="findPoiIcon(data.icon)"></i>
 
             <span>
         {{ findPoiLabel(data.icon) }}
@@ -399,7 +353,6 @@ function findPoiLabel(value?: string | null) {
         :header="editingId ? 'Edit POI' : 'Add POI'"
         class="station-dialog"
         :style="{ width: '900px', maxWidth: '96vw' }"
-        @show="focusCurrentPoi"
     >
       <div class="form-grid">
         <div class="form-panel">
@@ -419,18 +372,13 @@ function findPoiLabel(value?: string | null) {
               optionValue="value"
               placeholder="เลือก Icon"
               class="w-full"
-              @change="renderPreview"
           >
             <template #value="slotProps">
               <div
                   v-if="slotProps.value"
                   class="poi-icon-option"
               >
-
-                <img
-                    :src="getPoiMapIcon(slotProps.value)"
-                    class="poi-dropdown-icon"
-                />
+                <i :class="findPoiIcon(slotProps.value)"></i>
 
                 <span>
         {{ findPoiLabel(slotProps.value) }}
@@ -444,10 +392,7 @@ function findPoiLabel(value?: string | null) {
 
             <template #option="slotProps">
               <div class="poi-icon-option">
-                <img
-                    :src="getPoiMapIcon(slotProps.option.value)"
-                    class="poi-dropdown-icon"
-                />
+                <i :class="slotProps.option.icon"></i>
 
                 <span>
         {{ slotProps.option.label }}
@@ -477,28 +422,8 @@ function findPoiLabel(value?: string | null) {
         </div>
 
         <div class="map-panel">
-          <BaseMap
-              ref="baseMapRef"
-              class="station-map"
-              :center="[100.5018, 13.7563]"
-              :zoom="12"
-              :show-zoom-control="true"
-              :show-fit-control="false"
-              :show-fullscreen-control="false"
-              @ready="onMapReady"
-          >
-            <template #map-controls>
-              <button
-                  type="button"
-                  title="Clear POI"
-                  @click.stop="clearPoint"
-              >
-                <i class="pi pi-times"></i>
-              </button>
-            </template>
-          </BaseMap>
+          <div ref="mapEl" class="station-map"></div>
         </div>
-
       </div>
 
       <template #footer>
@@ -879,16 +804,6 @@ function findPoiLabel(value?: string | null) {
 .poi-icon-cell i {
   font-size: 16px;
   color: #60a5fa;
-}
-
-.poi-dropdown-icon,
-.poi-table-icon {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  border: #cbd5e0;
-  background-color: #cbd5e0;
-
 }
 
 /* =========================

@@ -1,124 +1,123 @@
 <script setup lang="ts">
-import {onMounted, ref, reactive, nextTick} from 'vue'
+import { onMounted, ref, reactive, nextTick } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
+import Dropdown from 'primevue/dropdown'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
-import Dropdown from 'primevue/dropdown'
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
-import {useConfirm} from 'primevue/useconfirm'
-import {useToast} from 'primevue/usetoast'
-import BaseMap from '@/components/maps/BaseMap.vue'
 import Map from 'ol/Map'
+import View from 'ol/View'
+import TileLayer from 'ol/layer/Tile'
 import VectorLayer from 'ol/layer/Vector'
+import OSM from 'ol/source/OSM'
 import VectorSource from 'ol/source/Vector'
+import Draw from 'ol/interaction/Draw'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
-import {fromLonLat, toLonLat} from 'ol/proj'
-import {Style, Fill, Stroke, Circle as CircleStyle, Text} from 'ol/style'
-import { poiIconRegistry } from '@/constants/poiIcons'
-import Icon from 'ol/style/Icon'
+import Polygon from 'ol/geom/Polygon'
+import CircleGeom from 'ol/geom/Circle'
+import { fromLonLat, toLonLat, transform } from 'ol/proj'
+import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style'
 
 import {
-  getPois,
-  createPoi,
-  updatePoi,
-  deletePoi,
-  type Poi,
-  type PoiPayload,
-} from '@/services/poi'
+  getStations,
+  createStation,
+  updateStation,
+  deleteStation,
+  type Station,
+  type StationPayload,
+  type StationType,
+} from '@/services/station'
 
 const confirm = useConfirm()
 const toast = useToast()
 
-const pois = ref<Poi[]>([])
+const stations = ref<Station[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
 const editingId = ref<number | null>(null)
 
-const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null)
-
-const poiIconOptions = Object.entries(poiIconRegistry).map(
-    ([value, item]) => ({
-      value,
-      label: item.label,
-      icon: item.pi,
-    }),
-)
+const mapEl = ref<HTMLDivElement | null>(null)
 
 let map: Map | null = null
+let draw: Draw | null = null
 
+const stationSource = new VectorSource()
 const previewSource = new VectorSource()
+
+const stationLayer = new VectorLayer({
+  source: stationSource,
+  style: new Style({
+    stroke: new Stroke({
+      color: '#2563eb',
+      width: 2,
+    }),
+    fill: new Fill({
+      color: 'rgba(37, 99, 235, 0.15)',
+    }),
+    image: new CircleStyle({
+      radius: 7,
+      fill: new Fill({ color: '#ef4444' }),
+      stroke: new Stroke({ color: '#ffffff', width: 2 }),
+    }),
+  }),
+})
 
 const previewLayer = new VectorLayer({
   source: previewSource,
-  style: () => [
-    // BG circle
-    new Style({
-      image: new CircleStyle({
-        radius: 18,
-        fill: new Fill({ color: '#f8fafc' }),
-        stroke: new Stroke({ color: '#2563eb', width: 2 }),
-      }),
+  style: new Style({
+    stroke: new Stroke({
+      color: '#f97316',
+      width: 2,
     }),
-
-    // SVG icon
-    new Style({
-      image: new Icon({
-        src: getPoiMapIcon(form.icon),
-        scale: 0.9,
-        anchor: [0.5, 0.5],
-      }),
+    fill: new Fill({
+      color: 'rgba(249, 115, 22, 0.18)',
     }),
-  ],
+    image: new CircleStyle({
+      radius: 7,
+      fill: new Fill({ color: '#f97316' }),
+      stroke: new Stroke({ color: '#ffffff', width: 2 }),
+    }),
+  }),
 })
 
+const typeOptions = [
+  { label: 'Circle / รัศมี', value: 'circle' },
+  { label: 'Polygon / วาดพื้นที่', value: 'polygon' },
+]
+
 const form = reactive<{
-  poi_name: string
-  icon: string | null
+  station_name: string
+  station_type: StationType
   lat: number | null
   lng: number | null
+  radius: number | null
+  polygon: Array<{ lat: number; lng: number }>
 }>({
-  poi_name: '',
-  icon: null,
+  station_name: '',
+  station_type: 'circle',
   lat: null,
   lng: null,
+  radius: 300,
+  polygon: [],
 })
 
 onMounted(async () => {
-  await loadPois()
+  await loadStations()
 })
 
-// function getPoiMapIcon(value?: string | null) {
-//   return poiIconRegistry[value as keyof typeof poiIconRegistry]?.emoji
-//       || '📍'
-// }
-
-// function getPoiMapIcon(value?: string | null) {
-//   return poiIconRegistry[value as keyof typeof poiIconRegistry]?.pi
-//       || '📍'
-// }
-
-function getPoiMapIcon(value?: string | null) {
-  return poiIconRegistry[value as keyof typeof poiIconRegistry]?.mapIcon
-      || '/poi-icons/map-pin-pen.svg'
-}
-
-
-function findPoiIcon(value?: string | null) {
-  return poiIconRegistry[value as keyof typeof poiIconRegistry]?.pi
-      || 'pi pi-map-marker'
-}
-
-
-
-async function loadPois() {
+async function loadStations() {
   loading.value = true
+
   try {
-    pois.value = await getPois()
+    stations.value = await getStations()
   } finally {
     loading.value = false
   }
@@ -134,202 +133,295 @@ async function openCreate() {
   renderPreview()
 }
 
-function focusCurrentPoi(retry = 0) {
-  if (!map) {
-    if (retry < 10) {
-      setTimeout(() => focusCurrentPoi(retry + 1), 150)
-    }
-    return
-  }
+async function openEdit(row: Station) {
+  editingId.value = row.station_id
 
-  if (form.lng === null || form.lat === null) return
-
-  setTimeout(() => {
-    map?.updateSize()
-
-    map?.getView().animate({
-      center: fromLonLat([form.lng!, form.lat!]),
-      zoom: 16,
-      duration: 500,
-    })
-  }, 300)
-}
-async function openEdit(row: Poi) {
-  editingId.value = row.poi_id
-  form.poi_name = row.poi_name
-  form.icon = row.icon || null
+  form.station_name = row.station_name
+  form.station_type = row.station_type || 'circle'
   form.lat = row.lat ? Number(row.lat) : null
   form.lng = row.lng ? Number(row.lng) : null
+  form.radius = row.radius ? Number(row.radius) : 300
+  form.polygon = parsePolygonWkt(row.polygon_wkt)
 
   dialogVisible.value = true
 
   await nextTick()
   initMap()
   renderPreview()
-  focusCurrentPoi()
+
+  if (form.lng && form.lat) {
+    map?.getView().animate({
+      center: fromLonLat([form.lng, form.lat]),
+      zoom: 16,
+    })
+  }
 }
 
 function resetForm() {
-  form.poi_name = ''
-  form.icon = null
+  form.station_name = ''
+  form.station_type = 'circle'
   form.lat = null
   form.lng = null
+  form.radius = 300
+  form.polygon = []
   previewSource.clear()
 }
 
 function initMap() {
-  map = baseMapRef.value?.getMap() || null
+  if (!mapEl.value) return
 
+  if (!map) {
+    map = new Map({
+      target: mapEl.value,
+      layers: [
+        new TileLayer({
+          source: new OSM(),
+        }),
+        stationLayer,
+        previewLayer,
+      ],
+      view: new View({
+        center: fromLonLat([100.5018, 13.7563]),
+        zoom: 12,
+      }),
+    })
+
+    map.on('click', (event) => {
+      if (form.station_type !== 'circle') return
+
+      const [lng, lat] = toLonLat(event.coordinate)
+
+      form.lng = Number(lng.toFixed(7))
+      form.lat = Number(lat.toFixed(7))
+
+      renderPreview()
+    })
+  } else {
+    map.setTarget(mapEl.value)
+    setTimeout(() => map?.updateSize(), 100)
+  }
+}
+
+function clearDraw() {
+  if (draw && map) {
+    map.removeInteraction(draw)
+    draw = null
+  }
+}
+
+function startDrawPolygon() {
   if (!map) return
 
-  if (!map.getLayers().getArray().includes(previewLayer)) {
-    map.addLayer(previewLayer)
-  }
+  form.station_type = 'polygon'
+  form.polygon = []
+  form.lat = null
+  form.lng = null
+  form.radius = null
 
-  setTimeout(() => map?.updateSize(), 100)
-}
+  previewSource.clear()
+  clearDraw()
 
-function onMapReady(payload: { map: Map }) {
-  map = payload.map
-
-  if (!map.getLayers().getArray().includes(previewLayer)) {
-    map.addLayer(previewLayer)
-  }
-
-  map.on('click', (event) => {
-    const [lng, lat] = toLonLat(event.coordinate)
-
-    form.lng = Number(lng.toFixed(7))
-    form.lat = Number(lat.toFixed(7))
-
-    renderPreview()
+  draw = new Draw({
+    source: previewSource,
+    type: 'Polygon',
   })
 
-  setTimeout(() => {
-    map?.updateSize()
-    if (editingId.value) {
-      renderPreview()
-      focusCurrentPoi()
-    }
-  }, 100)
+  map.addInteraction(draw)
+
+  draw.on('drawend', (event) => {
+    const geometry = event.feature.getGeometry() as Polygon
+    const coords = geometry.getCoordinates()[0]
+
+    form.polygon = coords.map((coord) => {
+      const [lng, lat] = transform(coord, 'EPSG:3857', 'EPSG:4326')
+      return {
+        lng: Number(lng.toFixed(7)),
+        lat: Number(lat.toFixed(7)),
+      }
+    })
+
+    clearDraw()
+  })
 }
+
+function selectCircleMode() {
+  form.station_type = 'circle'
+  form.polygon = []
+  if (!form.radius) form.radius = 300
+
+  clearDraw()
+  renderPreview()
+}
+
+function clearShape() {
+  form.lat = null
+  form.lng = null
+  form.radius = form.station_type === 'circle' ? 300 : null
+  form.polygon = []
+
+  clearDraw()
+  previewSource.clear()
+}
+
 function renderPreview() {
   previewSource.clear()
 
-  if (form.lng === null || form.lat === null) return
+  if (form.station_type === 'circle') {
+    if (!form.lng || !form.lat) return
 
-  previewSource.addFeature(
-      new Feature(new Point(fromLonLat([form.lng, form.lat]))),
-  )
+    const center = fromLonLat([form.lng, form.lat])
+    const radius = Number(form.radius || 300)
+
+    previewSource.addFeature(new Feature(new CircleGeom(center, radius)))
+    previewSource.addFeature(new Feature(new Point(center)))
+  }
+
+  if (form.station_type === 'polygon') {
+    if (!form.polygon.length) return
+
+    const coords = form.polygon.map((p) => fromLonLat([p.lng, p.lat]))
+    previewSource.addFeature(new Feature(new Polygon([coords])))
+  }
 }
 
-function clearPoint() {
-  form.lat = null
-  form.lng = null
-  previewSource.clear()
-}
-
-async function savePoi() {
-  if (!form.poi_name.trim()) {
+async function saveStation() {
+  if (!form.station_name.trim()) {
     toast.add({
       severity: 'warn',
-      summary: 'กรุณากรอกชื่อ POI',
+      summary: 'กรุณากรอกชื่อ Station',
       life: 2500,
     })
     return
   }
 
-  if (!form.lat || !form.lng) {
+  if (form.station_type === 'circle' && (!form.lat || !form.lng || !form.radius)) {
     toast.add({
       severity: 'warn',
-      summary: 'กรุณาคลิกเลือกตำแหน่งบนแผนที่',
+      summary: 'กรุณาเลือกจุดและกำหนดรัศมี',
       life: 2500,
     })
     return
   }
 
-  const payload: PoiPayload = {
-    poi_name: form.poi_name,
-    icon: form.icon,
-    lat: form.lat,
-    lng: form.lng,
+  if (form.station_type === 'polygon' && form.polygon.length < 3) {
+    toast.add({
+      severity: 'warn',
+      summary: 'กรุณาวาด Polygon อย่างน้อย 3 จุด',
+      life: 2500,
+    })
+    return
+  }
+
+  const payload: StationPayload = {
+    station_name: form.station_name,
+    station_type: form.station_type,
+  }
+
+  if (form.station_type === 'circle') {
+    payload.lat = form.lat
+    payload.lng = form.lng
+    payload.radius = form.radius
+  } else {
+    payload.polygon = form.polygon
   }
 
   saving.value = true
 
   try {
     if (editingId.value) {
-      await updatePoi(editingId.value, payload)
+      await updateStation(editingId.value, payload)
     } else {
-      await createPoi(payload)
+      await createStation(payload)
     }
 
     toast.add({
       severity: 'success',
-      summary: 'บันทึก POI สำเร็จ',
+      summary: 'บันทึก Station สำเร็จ',
       life: 2500,
     })
 
     dialogVisible.value = false
-    await loadPois()
+    await loadStations()
   } finally {
     saving.value = false
   }
 }
 
-function confirmDelete(row: Poi) {
+function confirmDelete(row: Station) {
   confirm.require({
-    message: `ต้องการลบ "${row.poi_name}" ใช่หรือไม่?`,
+    message: `ต้องการลบ "${row.station_name}" ใช่หรือไม่?`,
     header: 'ยืนยันการลบ',
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'ลบ',
     rejectLabel: 'ยกเลิก',
     acceptClass: 'p-button-danger',
     accept: async () => {
-      await deletePoi(row.poi_id)
+      await deleteStation(row.station_id)
 
       toast.add({
         severity: 'success',
-        summary: 'ลบ POI แล้ว',
+        summary: 'ลบ Station แล้ว',
         life: 2500,
       })
 
-      await loadPois()
+      await loadStations()
     },
   })
 }
 
+function parsePolygonWkt(wkt?: string | null) {
+  if (!wkt) return []
 
-function findPoiLabel(value?: string | null) {
-  return (
-      poiIconOptions.find((x) => x.value === value)?.label
-      || value
-  )
+  const text = wkt
+      .replace('POLYGON((', '')
+      .replace('))', '')
+
+  return text
+      .split(',')
+      .map((pair) => {
+        const [lng, lat] = pair.trim().split(' ').map(Number)
+        return { lng, lat }
+      })
+      .filter((p) => Number.isFinite(p.lng) && Number.isFinite(p.lat))
 }
 
+function onTypeChange() {
+  clearDraw()
+  previewSource.clear()
+
+  if (form.station_type === 'circle') {
+    form.polygon = []
+    if (!form.radius) form.radius = 300
+  } else {
+    form.lat = null
+    form.lng = null
+    form.radius = null
+  }
+}
 </script>
 
 <template>
   <div class="station-page">
-    <ConfirmDialog/>
+    <ConfirmDialog />
 
     <div class="fleet-page-header">
       <div class="title-section">
-        <!--        <div class="page-icon">-->
-        <!--          <i class="pi pi-map"></i>-->
-        <!--        </div>-->
+
+<!--        <div class="page-icon">-->
+<!--          <i class="pi pi-map-marker"></i>-->
+<!--        </div>-->
 
         <div>
-          <h1 class="page-title">POI Management</h1>
+          <h1 class="page-title">Station Management</h1>
           <div class="page-subtitle">
-            จัดการจุดสนใจบนแผนที่
+            จัดการจุดจอด / Geofence / Polygon Area
           </div>
         </div>
       </div>
 
       <div class="header-actions">
         <Button
-            label="Add POI"
+            label="Add Station"
             icon="pi pi-plus"
             @click="openCreate"
         />
@@ -337,31 +429,27 @@ function findPoiLabel(value?: string | null) {
     </div>
 
     <DataTable
-        :value="pois"
+        :value="stations"
         :loading="loading"
-        dataKey="poi_id"
+        dataKey="station_id"
         paginator
         :rows="20"
         stripedRows
         class="station-table p-datatable-sm"
     >
-      <Column field="poi_name" header="POI Name"/>
-
-      <Column header="Icon">
+      <Column field="station_name" header="Station Name" />
+      <Column field="station_type" header="Type">
         <template #body="{ data }">
-          <div class="poi-icon-cell">
-            <img
-                :src="getPoiMapIcon(data.icon)"
-                class="poi-table-icon"
-            />
-
-            <span>
-        {{ findPoiLabel(data.icon) }}
-      </span>
-          </div>
+          <span class="type-badge" :class="data.station_type">
+            {{ data.station_type }}
+          </span>
         </template>
       </Column>
-
+      <Column field="radius" header="Radius">
+        <template #body="{ data }">
+          {{ data.radius ? `${data.radius} m` : '-' }}
+        </template>
+      </Column>
       <Column header="Location">
         <template #body="{ data }">
           <span v-if="data.lat && data.lng">
@@ -371,7 +459,6 @@ function findPoiLabel(value?: string | null) {
           <span v-else>-</span>
         </template>
       </Column>
-
       <Column header="Actions" style="width: 160px">
         <template #body="{ data }">
           <div class="action-buttons">
@@ -396,109 +483,90 @@ function findPoiLabel(value?: string | null) {
     <Dialog
         v-model:visible="dialogVisible"
         modal
-        :header="editingId ? 'Edit POI' : 'Add POI'"
+        :header="editingId ? 'Edit Station' : 'Add Station'"
         class="station-dialog"
-        :style="{ width: '900px', maxWidth: '96vw' }"
-        @show="focusCurrentPoi"
+        :style="{ width: '960px', maxWidth: '96vw' }"
+        @hide="clearDraw"
     >
       <div class="form-grid">
         <div class="form-panel">
-          <label>POI Name</label>
+          <label>Station Name</label>
           <InputText
-              v-model="form.poi_name"
-              placeholder="ชื่อ POI"
+              v-model="form.station_name"
+              placeholder="ชื่อ Station"
               class="w-full"
           />
 
-          <label>POI Icon</label>
-
+          <label>Type</label>
           <Dropdown
-              v-model="form.icon"
-              :options="poiIconOptions"
+              v-model="form.station_type"
+              :options="typeOptions"
               optionLabel="label"
               optionValue="value"
-              placeholder="เลือก Icon"
               class="w-full"
-              @change="renderPreview"
-          >
-            <template #value="slotProps">
-              <div
-                  v-if="slotProps.value"
-                  class="poi-icon-option"
-              >
+              @change="onTypeChange"
+          />
 
-                <img
-                    :src="getPoiMapIcon(slotProps.value)"
-                    class="poi-dropdown-icon"
-                />
+          <template v-if="form.station_type === 'circle'">
+            <label>Radius / เมตร</label>
+            <InputNumber
+                v-model="form.radius"
+                class="w-full"
+                :min="1"
+                suffix=" m"
+                @input="renderPreview"
+            />
 
-                <span>
-        {{ findPoiLabel(slotProps.value) }}
-      </span>
-              </div>
+            <div class="hint">
+              คลิกบนแผนที่เพื่อเลือกจุดศูนย์กลาง
+            </div>
 
-              <span v-else>
-      เลือก Icon
-    </span>
-            </template>
+            <div class="coords">
+              <div>Lat: {{ form.lat || '-' }}</div>
+              <div>Lng: {{ form.lng || '-' }}</div>
+            </div>
+          </template>
 
-            <template #option="slotProps">
-              <div class="poi-icon-option">
-                <img
-                    :src="getPoiMapIcon(slotProps.option.value)"
-                    class="poi-dropdown-icon"
-                />
+          <template v-else>
+            <div class="hint">
+              กดปุ่มวาด Polygon แล้วคลิกบนแผนที่หลายจุด ดับเบิลคลิกเพื่อจบ
+            </div>
 
-                <span>
-        {{ slotProps.option.label }}
-      </span>
-              </div>
-            </template>
-          </Dropdown>
-
-          <div class="hint">
-            คลิกบนแผนที่เพื่อเลือกตำแหน่ง POI
-          </div>
-
-          <div class="coords">
-            <div>Lat: {{ form.lat || '-' }}</div>
-            <div>Lng: {{ form.lng || '-' }}</div>
-          </div>
+            <div class="coords">
+              จำนวนจุด: {{ form.polygon.length }}
+            </div>
+          </template>
 
           <div class="tool-buttons">
             <Button
-                label="ล้างตำแหน่ง"
+                label="Circle"
+                icon="pi pi-circle"
+                severity="secondary"
+                outlined
+                @click="selectCircleMode"
+            />
+
+            <Button
+                label="วาด Polygon"
+                icon="pi pi-pencil"
+                severity="secondary"
+                outlined
+                @click="startDrawPolygon"
+            />
+
+            <Button
+                label="ล้าง"
                 icon="pi pi-times"
                 severity="danger"
                 outlined
-                @click="clearPoint"
+                @click="clearShape"
             />
           </div>
         </div>
 
         <div class="map-panel">
-          <BaseMap
-              ref="baseMapRef"
-              class="station-map"
-              :center="[100.5018, 13.7563]"
-              :zoom="12"
-              :show-zoom-control="true"
-              :show-fit-control="false"
-              :show-fullscreen-control="false"
-              @ready="onMapReady"
-          >
-            <template #map-controls>
-              <button
-                  type="button"
-                  title="Clear POI"
-                  @click.stop="clearPoint"
-              >
-                <i class="pi pi-times"></i>
-              </button>
-            </template>
-          </BaseMap>
+          <div ref="mapEl" class="station-map"></div>
         </div>
-
       </div>
 
       <template #footer>
@@ -512,7 +580,7 @@ function findPoiLabel(value?: string | null) {
             label="Save"
             icon="pi pi-save"
             :loading="saving"
-            @click="savePoi"
+            @click="saveStation"
         />
       </template>
     </Dialog>
@@ -561,7 +629,6 @@ function findPoiLabel(value?: string | null) {
   font-size: 13px;
   color: var(--text-color-secondary) !important;
 }
-
 .header-actions {
   display: flex;
   align-items: center;
@@ -866,29 +933,6 @@ function findPoiLabel(value?: string | null) {
 .page-icon i {
   color: #60a5fa !important;
   font-size: 22px;
-}
-
-.poi-icon-option,
-.poi-icon-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.poi-icon-option i,
-.poi-icon-cell i {
-  font-size: 16px;
-  color: #60a5fa;
-}
-
-.poi-dropdown-icon,
-.poi-table-icon {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  border: #cbd5e0;
-  background-color: #cbd5e0;
-
 }
 
 /* =========================

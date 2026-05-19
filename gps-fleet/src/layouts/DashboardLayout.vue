@@ -27,39 +27,42 @@
 
       <nav class="menu">
         <RouterLink to="/" class="menu-item">
-          <i class="pi pi-chart-line"></i>
+          <i class="pi pi-chart-line" title="Fleet Dashboard"></i>
           <span v-if="!sidebarCollapsed">Dashboard</span>
         </RouterLink>
 
         <RouterLink to="/tracking" class="menu-item">
-          <i class="pi pi-map"></i>
+          <i class="pi pi-map" title="Current tracking"></i>
           <span v-if="!sidebarCollapsed">Tracking</span>
         </RouterLink>
 
         <RouterLink to="/history" class="menu-item">
-          <i class="pi pi-history"></i>
+          <i class="pi pi-history" title="History Query"></i>
           <span v-if="!sidebarCollapsed">History</span>
         </RouterLink>
 
         <RouterLink to="/vehicles" class="menu-item">
-          <i class="pi pi-car"></i>
+          <i class="pi pi-car" title="Manage Vehicles"></i>
           <span v-if="!sidebarCollapsed">Vehicle Management</span>
         </RouterLink>
 
         <RouterLink to="/stations" class="menu-item">
-          <i class="pi pi-warehouse"></i>
+          <i class="pi pi-warehouse" title="Manage Stations"></i>
           <span v-if="!sidebarCollapsed">Station Management</span>
         </RouterLink>
 
         <RouterLink to="/pois" class="menu-item">
-          <i class="pi pi-map-marker"></i>
-          <span v-if="!sidebarCollapsed">POIs Management</span>
+          <i class="pi pi-map-marker" title="Manage POIs"></i>
+          <span v-if="!sidebarCollapsed">POI Management</span>
+        </RouterLink>
+
+        <RouterLink to="/forbidden-zones" class="menu-item">
+          <i class="pi pi-ban" title="Manage Forbidden Zones"></i>
+          <span v-if="!sidebarCollapsed">Forbidden Zone Management</span>
         </RouterLink>
 
 
-
-
-        <NotificationBell />
+        <NotificationBell title="Notification Messages" />
 
       </nav>
     </aside>

@@ -45,19 +45,30 @@ const router = createRouter({
                 {
                     path: '',
                     name: 'dashboard',
-                    component:
-                    DashboardView,
+                    component: DashboardView,
+                    meta: {
+                        requiresAuth: true,
+                        title: 'Fleet Dashboard',
+                    },
                 },
 
                 {
                     path: 'tracking',
                     name: 'tracking',
                     component: TrackingView,
+                    meta: {
+                        requiresAuth: true,
+                        title: 'Current Tracking',
+                    },
                 },
                 {
                     path: 'history',
                     name: 'history',
                     component: HistoryView,
+                    meta: {
+                        requiresAuth: true,
+                        title: 'History Query',
+                    },
                 },
                 {
                     path: '/vehicles',
@@ -72,14 +83,29 @@ const router = createRouter({
                     path: '/stations',
                     name: 'stations',
                     component: StationManagementView,
-                    meta: { requiresAuth: true },
+                    meta: {
+                        requiresAuth: true,
+                        title: 'Stations',
+                    },
                 },
                 {
                     path: '/pois',
                     name: 'pois',
                     component: () => import('@/views/PoiManagementView.vue'),
 
-                    meta: { requiresAuth: true },
+                    meta: {
+                        requiresAuth: true,
+                        title: 'Pois',
+                    },
+                },
+                {
+                    path: '/forbidden-zones',
+                    name: 'forbidden-zones',
+                    component: () => import('@/views/ForbiddenZoneManagementView.vue'),
+                    meta: {
+                        requiresAuth: true,
+                        title: 'Forbidden Zone',
+                    },
                 },
 
                 {

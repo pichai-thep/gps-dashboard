@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ForbiddenZoneController;
 use App\Http\Controllers\Api\HistoryController;
+use App\Http\Controllers\Api\MapLayerController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PoiController;
 use App\Http\Controllers\Api\StationController;
@@ -56,6 +58,15 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::put('/pois/{id}', [PoiController::class, 'update']);
     Route::delete('/pois/{id}', [PoiController::class, 'destroy']);
 
+    Route::get('/forbidden-zones', [ForbiddenZoneController::class, 'index']);
+    Route::post('/forbidden-zones', [ForbiddenZoneController::class, 'store']);
+    Route::put('/forbidden-zones/{id}', [ForbiddenZoneController::class, 'update']);
+    Route::delete('/forbidden-zones/{id}', [ForbiddenZoneController::class, 'destroy']);
+
+
+    Route::get('/map-layers/pois', [MapLayerController::class, 'pois']);
+    Route::get('/map-layers/stations', [MapLayerController::class, 'stations']);
+    Route::get('/map-layers/forbidden-zones', [MapLayerController::class, 'forbiddenZones']);
 });
 
 

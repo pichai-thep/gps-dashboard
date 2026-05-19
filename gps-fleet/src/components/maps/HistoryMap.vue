@@ -4,6 +4,19 @@
       @ready="handleMapReady"
       @fit="fitHistory"
   >
+    <template #default="{ map }">
+    </template>
+
+    <template #map-controls>
+      <CustomerLayerMap
+          v-if="map"
+          :map="map"
+          :show-pois="false"
+          :show-stations="false"
+          :show-forbidden-zones="false"
+      />
+    </template>
+
     <template #popup>
       <div v-if="popupData">
         <div class="popup-title">
@@ -65,6 +78,7 @@
 
       </div>
     </template>
+
   </BaseMap>
 </template>
 
@@ -97,6 +111,7 @@ import {
   Style,
   Text,
 } from 'ol/style'
+import CustomerLayerMap from "@/components/maps/CustomerLayerMap.vue";
 
 type HistoryPoint = {
   lat?: number | string
