@@ -18,9 +18,6 @@ class NotificationController extends Controller
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
-//        dd("connection: " .$connection);
-
-//        $login = strtolower($user->login);
         $login = $user->login;
         $serverName = strtolower($user->server_name);
 
@@ -45,7 +42,7 @@ class NotificationController extends Controller
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
-        $login = strtolower($user->login);
+        $login = $user->login;
         $serverName = strtolower($user->server_name);
 
         return response()->json([
@@ -61,7 +58,7 @@ class NotificationController extends Controller
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
-        $login = strtolower($user->login);
+        $login = $user->login;
         $serverName = strtolower($user->server_name);
 
         $this->notificationService

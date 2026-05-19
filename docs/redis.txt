@@ -173,3 +173,133 @@ sudo systemctl status redis
 
 sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="202.129.206.55" port protocol="tcp" port="6379" accept'
 sudo firewall-cmd --reload
+
+
+
+1. ดู key ทั้งหมด
+redis-cli
+
+แล้ว:
+
+KEYS *
+
+แต่ถ้า production ห้ามใช้บ่อย เพราะหนักมาก
+
+แนะนำ:
+
+SCAN 0
+
+หรือ:
+
+SCAN 0 MATCH notify:*
+2. ดูค่าของ key
+String
+GET mykey
+List
+
+เช่น queue notification
+
+LRANGE notify:user:test 0 -1
+
+ดูทั้งหมดใน list
+
+Hash
+HGETALL myhash
+Set
+SMEMBERS myset
+Sorted Set
+ZRANGE myzset 0 -1
+Stream (นิยมกับ realtime)
+XRANGE mystream - +
+สำหรับระบบของคุณ
+
+ถ้าใช้ key แบบ:
+
+notify:user:mcap
+
+ลองดู type ก่อน:
+
+TYPE notify:user:mcap
+
+จะได้:
+
+list
+
+หรือ:
+
+string
+ถ้าเป็น list notification
+
+ดูทั้งหมด:
+
+LRANGE notify:user:mcap 0 -1
+ถ้าต้องการดูทุก key พร้อมค่า
+
+ใช้ shell loop:
+
+redis-cli --scan | while read key; do
+  echo "=== $key ==="
+  redis-cli TYPE "$key"
+done
+ดู realtime ว่ามีอะไรถูก push เข้า Redis
+
+อันนี้ useful มากสำหรับ debug GPS notification
+
+redis-cli MONITOR
+
+จะเห็นทุก command realtime เช่น:
+
+LPUSH notify:user:mcap "{...}"
+GET notify:user:mcap
+DEL notify:user:mcap
+
+แต่:
+
+ห้ามเปิดนานใน production
+กิน CPU
+ดู unread notification ของ user
+
+ถ้าเก็บเป็น list:
+
+LLEN notify:user:mcap
+ดู memory ใช้อะไรเยอะสุด
+redis-cli --bigkeys
+
+ดีมากสำหรับหา key ที่โตผิดปกติ
+
+
+ถ้า key ของคุณเป็น list notification เช่น:
+
+notify:user:mcap
+notify:user:test
+notify:user:admin
+
+ต้องการดูทุก key พร้อมนับจำนวนข้อความในแต่ละ key ใช้แบบนี้ได้เลย:
+
+redis-cli --scan --pattern 'notify:user:*' | while read key
+do
+  count=$(redis-cli LLEN "$key")
+  echo "$key => $count"
+done
+
+ผลลัพธ์:
+
+notify:user:mcap => 12
+notify:user:test => 3
+notify:user:admin => 98
+
+
+redis-cli -a 'GpsPushRedis@2026' --scan --pattern 'notify:user:*' | while read key
+do
+  count=$(redis-cli -a 'GpsPushRedis@2026' LLEN "$key")
+  echo "$count $key"
+done | sort -nr
+
+
+redis-cli -a 'GpsPushRedis@2026' --scan --pattern 'notify:user:*' \
+| grep -v ':unread$' \
+| while read key
+do
+  count=$(redis-cli -a 'GpsPushRedis@2026' LLEN "$key")
+  echo "$count $key"
+done | sort -nr

@@ -7,28 +7,6 @@ use Illuminate\Support\Facades\Redis;
 
 class NotificationService
 {
-//    public function getRecentByLogin(
-//        string $serverName,
-//        string $login,
-//        int $limit = 50
-//    ): array {
-//
-//        $key = $this->userNotifyKey($login);
-//
-//        $items = Redis::connection($serverName)
-//            ->lrange($key, 0, $limit - 1);
-//
-//        if ((empty($items)) || ($items==null)) {
-//            return [];
-//        }
-//
-//        return collect($items)
-//            ->map(fn ($json) => json_decode($json, true))
-//            ->filter()
-//            ->values()
-//            ->all();
-//    }
-
 
     public function getRecentByLogin(
         string $serverName,
@@ -93,6 +71,7 @@ class NotificationService
 
     private function userNotifyKey(string $login): string
     {
+        $login = strtolower($login);
         return "notify:user:$login";
     }
 
