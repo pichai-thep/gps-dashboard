@@ -299,7 +299,6 @@ function toggleLayer(
 ) {
   layer.setVisible(visible)
 
-  props.map.render()
 }
 
 // =========================
