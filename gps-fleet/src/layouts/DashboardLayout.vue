@@ -327,8 +327,7 @@ function onLogoError(event: Event) {
 }
 
 .topbar-logo {
-  width: 80px;
-  height: 60px;
+  width: 100px;
   border-radius: 14px;
   display: grid;
   place-items: center;
