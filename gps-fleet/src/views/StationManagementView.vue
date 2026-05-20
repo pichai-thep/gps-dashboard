@@ -115,6 +115,46 @@ onMounted(async () => {
   await loadStations()
 })
 
+function focusToCurrentShape(retry = 0) {
+  map = baseMapRef.value?.getMap() || map
+
+  if (!map) {
+    if (retry < 20) {
+      setTimeout(() => focusToCurrentShape(retry + 1), 150)
+    }
+    return
+  }
+
+  map.updateSize()
+
+  if (form.station_type === 'circle') {
+    if (!isValidLatLng(form.lat, form.lng)) return
+
+    const center = fromLonLat([
+      Number(form.lng),
+      Number(form.lat),
+    ])
+
+    map.getView().animate({
+      center,
+      zoom: 16,
+      duration: 700,
+    })
+
+    return
+  }
+
+  const extent = previewSource.getExtent()
+
+  if (!isEmpty(extent)) {
+    map.getView().fit(extent, {
+      padding: [80, 80, 80, 80],
+      duration: 700,
+      maxZoom: 17,
+    })
+  }
+}
+
 function onMapReady(payload: { map: Map }) {
   map = payload.map
 
@@ -135,14 +175,12 @@ function onMapReady(payload: { map: Map }) {
     form.lat = Number(lat.toFixed(7))
 
     renderPreview()
+    focusToCurrentShape()
   })
 
   setTimeout(() => {
     map?.updateSize()
-    if (shouldFocusAfterMapReady.value && editingId.value) {
-      renderPreview()
-      focusCurrentShape()
-    }
+
   }, 100)
 }
 async function loadStations() {
@@ -180,64 +218,30 @@ function isValidLatLng(lat: any, lng: any) {
   )
 }
 
-function safeFitExtent(extent: any) {
+function safeFitExtent(extent: any, retry = 0) {
   if (!map || !extent || isEmpty(extent)) return
 
-  map.getView().fit(extent, {
-    padding: [80, 80, 80, 80],
-    duration: 500,
-    maxZoom: 17,
-  })
-}
-function focusCurrentShape(retry = 0) {
-  if (!map) {
-    if (retry < 10) {
-      setTimeout(() => focusCurrentShape(retry + 1), 150)
+  const size = map.getSize()
+
+  if (!size || size[0] === 0 || size[1] === 0) {
+    if (retry < 20) {
+      setTimeout(() => safeFitExtent(extent, retry + 1), 150)
     }
     return
   }
 
-  setTimeout(() => {
-    map?.updateSize()
+  map.updateSize()
 
-    if (form.station_type === 'circle') {
-      if (!isValidLatLng(form.lat, form.lng)) return
+  map.getView().fit(extent, {
+    size,
+    padding: [80, 80, 80, 80],
+    duration: 800,
+    maxZoom: 17,
+  })
 
-      const center = fromLonLat([Number(form.lng), Number(form.lat)])
-      const radius = Number(form.radius || 300)
-
-      if (!Number.isFinite(radius) || radius <= 0) return
-
-      const circle = new CircleGeom(center, radius)
-
-      safeFitExtent(circle.getExtent())
-
-      shouldFocusAfterMapReady.value = false
-      return
-    }
-
-    if (form.station_type === 'polygon') {
-      const validPoints = form.polygon.filter((p) =>
-          isValidLatLng(p.lat, p.lng)
-      )
-
-      if (validPoints.length < 3) return
-
-      const coords = validPoints.map((p) =>
-          fromLonLat([Number(p.lng), Number(p.lat)])
-      )
-
-// ปิด polygon ring
-      coords.push(coords[0])
-
-      const polygon = new Polygon([coords])
-
-      safeFitExtent(polygon.getExtent())
-
-      shouldFocusAfterMapReady.value = false
-    }
-  }, 300)
+  shouldFocusAfterMapReady.value = false
 }
+
 async function openEdit(row: Station) {
   editingId.value = row.station_id
   shouldFocusAfterMapReady.value = true
@@ -263,12 +267,15 @@ async function openEdit(row: Station) {
 
   dialogVisible.value = true
 
-  await nextTick()
-  initMap()
-  renderPreview()
-  focusCurrentShape()
 }
 
+function onDialogShow() {
+  setTimeout(() => {
+    initMap()
+    renderPreview()
+    focusToCurrentShape()
+  }, 500)
+}
 function resetForm() {
   form.station_name = ''
   form.station_type = 'circle'
@@ -334,6 +341,10 @@ function startDrawPolygon() {
     })
 
     clearDraw()
+    setTimeout(() => {
+      renderPreview()
+      focusToCurrentShape()
+    }, 100)
   })
 }
 
@@ -360,20 +371,38 @@ function renderPreview() {
   previewSource.clear()
 
   if (form.station_type === 'circle') {
-    if (form.lng === null || form.lat === null) return
+    if (!isValidLatLng(form.lat, form.lng)) return
 
-    const center = fromLonLat([form.lng, form.lat])
+    const center = fromLonLat([
+      Number(form.lng),
+      Number(form.lat),
+    ])
+
     const radius = Number(form.radius || 300)
 
-    previewSource.addFeature(new Feature(new CircleGeom(center, radius)))
-    previewSource.addFeature(new Feature(new Point(center)))
+    if (!Number.isFinite(radius) || radius <= 0) return
+
+    previewSource.addFeature(
+        new Feature(new CircleGeom(center, radius))
+    )
+
+    previewSource.addFeature(
+        new Feature(new Point(center))
+    )
   }
 
   if (form.station_type === 'polygon') {
-    if (!form.polygon.length) return
+    const validPoints = form.polygon.filter((p) =>
+        isValidLatLng(p.lat, p.lng)
+    )
 
-    const coords = form.polygon.map((p) =>
-        fromLonLat([p.lng, p.lat])
+    if (validPoints.length < 3) return
+
+    const coords = validPoints.map((p) =>
+        fromLonLat([
+          Number(p.lng),
+          Number(p.lat),
+        ])
     )
 
     coords.push(coords[0])
@@ -586,7 +615,7 @@ function onTypeChange() {
         :header="editingId ? 'Edit Station' : 'Add Station'"
         class="station-dialog"
         :style="{ width: '960px', maxWidth: '96vw' }"
-        @show="focusCurrentShape"
+        @show="onDialogShow"
         @hide="clearDraw"
     >
       <div class="form-grid">
