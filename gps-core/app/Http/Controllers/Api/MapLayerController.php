@@ -10,21 +10,22 @@ class MapLayerController extends Controller
 {
     private function customerId(Request $request): int
     {
-        $user = $request->attributes->get('auth_user');
-
+        $gpsUserCustomer = $request->attributes->get('gpsUserCustomer');
         return (int) (
-            $user->customer_customer_id
-            ?? $user->customer_id
-            ?? 0
+            $gpsUserCustomer->customer_id ?? 0
         );
+    }
+
+    private function dbConnection(Request $request){
+        return $request->attributes->get('gps_connection');
     }
 
     public function pois(Request $request)
     {
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        $rows = DB::connection($connection)->select("
+        $rows = DB::connection($dbConnection)->select("
             SELECT
                 poi_id,
                 poi_name,
@@ -46,10 +47,10 @@ class MapLayerController extends Controller
 
     public function stations(Request $request)
     {
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        $rows = DB::connection($connection)->select("
+        $rows = DB::connection($dbConnection)->select("
             SELECT
                 station_id,
                 station_name,
@@ -73,10 +74,10 @@ class MapLayerController extends Controller
 
     public function forbiddenZones(Request $request)
     {
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        $rows = DB::connection($connection)->select("
+        $rows = DB::connection($dbConnection)->select("
             SELECT
                 id,
                 zone_name,
