@@ -11,21 +11,22 @@ class ForbiddenZoneController extends Controller
 
     private function customerId(Request $request): int
     {
-        $user = $request->attributes->get('auth_user');
-
+        $gpsUserCustomer = $request->attributes->get('gpsUserCustomer');
         return (int) (
-            $user->customer_customer_id
-            ?? $user->customer_id
-            ?? 0
+            $gpsUserCustomer->customer_id ?? 0
         );
+    }
+
+    private function dbConnection(Request $request){
+        return $request->attributes->get('gps_connection');
     }
 
     public function index(Request $request)
     {
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        $rows = DB::connection($connection)->select("
+        $rows = DB::connection($dbConnection)->select("
             SELECT
                 id,
                 zone_name,
@@ -46,8 +47,7 @@ class ForbiddenZoneController extends Controller
 
     public function store(Request $request)
     {
-        $user = $request->attributes->get('auth_user');
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
         $data = $request->validate([
@@ -59,7 +59,7 @@ class ForbiddenZoneController extends Controller
 
         $wkt = $this->makePolygonWkt($data['polygon']);
 
-        DB::connection($connection)->insert("
+        DB::connection($dbConnection)->insert("
             INSERT INTO forbidden_zone
                 (zone_name, polygon, customer_id)
             VALUES
@@ -77,8 +77,7 @@ class ForbiddenZoneController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $user = $request->attributes->get('auth_user');
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
         $data = $request->validate([
@@ -90,7 +89,7 @@ class ForbiddenZoneController extends Controller
 
         $wkt = $this->makePolygonWkt($data['polygon']);
 
-        DB::connection($connection)->update("
+        DB::connection($dbConnection)->update("
             UPDATE forbidden_zone
             SET
                 zone_name = ?,
@@ -111,11 +110,10 @@ class ForbiddenZoneController extends Controller
 
     public function destroy(Request $request, int $id)
     {
-        $user = $request->attributes->get('auth_user');
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        DB::connection($connection)->delete("
+        DB::connection($dbConnection)->delete("
             DELETE FROM forbidden_zone
             WHERE id = ?
               AND customer_id = ?

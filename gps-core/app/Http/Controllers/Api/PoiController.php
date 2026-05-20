@@ -10,21 +10,22 @@ class PoiController extends Controller
 {
     private function customerId(Request $request): int
     {
-        $user = $request->attributes->get('auth_user');
-
+        $gpsUserCustomer = $request->attributes->get('gpsUserCustomer');
         return (int) (
-            $user->customer_customer_id
-            ?? $user->customer_id
-            ?? 0
+            $gpsUserCustomer->customer_id ?? 0
         );
+    }
+
+    private function dbConnection(Request $request){
+        return $request->attributes->get('gps_connection');
     }
 
     public function index(Request $request)
     {
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        $rows = DB::connection($connection)->select("
+        $rows = DB::connection($dbConnection)->select("
             SELECT
                 poi_id,
                 poi_name,
@@ -52,10 +53,10 @@ class PoiController extends Controller
             'lng' => 'required|numeric',
         ]);
 
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        DB::connection($connection)->insert("
+        DB::connection($dbConnection)->insert("
             INSERT INTO poi (
                 poi_name,
                 icon,
@@ -85,10 +86,10 @@ class PoiController extends Controller
             'lng' => 'required|numeric',
         ]);
 
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        $exists = DB::connection($connection)->selectOne("
+        $exists = DB::connection($dbConnection)->selectOne("
             SELECT poi_id
             FROM poi
             WHERE poi_id = ?
@@ -102,7 +103,7 @@ class PoiController extends Controller
             ], 404);
         }
 
-        DB::connection($connection)->update("
+        DB::connection($dbConnection)->update("
             UPDATE poi
             SET
                 poi_name = ?,
@@ -126,10 +127,10 @@ class PoiController extends Controller
 
     public function destroy(Request $request, int $id)
     {
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        DB::connection($connection)->delete("
+        DB::connection($dbConnection)->delete("
             DELETE FROM poi
             WHERE poi_id = ?
               AND customer_customer_id = ?

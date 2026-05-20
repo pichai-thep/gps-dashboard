@@ -5,10 +5,10 @@ export type StationType = 'circle' | 'polygon'
 export interface Station {
     station_id: number
     station_name: string
+    station_type: StationType
     lat?: number | null
     lng?: number | null
     radius?: number | null
-    station_type: StationType
     polygon_wkt?: string | null
 }
 

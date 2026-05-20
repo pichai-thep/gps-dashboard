@@ -10,21 +10,22 @@ class StationController extends Controller
 {
     private function customerId(Request $request): int
     {
-        $user = $request->attributes->get('auth_user');
-
+        $gpsUserCustomer = $request->attributes->get('gpsUserCustomer');
         return (int) (
-            $user->customer_customer_id
-            ?? $user->customer_id
-            ?? 0
+            $gpsUserCustomer->customer_id ?? 0
         );
+    }
+
+    private function dbConnection(Request $request){
+        return $request->attributes->get('gps_connection');
     }
 
     public function index(Request $request)
     {
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        $rows = DB::connection($connection)->select("
+        $rows = DB::connection($dbConnection)->select("
             SELECT
                 station_id,
                 station_name,
@@ -58,7 +59,7 @@ class StationController extends Controller
             'polygon' => 'nullable|array',
         ]);
 
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
         if ($request->station_type === 'circle') {
@@ -68,7 +69,7 @@ class StationController extends Controller
                 'radius' => 'required|numeric|min:1',
             ]);
 
-            DB::connection($connection)->insert("
+            DB::connection($dbConnection)->insert("
                 INSERT INTO station (
                     station_name,
                     station_point,
@@ -98,7 +99,7 @@ class StationController extends Controller
 
             $wkt = $this->polygonToWkt($request->polygon);
 
-            DB::connection($connection)->insert("
+            DB::connection($dbConnection)->insert("
                 INSERT INTO station (
                     station_name,
                     station_point,
@@ -135,10 +136,10 @@ class StationController extends Controller
             'polygon' => 'nullable|array',
         ]);
 
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        $exists = DB::connection($connection)->selectOne("
+        $exists = DB::connection($dbConnection)->selectOne("
             SELECT station_id
             FROM station
             WHERE station_id = ?
@@ -159,7 +160,7 @@ class StationController extends Controller
                 'radius' => 'required|numeric|min:1',
             ]);
 
-            DB::connection($connection)->update("
+            DB::connection($dbConnection)->update("
                 UPDATE station
                 SET
                     station_name = ?,
@@ -189,7 +190,7 @@ class StationController extends Controller
 
             $wkt = $this->polygonToWkt($request->polygon);
 
-            DB::connection($connection)->update("
+            DB::connection($dbConnection)->update("
                 UPDATE station
                 SET
                     station_name = ?,
@@ -217,10 +218,10 @@ class StationController extends Controller
 
     public function destroy(Request $request, int $id)
     {
-        $connection = $request->attributes->get('gps_connection');
+        $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        DB::connection($connection)->delete("
+        DB::connection($dbConnection)->delete("
             DELETE FROM station
             WHERE station_id = ?
               AND customer_customer_id = ?
