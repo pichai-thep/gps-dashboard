@@ -18,8 +18,8 @@ class NotificationController extends Controller
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
-        $login = $user->login;
-        $serverName = strtolower($user->server_name);
+        $login = strtolower($user->login);
+        $serverName = $user->server_name;
 
         logger()->info("Api NotificationController recent", [
             'login' => $login,
@@ -42,8 +42,8 @@ class NotificationController extends Controller
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
-        $login = $user->login;
-        $serverName = strtolower($user->server_name);
+        $login = strtolower($user->login);
+        $serverName = $user->server_name;
 
         return response()->json([
             'success' => true,
@@ -58,8 +58,8 @@ class NotificationController extends Controller
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
-        $login = $user->login;
-        $serverName = strtolower($user->server_name);
+        $login = strtolower($user->login);
+        $serverName = $user->server_name;
 
         $this->notificationService
             ->markRead($connection, $login);
