@@ -450,6 +450,7 @@
                     <Dropdown
                         v-model="form.ur_rate_type"
                         :options="[
+                                    { label: 'None', value: ''},
                                     { label: 'Time-Base', value: 'A' },
                                     { label: 'Engine-Base', value: 'B' },
                                   ]"
@@ -563,6 +564,7 @@ const selectedRows = ref<VehicleListItem[]>([])
 const selectedVehicle = ref<VehicleListItem | null>(null)
 
 const vehicleIcons = [
+  'default',
   'backhole',
   'boat',
   'bus',
@@ -658,7 +660,7 @@ async function selectVehicle(row: VehicleListItem) {
       input_fuel_reverse: boolValue(data.input_fuel_reverse),
       fuel_mont: boolValue(data.fuel_mont),
       ur_rate_satsun: boolValue(data.ur_rate_satsun),
-      ur_rate_type: data.ur_rate_type || 'A',
+      ur_rate_type: data.ur_rate_type || '',
       ur_rate_work_hour: data.ur_rate_work_hour ?? 8,
       export_to_active: boolValue(data.export_to_active),
     })

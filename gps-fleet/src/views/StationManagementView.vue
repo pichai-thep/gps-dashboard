@@ -22,6 +22,7 @@ import Polygon from 'ol/geom/Polygon'
 import CircleGeom from 'ol/geom/Circle'
 import { fromLonLat, toLonLat, transform } from 'ol/proj'
 import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style'
+import { isEmpty } from 'ol/extent'
 
 import {
   getStations,
@@ -164,6 +165,30 @@ async function openCreate() {
   renderPreview()
 }
 
+function isValidLatLng(lat: any, lng: any) {
+  const nLat = Number(lat)
+  const nLng = Number(lng)
+
+  return (
+      Number.isFinite(nLat) &&
+      Number.isFinite(nLng) &&
+      nLat >= -90 &&
+      nLat <= 90 &&
+      nLng >= -180 &&
+      nLng <= 180 &&
+      !(nLat === 0 && nLng === 0)
+  )
+}
+
+function safeFitExtent(extent: any) {
+  if (!map || !extent || isEmpty(extent)) return
+
+  map.getView().fit(extent, {
+    padding: [80, 80, 80, 80],
+    duration: 500,
+    maxZoom: 17,
+  })
+}
 function focusCurrentShape(retry = 0) {
   if (!map) {
     if (retry < 10) {
@@ -175,41 +200,39 @@ function focusCurrentShape(retry = 0) {
   setTimeout(() => {
     map?.updateSize()
 
-    if (
-        form.station_type === 'circle' &&
-        form.lng !== null &&
-        form.lat !== null
-    ) {
-      const center = fromLonLat([form.lng, form.lat])
+    if (form.station_type === 'circle') {
+      if (!isValidLatLng(form.lat, form.lng)) return
+
+      const center = fromLonLat([Number(form.lng), Number(form.lat)])
       const radius = Number(form.radius || 300)
+
+      if (!Number.isFinite(radius) || radius <= 0) return
 
       const circle = new CircleGeom(center, radius)
 
-      map?.getView().fit(circle.getExtent(), {
-        padding: [80, 80, 80, 80],
-        duration: 500,
-        maxZoom: 17,
-      })
+      safeFitExtent(circle.getExtent())
 
       shouldFocusAfterMapReady.value = false
       return
     }
 
-    if (
-        form.station_type === 'polygon' &&
-        form.polygon.length
-    ) {
-      const coords = form.polygon.map((p) =>
-          fromLonLat([p.lng, p.lat])
+    if (form.station_type === 'polygon') {
+      const validPoints = form.polygon.filter((p) =>
+          isValidLatLng(p.lat, p.lng)
       )
+
+      if (validPoints.length < 3) return
+
+      const coords = validPoints.map((p) =>
+          fromLonLat([Number(p.lng), Number(p.lat)])
+      )
+
+// ปิด polygon ring
+      coords.push(coords[0])
 
       const polygon = new Polygon([coords])
 
-      map?.getView().fit(polygon.getExtent(), {
-        padding: [80, 80, 80, 80],
-        duration: 500,
-        maxZoom: 17,
-      })
+      safeFitExtent(polygon.getExtent())
 
       shouldFocusAfterMapReady.value = false
     }
@@ -221,9 +244,21 @@ async function openEdit(row: Station) {
 
   form.station_name = row.station_name
   form.station_type = row.station_type || 'circle'
-  form.lat = row.lat ? Number(row.lat) : null
-  form.lng = row.lng ? Number(row.lng) : null
-  form.radius = row.radius ? Number(row.radius) : 300
+
+  // form.lat = row.lat ? Number(row.lat) : null
+  // form.lng = row.lng ? Number(row.lng) : null
+
+  const lat = Number(row.lat)
+  const lng = Number(row.lng)
+
+  form.lat = isValidLatLng(lat, lng) ? lat : null
+  form.lng = isValidLatLng(lat, lng) ? lng : null
+
+  // form.radius = row.radius ? Number(row.radius) : 300
+
+  const radius = Number(row.radius)
+  form.radius = Number.isFinite(radius) && radius > 0 ? radius : 300
+
   form.polygon = parsePolygonWkt(row.polygon_wkt)
 
   dialogVisible.value = true
@@ -337,8 +372,15 @@ function renderPreview() {
   if (form.station_type === 'polygon') {
     if (!form.polygon.length) return
 
-    const coords = form.polygon.map((p) => fromLonLat([p.lng, p.lat]))
-    previewSource.addFeature(new Feature(new Polygon([coords])))
+    const coords = form.polygon.map((p) =>
+        fromLonLat([p.lng, p.lat])
+    )
+
+    coords.push(coords[0])
+
+    previewSource.addFeature(
+        new Feature(new Polygon([coords]))
+    )
   }
 }
 
