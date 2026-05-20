@@ -301,5 +301,13 @@ redis-cli -a 'GpsPushRedis@2026' --scan --pattern 'notify:user:*' \
 | while read key
 do
   count=$(redis-cli -a 'GpsPushRedis@2026' LLEN "$key")
-  echo "$count $key"
+  echo "$count,$key"
 done | sort -nr
+
+redis-cli -a 'GpsPushRedis@2026' --scan --pattern 'notify:user:*' \
+| grep -v ':unread$' \
+| while read key
+do
+  count=$(redis-cli -a 'GpsPushRedis@2026' LLEN "$key")
+  echo "$count,$key"
+done | sort -n

@@ -15,20 +15,13 @@ class NotificationService
     ): array {
 
         $key = $this->userNotifyKey($login);
-
         try {
-
             $redis = Redis::connection($serverName);
-
-            // test connection
-            $redis->ping();
-
             $items = $redis->lrange($key, 0, $limit - 1);
 
             if (empty($items)) {
                 return [];
             }
-
             return collect($items)
                 ->map(fn ($json) => json_decode($json, true))
                 ->filter()
@@ -36,9 +29,7 @@ class NotificationService
                 ->all();
 
         } catch (\Throwable $e) {
-
             Log::error("Redis error [{$serverName}] : " . $e->getMessage());
-
             return [];
         }
     }
@@ -69,17 +60,12 @@ class NotificationService
         );
     }
 
-    private function userNotifyKey(string $login): string
-    {
+    private function userNotifyKey(string $login): string{
         $login = strtolower($login);
         return "notify:user:$login";
     }
 
-    public function getUnreadCount(
-        string $serverName,
-        string $login
-    ): int {
-
+    public function getUnreadCount(string $serverName, string $login): int {
         try{
             return (int) Redis::connection($serverName)
                 ->get("notify:user:$login:unread");

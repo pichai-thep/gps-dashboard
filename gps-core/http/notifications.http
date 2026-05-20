@@ -6,7 +6,7 @@ POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "pichai13",
+    "username": "Thamrongchai",
     "password": "1234"
 }
 
@@ -24,7 +24,7 @@ Authorization: Bearer dev-token-16896
 # curl http://127.0.0.1:8000/api/notifications/unread-count
 #  -H "Authorization: Bearer dev-token-16564"
 GET http://127.0.0.1:8000/api/notifications/unread-count
-Authorization: Bearer dev-token-13775
+Authorization: Bearer dev-token-16896
 
 ###
 

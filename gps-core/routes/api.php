@@ -30,10 +30,6 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::get('/tracking/history', [HistoryController::class, 'index']);
     Route::get('/tracking/history/export', [HistoryController::class, 'export']);
 
-    Route::get('/notifications/recent', [NotificationController::class, 'recent']);
-    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
-    Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
-
     Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
 
     Route::get('/vehicles', [VehicleManagementController::class, 'index']);
@@ -63,10 +59,14 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::put('/forbidden-zones/{id}', [ForbiddenZoneController::class, 'update']);
     Route::delete('/forbidden-zones/{id}', [ForbiddenZoneController::class, 'destroy']);
 
-
     Route::get('/map-layers/pois', [MapLayerController::class, 'pois']);
     Route::get('/map-layers/stations', [MapLayerController::class, 'stations']);
     Route::get('/map-layers/forbidden-zones', [MapLayerController::class, 'forbiddenZones']);
+
+    Route::get('/notifications/recent', [NotificationController::class, 'recent']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
+
 });
 
 
