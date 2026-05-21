@@ -295,6 +295,7 @@ do
   echo "$count $key"
 done | sort -nr
 
+ดึงทุก key พร้อม จำนวน message
 redis-cli -a 'GpsPushRedis@2026' --scan --pattern 'notify:user:*' \
 | grep -v ':unread$' \
 | while read key
@@ -302,3 +303,11 @@ do
   count=$(redis-cli -a 'GpsPushRedis@2026' LLEN "$key")
   echo "$count,$key"
 done | sort -n
+
+ดึงทุก key พร้อม latest message
+redis-cli -a 'GpsPushRedis@2026' --raw keys "notify:user:*" | while read key
+do
+  echo "KEY: $key"
+  redis-cli -a 'GpsPushRedis@2026' --raw lindex "$key" 0
+  echo "----------------------"
+done

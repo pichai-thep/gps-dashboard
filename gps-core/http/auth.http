@@ -3,13 +3,13 @@ POST http://127.0.0.1:8000/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "Thamrongchai",
+    "username": "test21",
     "password": "1234"
 }
 
 ### Me
 GET http://127.0.0.1:8000/api/auth/me
-Authorization: Bearer dev-token-16564
+Authorization: Bearer dev-token-21128
 
 ### Logout
 POST http://127.0.0.1:8000/api/auth/logout
