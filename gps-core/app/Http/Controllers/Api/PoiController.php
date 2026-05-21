@@ -33,7 +33,7 @@ class PoiController extends Controller
                 st_X(g_poi) AS lng,
                 st_Y(g_poi) AS lat,
                 customer_customer_id
-            FROM poi
+            FROM pois
             WHERE customer_customer_id = ?
             ORDER BY poi_id DESC
         ", [$customerId]);

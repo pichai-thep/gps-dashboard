@@ -59,7 +59,7 @@ class MapLayerController extends Controller
                 ST_X(station_point) AS lng,
                 radius,
                 ST_AsText(station_polygon) AS polygon_wkt
-            FROM station
+            FROM stations
             WHERE customer_customer_id = ?
             ORDER BY station_name ASC
         ", [

@@ -87,19 +87,7 @@ async function loadForbiddenZones() {
 function onMapReady(payload: { map: Map }) {
   map = payload.map
   ensurePreviewLayer()
-  function onMapReady(payload: { map: Map }) {
-    map = payload.map
-    ensurePreviewLayer()
-
-    setTimeout(() => {
-      map?.updateSize()
-
-      if (editingId.value && form.polygon.length) {
-        renderPreview()
-        focusCurrentZone()
-      }
-    }, 100)
-  }
+  fitCurrentZone()
 }
 
 function ensurePreviewLayer() {
@@ -120,6 +108,42 @@ async function openCreate() {
   clearShape()
 }
 
+function fitCurrentZone(retry = 0) {
+  initMap()
+
+  if (!map || !form.polygon.length) {
+    if (retry < 20) {
+      setTimeout(() => fitCurrentZone(retry + 1), 150)
+    }
+    return
+  }
+
+  if (form.polygon.length < 3) {
+    console.warn('Polygon must have at least 3 points', form.polygon)
+    return
+  }
+
+  renderPreview(false)
+
+  setTimeout(() => {
+    map?.updateSize()
+
+    const coords = form.polygon.map((p) => fromLonLat([p.lng, p.lat]))
+    const feature = new Feature(new Polygon([closeRing(coords)]))
+    const extent = feature.getGeometry()?.getExtent()
+
+    if (!extent || extent.some((v) => !Number.isFinite(v))) {
+      console.warn('Invalid extent', extent, form.polygon)
+      return
+    }
+
+    map?.getView().fit(extent, {
+      padding: [80, 80, 80, 80],
+      maxZoom: 17,
+      duration: 600,
+    })
+  }, 300)
+}
 function focusCurrentZone(retry = 0) {
   if (!map) {
     if (retry < 10) {
@@ -155,12 +179,9 @@ async function openEdit(row: ForbiddenZone) {
   form.zone_name = row.zone_name
   form.polygon = parsePolygonWkt(row.polygon_wkt)
 
-  dialogVisible.value = true
+  console.log('polygon=', form.polygon)
 
-  await nextTick()
-  initMap()
-  renderPreview()
-  focusCurrentZone()
+  dialogVisible.value = true
 }
 
 function resetForm() {
@@ -439,7 +460,7 @@ function closeRing(coords: number[][]) {
         :header="editingId ? 'Edit Forbidden Zone' : 'Add Forbidden Zone'"
         class="station-dialog"
         :style="{ width: '960px', maxWidth: '96vw' }"
-        @show="focusCurrentZone"
+        @show="fitCurrentZone"
         @hide="clearDraw"
     >
       <div class="form-grid">

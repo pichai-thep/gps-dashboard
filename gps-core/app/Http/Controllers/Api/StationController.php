@@ -37,7 +37,7 @@ class StationController extends Controller
                 customer_customer_id,
                 created_date,
                 modified_date
-            FROM station
+            FROM stations
             WHERE customer_customer_id = ?
             ORDER BY station_id DESC
         ", [$customerId]);
@@ -110,7 +110,7 @@ class StationController extends Controller
                     created_date,
                     modified_date
                 )
-                VALUES (?, NULL, NULL, ?, ST_GeomFromText(?), ?, NOW(), NOW())
+                VALUES (?, NULL, NULL, ?, ST_GeomFromText(?, 4326, 'axis-order=long-lat'), ?, NOW(), NOW())
             ", [
                 $request->station_name,
                 'polygon',
@@ -141,7 +141,7 @@ class StationController extends Controller
 
         $exists = DB::connection($dbConnection)->selectOne("
             SELECT station_id
-            FROM station
+            FROM stations
             WHERE station_id = ?
               AND customer_customer_id = ?
         ", [$id, $customerId]);
@@ -222,7 +222,7 @@ class StationController extends Controller
         $customerId = $this->customerId($request);
 
         DB::connection($dbConnection)->delete("
-            DELETE FROM station
+            DELETE FROM stations
             WHERE station_id = ?
               AND customer_customer_id = ?
         ", [$id, $customerId]);

@@ -32,7 +32,7 @@ class ForbiddenZoneController extends Controller
                 zone_name,
                 ST_AsText(polygon) AS polygon_wkt,
                 customer_id
-            FROM forbidden_zone
+            FROM forbidden_zones
             WHERE customer_id = ?
             ORDER BY id DESC
         ", [
