@@ -70,7 +70,7 @@ class StationController extends Controller
             ]);
 
             DB::connection($dbConnection)->insert("
-                INSERT INTO station (
+                INSERT INTO stations (
                     station_name,
                     station_point,
                     radius,
@@ -80,7 +80,7 @@ class StationController extends Controller
                     created_date,
                     modified_date
                 )
-                VALUES (?, ST_GeomFromText(?), ?, ?, NULL, ?, NOW(), NOW())
+                VALUES (?, ST_GeomFromText(?,0), ?, ?, NULL, ?, NOW(), NOW())
             ", [
                 $request->station_name,
                 "POINT({$request->lng} {$request->lat})",
@@ -100,7 +100,7 @@ class StationController extends Controller
             $wkt = $this->polygonToWkt($request->polygon);
 
             DB::connection($dbConnection)->insert("
-                INSERT INTO station (
+                INSERT INTO stations (
                     station_name,
                     station_point,
                     radius,
@@ -110,7 +110,7 @@ class StationController extends Controller
                     created_date,
                     modified_date
                 )
-                VALUES (?, NULL, NULL, ?, ST_GeomFromText(?, 4326, 'axis-order=long-lat'), ?, NOW(), NOW())
+                VALUES (?, NULL, NULL, ?, ST_GeomFromText(?,0), ?, NOW(), NOW())
             ", [
                 $request->station_name,
                 'polygon',
@@ -161,10 +161,10 @@ class StationController extends Controller
             ]);
 
             DB::connection($dbConnection)->update("
-                UPDATE station
+                UPDATE stations
                 SET
                     station_name = ?,
-                    station_point = ST_GeomFromText(?),
+                    station_point = ST_GeomFromText(?,0),
                     radius = ?,
                     station_type = ?,
                     station_polygon = NULL,
@@ -191,13 +191,13 @@ class StationController extends Controller
             $wkt = $this->polygonToWkt($request->polygon);
 
             DB::connection($dbConnection)->update("
-                UPDATE station
+                UPDATE stations
                 SET
                     station_name = ?,
                     station_point = NULL,
                     radius = NULL,
                     station_type = ?,
-                    station_polygon = ST_GeomFromText(?),
+                    station_polygon = ST_GeomFromText(?,0),
                     modified_date = NOW()
                 WHERE station_id = ?
                   AND customer_customer_id = ?

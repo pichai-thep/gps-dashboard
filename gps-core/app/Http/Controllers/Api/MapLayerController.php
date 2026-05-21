@@ -32,7 +32,7 @@ class MapLayerController extends Controller
                 icon,
                 ST_Y(g_poi) AS lat,
                 ST_X(g_poi) AS lng
-            FROM poi
+            FROM pois
             WHERE customer_customer_id = ?
             ORDER BY poi_name ASC
         ", [
@@ -82,7 +82,7 @@ class MapLayerController extends Controller
                 id,
                 zone_name,
                 ST_AsText(polygon) AS polygon_wkt
-            FROM forbidden_zone
+            FROM forbidden_zones
             WHERE customer_id = ?
             ORDER BY zone_name ASC
         ", [

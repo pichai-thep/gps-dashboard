@@ -21,7 +21,7 @@ class MigratePois2mysql8 extends Command
 
     public function handle(): int
     {
-        $dbConnection = 'gps5';
+        $dbConnection = 'gps21';
         $dryRun = $this->option('dry-run');
 
         $conn = DB::connection($dbConnection);
@@ -46,17 +46,27 @@ class MigratePois2mysql8 extends Command
 
                 $quoted = $conn->getPdo()->quote($fixedPoint);
 
-                $conn->table('pois')->insert([
-                    'poi_id' => $row->poi_id,
-                    'poi_name' => $row->poi_name,
-                    'icon' => $row->icon,
-                    'g_poi' => DB::raw(
-                        "ST_GeomFromText({$quoted}, 4326, 'axis-order=long-lat')"
-                    ),
-                    'customer_customer_id' => $row->customer_customer_id,
-                ]);
+                $conn->beginTransaction();
+                try {
+                    $conn->table('pois')->truncate();
+                    $conn->table('pois')->insert([
+                        'poi_id' => $row->poi_id,
+                        'poi_name' => $row->poi_name,
+                        'icon' => $row->icon,
+//                        'g_poi' => DB::raw(
+//                            "ST_GeomFromText({$quoted}, 4326, 'axis-order=long-lat')"
+//                        ),
+                        'g_poi' => DB::raw(
+                            "ST_GeomFromText({$quoted},0)"
+                        ),
+                        'customer_customer_id' => $row->customer_customer_id,
+                    ]);
+                    $conn->commit();
+                }catch (\Throwable $tx){
+                    $conn->rollBack();
+                }
 
-                $this->info("Migrated ID {$row->poi_id}");
+                $this->info("Migrated ID {$row->poi_id} $row->g_poi_wkt --> $quoted");
             } catch (\Throwable $e) {
                 $this->error("Failed ID {$row->poi_id}: " . $e->getMessage());
             }
@@ -88,7 +98,8 @@ class MigratePois2mysql8 extends Command
         if (($x >= 5 && $x <= 21) && ($y >= 97 && $y <= 106)) {
             [$x, $y] = [$y, $x];
         }
-
+//        [$x, $y] = [$y, $x];
+        $this->info("x: $x, y: $y");
         return "POINT({$x} {$y})";
     }
 }

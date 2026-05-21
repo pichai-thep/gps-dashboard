@@ -57,7 +57,7 @@ class PoiController extends Controller
         $customerId = $this->customerId($request);
 
         DB::connection($dbConnection)->insert("
-            INSERT INTO poi (
+            INSERT INTO pois (
                 poi_name,
                 icon,
                 g_poi,
@@ -91,7 +91,7 @@ class PoiController extends Controller
 
         $exists = DB::connection($dbConnection)->selectOne("
             SELECT poi_id
-            FROM poi
+            FROM pois
             WHERE poi_id = ?
               AND customer_customer_id = ?
         ", [$id, $customerId]);
@@ -104,7 +104,7 @@ class PoiController extends Controller
         }
 
         DB::connection($dbConnection)->update("
-            UPDATE poi
+            UPDATE pois
             SET
                 poi_name = ?,
                 icon = ?,
@@ -131,7 +131,7 @@ class PoiController extends Controller
         $customerId = $this->customerId($request);
 
         DB::connection($dbConnection)->delete("
-            DELETE FROM poi
+            DELETE FROM pois
             WHERE poi_id = ?
               AND customer_customer_id = ?
         ", [$id, $customerId]);

@@ -34,6 +34,7 @@ class MigrateStation2Mysql8 extends Command
 
         $this->info("Found {$rows->count()} rows");
 
+        $conn->table('stations')->truncate();
         foreach ($rows as $row) {
             try {
                 $fixedPolygon = null;
@@ -78,19 +79,19 @@ class MigrateStation2Mysql8 extends Command
                 if ($fixedPoint) {
                     $quoted = $conn->getPdo()->quote($fixedPoint);
                     $insert['station_point'] = DB::raw("
-                        ST_GeomFromText({$quoted}, 4326, 'axis-order=long-lat')
+                        ST_GeomFromText({$quoted}, 0)
                     ");
                 }
 
                 if ($fixedPolygon) {
                     $quoted = $conn->getPdo()->quote($fixedPolygon);
                     $insert['station_polygon'] = DB::raw("
-                        ST_GeomFromText({$quoted}, 4326, 'axis-order=long-lat')
+                        ST_GeomFromText({$quoted}, 0)
                     ");
                 }
 
                 $conn->table('stations')->insert($insert);
-                $this->info("Migrated ID {$row->station_id}");
+                $this->info("Migrated ID {$row->station_id} {$fixedPoint} {$fixedPolygon}");
 
             } catch (\Throwable $e) {
                 $this->error("Failed ID {$row->station_id} {$e->getMessage()}");

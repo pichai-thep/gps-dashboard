@@ -30,13 +30,13 @@ class MigrateForbiddenZones2mysql8 extends Command
         $rows = $conn->table('forbidden_zone')
             ->select([
                 '*',
-//                DB::raw('ST_AsText(polygon) AS polygon_wkt'),
-                DB::raw('ST_AsText(ST_SwapXY(polygon)) AS polygon_wkt'),
+                DB::raw('ST_AsText(polygon) AS polygon_wkt'),
             ])
             ->get();
 
         $this->info("Found {$rows->count()} rows");
 
+        $conn->table('forbidden_zones')->truncate();
         foreach ($rows as $row) {
 
             try {
@@ -46,14 +46,7 @@ class MigrateForbiddenZones2mysql8 extends Command
                 );
 
                 if ($dryRun) {
-
-                    $this->line("
-ID: {$row->id}
-ZONE: {$row->zone_name}
-
-{$fixedPolygon}
-");
-
+                    $this->line("ID: {$row->id} ZONE: {$row->zone_name} {$fixedPolygon}");
                     continue;
                 }
 
@@ -62,33 +55,22 @@ ZONE: {$row->zone_name}
                 $conn->table('forbidden_zones')->insert([
                     'id' => $row->id,
                     'zone_name' => $row->zone_name,
-
                     'polygon' => DB::raw("
-                        ST_GeomFromText(
-                            {$quoted},
-                            4326,
-                            'axis-order=long-lat'
-                        )
+                        ST_GeomFromText({$quoted},0)
                     "),
-
                     'customer_id' => $row->customer_id,
                     'login' => $row->login ?? null,
                     'created_at' => $row->created_at ?? null,
                 ]);
 
-                $this->info("Migrated ID {$row->id}");
+                $this->info("Migrated ID {$row->id} ZONE: {$row->zone_name} {$fixedPolygon} --> {$quoted}");
 
             } catch (\Throwable $e) {
-
-                $this->error("
-Failed ID {$row->id}
-{$e->getMessage()}
-");
+                $this->error("Failed ID {$row->id} {$e->getMessage()}");
             }
         }
 
         $this->info('DONE');
-
         return self::SUCCESS;
     }
 
@@ -146,7 +128,6 @@ Failed ID {$row->id}
 
             if (empty($clean) ||
                 $clean[count($clean) - 1] !== $point) {
-
                 $clean[] = $point;
             }
         }
