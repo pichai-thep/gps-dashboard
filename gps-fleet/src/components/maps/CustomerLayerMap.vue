@@ -93,7 +93,7 @@ const poiLayer = new VectorLayer({
 
           stroke: new Stroke({
             color: '#10b981',
-            width: 4,
+            width: 2,
           }),
         }),
       }),
