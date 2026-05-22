@@ -146,13 +146,14 @@ function focusToCurrentShape(retry = 0) {
 
   const extent = previewSource.getExtent()
 
-  if (!isEmpty(extent)) {
+  if (extent !== null && !isEmpty(extent)) {
     map.getView().fit(extent, {
       padding: [80, 80, 80, 80],
       duration: 700,
       maxZoom: 17,
     })
   }
+
 }
 
 function onMapReady(payload: { map: Map }) {
