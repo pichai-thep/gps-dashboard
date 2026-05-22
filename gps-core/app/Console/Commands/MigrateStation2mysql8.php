@@ -7,15 +7,15 @@ use Illuminate\Support\Facades\DB;
 
 /*
 test:
-php artisan gps:migrate-station-mysql8 --dry-run
+php artisan gps:migrate-stations-mysql8 --dry-run
 
 real:
-php artisan gps:migrate-station-mysql8
+php artisan gps:migrate-stations-mysql8
 */
 
 class MigrateStation2Mysql8 extends Command
 {
-    protected $signature = 'gps:migrate-station-mysql8 {--dry-run}';
+    protected $signature = 'gps:migrate-stations-mysql8 {--dry-run}';
     protected $description = 'Migrate old station polygons to stations table';
 
     public function handle(): int

@@ -36,6 +36,7 @@ class MigrateForbiddenZones extends Command
 
         $this->info("Found {$rows->count()} rows");
 
+        $conn->table('forbidden_zones')->truncate();
         foreach ($rows as $row) {
 
             try {
@@ -61,10 +62,7 @@ class MigrateForbiddenZones extends Command
                     'zone_name' => $row->zone_name,
 
                     'polygon' => DB::raw("
-                        ST_GeomFromText(
-                            {$quoted}
-
-                        )
+                        ST_GeomFromText({$quoted},0)
                     "),
 
                     'customer_id' => $row->customer_id,

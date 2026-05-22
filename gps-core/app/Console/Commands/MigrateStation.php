@@ -7,15 +7,15 @@ use Illuminate\Support\Facades\DB;
 
 /*
 test:
-php artisan gps:migrate-station-polygons --dry-run
+php artisan gps:migrate-stations --dry-run
 
 real:
-php artisan gps:migrate-station-polygons
+php artisan gps:migrate-stations
 */
 
 class MigrateStation extends Command
 {
-    protected $signature = 'gps:migrate-station {--dry-run}';
+    protected $signature = 'gps:migrate-stations {--dry-run}';
     protected $description = 'Migrate old station polygons to stations table';
 
     public function handle(): int
@@ -34,6 +34,7 @@ class MigrateStation extends Command
 
         $this->info("Found {$rows->count()} rows");
 
+        $conn->table('stations')->truncate();
         foreach ($rows as $row) {
             try {
                 $fixedPolygon = null;
@@ -78,14 +79,14 @@ class MigrateStation extends Command
                 if ($fixedPoint) {
                     $quoted = $conn->getPdo()->quote($fixedPoint);
                     $insert['station_point'] = DB::raw("
-                        ST_GeomFromText({$quoted})
+                        ST_GeomFromText({$quoted},0)
                     ");
                 }
 
                 if ($fixedPolygon) {
                     $quoted = $conn->getPdo()->quote($fixedPolygon);
                     $insert['station_polygon'] = DB::raw("
-                        ST_GeomFromText({$quoted})
+                        ST_GeomFromText({$quoted},0)
                     ");
                 }
 

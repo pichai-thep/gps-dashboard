@@ -35,6 +35,7 @@ class MigratePois extends Command
 
         $this->info("Found {$rows->count()} rows");
 
+        $conn->table('pois')->truncate();
         foreach ($rows as $row) {
             try {
                 $fixedPoint = $this->normalizePointWkt($row->g_poi_wkt);
@@ -51,7 +52,7 @@ class MigratePois extends Command
                     'poi_name' => $row->poi_name,
                     'icon' => $row->icon,
                     'g_poi' => DB::raw(
-                        "ST_GeomFromText({$quoted})"
+                        "ST_GeomFromText({$quoted},0)"
                     ),
                     'customer_customer_id' => $row->customer_customer_id,
                 ]);

@@ -35,6 +35,7 @@ class MigratePois2mysql8 extends Command
 
         $this->info("Found {$rows->count()} rows");
 
+        $conn->table('pois')->truncate();
         foreach ($rows as $row) {
             try {
                 $fixedPoint = $this->normalizePointWkt($row->g_poi_wkt);
@@ -43,28 +44,16 @@ class MigratePois2mysql8 extends Command
                     $this->line("ID {$row->poi_id}: {$row->poi_name} => {$fixedPoint}");
                     continue;
                 }
-
                 $quoted = $conn->getPdo()->quote($fixedPoint);
-
-                $conn->beginTransaction();
-                try {
-                    $conn->table('pois')->truncate();
-                    $conn->table('pois')->insert([
-                        'poi_id' => $row->poi_id,
-                        'poi_name' => $row->poi_name,
-                        'icon' => $row->icon,
-//                        'g_poi' => DB::raw(
-//                            "ST_GeomFromText({$quoted}, 4326, 'axis-order=long-lat')"
-//                        ),
-                        'g_poi' => DB::raw(
-                            "ST_GeomFromText({$quoted},0)"
-                        ),
-                        'customer_customer_id' => $row->customer_customer_id,
-                    ]);
-                    $conn->commit();
-                }catch (\Throwable $tx){
-                    $conn->rollBack();
-                }
+                $conn->table('pois')->insert([
+                    'poi_id' => $row->poi_id,
+                    'poi_name' => $row->poi_name,
+                    'icon' => $row->icon,
+                    'g_poi' => DB::raw(
+                        "ST_GeomFromText({$quoted},0)"
+                    ),
+                    'customer_customer_id' => $row->customer_customer_id,
+                ]);
 
                 $this->info("Migrated ID {$row->poi_id} $row->g_poi_wkt --> $quoted");
             } catch (\Throwable $e) {
