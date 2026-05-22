@@ -33,7 +33,7 @@ export interface VehicleDetail {
 
     current_mileage?: number | null
 
-    ur_rate_type:  'A' | 'B' | null
+    ur_rate_type:  'A' | 'B' | 'C' | null
     ur_rate_satsun: boolean | number | null
     ur_rate_work_hour: number | null
 

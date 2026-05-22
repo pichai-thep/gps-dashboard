@@ -453,6 +453,7 @@
                                     { label: 'None', value: ''},
                                     { label: 'Time-Base', value: 'A' },
                                     { label: 'Engine-Base', value: 'B' },
+                                    { label: 'Distance-Base', value: 'C' },
                                   ]"
                         option-label="label"
                         option-value="value"

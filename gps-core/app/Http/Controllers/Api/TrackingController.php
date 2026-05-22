@@ -178,7 +178,7 @@ class TrackingController extends Controller
         int $perPage
     ): array {
         $stmt = $pdo->prepare("
-            CALL sp_current_track_kw5(?, ?, ?, ?, ?, ?, ?, ?, ?)
+            CALL sp_webapi_current_track(?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([

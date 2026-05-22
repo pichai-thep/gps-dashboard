@@ -311,3 +311,5 @@ do
   redis-cli -a 'GpsPushRedis@2026' --raw lindex "$key" 0
   echo "----------------------"
 done
+
+LRANGE geo:tambon:queue 0 -1

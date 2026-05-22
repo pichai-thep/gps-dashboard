@@ -1,6 +1,6 @@
 ALTER TABLE tracker
     ADD `ur_rate_type` CHAR(1) NULL
-        COMMENT 'A:Time-Base, B:Engine-Base',
+        COMMENT 'A:Time-base, B:Engine-base, C:Distance-base',
 
     ADD `ur_rate_satsun` TINYINT NULL
         COMMENT 'include saturday/sunday',
