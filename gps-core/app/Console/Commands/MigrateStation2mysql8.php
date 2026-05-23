@@ -13,7 +13,7 @@ real:
 php artisan gps:migrate-stations-mysql8
 */
 
-class MigrateStation2Mysql8 extends Command
+class MigrateStation2mysql8 extends Command
 {
     protected $signature = 'gps:migrate-stations-mysql8 {--dry-run}';
     protected $description = 'Migrate old station polygons to stations table';
