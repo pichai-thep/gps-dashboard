@@ -566,7 +566,7 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
         ''
     ),
 
-    address: item.address ?? 'N/A'
+    address: item.address ?? ''
   }
 }
 
