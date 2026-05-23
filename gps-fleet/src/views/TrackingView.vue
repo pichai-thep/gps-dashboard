@@ -144,7 +144,7 @@
           @row-click="onRowClick"
           @page="onPage"
       >
-        <Column header="#" style="width: 38px">
+        <Column header="#" style="width: 30px">
           <template #body="slotProps">
             <div class="row-no">
               {{ (page - 1) * perPage + slotProps.index + 1 }}
@@ -152,7 +152,7 @@
           </template>
         </Column>
 
-        <Column header="Status" style="width: 118px">
+        <Column header="Status" style="width: 120px">
           <template #body="slotProps">
             <div class="status-box">
               <div class="status-row">
@@ -211,7 +211,7 @@
           </template>
         </Column>
 
-        <Column header="GPS / Temp" style="width: 150px">
+        <Column header="GPS / Temp" style="width: 130px">
           <template #body="slotProps">
             <div class="gps-box">
               <div class="gps-line">
@@ -1298,7 +1298,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 1280px) {
   .tracking-page {
-    grid-template-columns: minmax(470px, 42vw) minmax(0, 1fr);
+    grid-template-columns: minmax(500px, 42vw) minmax(0, 1fr);
   }
 
   .panel-header h2 {
@@ -1311,19 +1311,5 @@ onBeforeUnmount(() => {
 
 }
 
-@media (max-width: 980px) {
-  .tracking-page {
-    grid-template-columns: 1fr;
-    height: auto;
-    overflow: visible;
-  }
 
-  .vehicle-panel {
-    height: 620px;
-  }
-
-  .map-area {
-    min-height: 520px;
-  }
-}
 </style>
