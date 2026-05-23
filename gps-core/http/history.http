@@ -1,15 +1,15 @@
 @baseUrl = http://127.0.0.1:8000/api
-@token = dev-token-11424
+@token = dev-token-21166
 @customerId = 548
 
 ### GROUPS
-GET {{baseUrl}}/tracking/groups?customer_id=548
-Accept: application/json
-Authorization: Bearer {{token}}
+#GET {{baseUrl}}/tracking/groups?customer_id=548
+#Accept: application/json
+#Authorization: Bearer {{token}}
 
 
 ### HISTORY TRACKING
-GET {{baseUrl}}/tracking/history?imei=868899048988717&start_date=2026-05-06&end_date=2026-05-07&start_time=00:00&end_time=23:59
+GET {{baseUrl}}/tracking/history?imei=866728064837296&start_date=2026-05-22&end_date=2026-05-23&start_time=00:00&end_time=23:59
 Accept: application/json
 Authorization: Bearer {{token}}
 X-Customer-Id: {{customerId}}

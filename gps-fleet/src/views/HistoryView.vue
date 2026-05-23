@@ -148,7 +148,18 @@
                 @click="selectHistoryRow(index)"
             >
               <td>{{ index + 1 }}</td>
-              <td>{{ row.gps_time ?? '-' }}</td>
+              <td>
+                <div class="gps-time">
+                  {{ row.gps_time ?? '-' }}
+                </div>
+
+                <div
+                    class="address-text"
+                    :title="row.address"
+                >
+                  {{ row.address ?? '-' }}
+                </div>
+              </td>
               <td>{{ row.speed ?? 0 }}</td>
               <td>
                 <span
@@ -500,6 +511,11 @@ async function loadHistory() {
         list[0]
     )
 
+    console.log(
+        'NORMALIZED FIRST ROW',
+        normalizeHistoryPoint(list[0])
+    )
+
     rows.value = list.map(normalizeHistoryPoint)
   } catch (error: any) {
     errorMessage.value =
@@ -549,6 +565,8 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
         item.valid_status ??
         ''
     ),
+
+    address: item.address ?? 'N/A'
   }
 }
 
@@ -673,6 +691,14 @@ function normalizeList<T>(response: any, keys: string[] = []): T[] {
     if (Array.isArray(response?.[key])) {
       return response[key]
     }
+
+    if (Array.isArray(response?.data?.[key])) {
+      return response.data[key]
+    }
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data
   }
 
   return []
@@ -942,6 +968,23 @@ td {
 .status-no_gps {
   color: #ffffff;
   background: #3b82f6;
+}
+
+.gps-time {
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 4px;
+}
+
+.address-text {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #94a3b8;
+
+  white-space: normal;
+  word-break: break-word;
+
+  max-width: 260px;
 }
 
 @media (max-width: 1100px) {

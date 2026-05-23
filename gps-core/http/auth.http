@@ -3,8 +3,8 @@ POST http://127.0.0.1:8000/api/auth/login
 Content-Type: application/json
 
 {
-    "username": "test21",
-    "password": "1234"
+    "username": "admin_comson1",
+    "password": "123456"
 }
 
 ### Me

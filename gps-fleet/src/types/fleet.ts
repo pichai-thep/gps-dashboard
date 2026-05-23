@@ -28,5 +28,6 @@ export type Vehicle = {
     driver_phone?: string | null
     track1?: string
     track3?: string
+    address?: string
 }
 

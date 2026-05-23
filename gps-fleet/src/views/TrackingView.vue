@@ -1,20 +1,24 @@
 <template>
   <div class="tracking-page">
     <aside class="vehicle-panel">
-
       <div class="panel-header">
         <Message v-show="error" severity="error" class="tracking-error">
           {{ error }}
         </Message>
 
         <div class="loading-text" :class="{ active: loading }">
-          Loading tracking...
+          Loading...
         </div>
 
-        <h2>Current Tracking</h2>
+        <div class="header-title-row">
+          <div>
+            <h2>Current Tracking</h2>
 
-        <div class="panel-subtitle">
-          <p>{{ mapVehicles.length }} / {{ totalRecords }} vehicles on map</p>
+            <p class="subtitle">
+              <span>{{ mapVehicles.length }}</span>
+              / {{ totalRecords }} vehicles on map
+            </p>
+          </div>
 
           <div class="refresh-field">
             <i class="pi pi-refresh"></i>
@@ -27,8 +31,6 @@
             />
           </div>
         </div>
-
-
       </div>
 
       <div class="filter-toggle">
@@ -63,66 +65,67 @@
             no-license {{ noDriverCardCount }}
           </button>
         </div>
+
         <div class="control-bar">
-        <div class="filter-field group-filter">
-          <i class="pi pi-users"></i>
+          <div class="filter-field group-filter">
+            <i class="pi pi-users"></i>
 
-          <Dropdown
-              v-model="selectedGroupId"
-              :options="groupOptions"
-              optionLabel="name"
-              optionValue="id"
-              placeholder="Group"
-          />
+            <Dropdown
+                v-model="selectedGroupId"
+                :options="groupOptions"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Group"
+            />
+          </div>
+
+          <div class="filter-field search-input">
+            <i class="pi pi-search"></i>
+
+            <InputText
+                v-model="search"
+                placeholder="Search vehicle..."
+            />
+          </div>
+
+          <div class="filter-field status-filter">
+            <i class="pi pi-flag"></i>
+
+            <Dropdown
+                :modelValue="statusFilter"
+                :options="statusOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Status"
+                showClear
+                @update:modelValue="setStatusAndLoad"
+            />
+          </div>
+
+          <div class="filter-field sort-filter">
+            <i class="pi pi-sort-alpha-down"></i>
+
+            <Dropdown
+                v-model="sortBy"
+                :options="sortOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Sort by"
+            />
+          </div>
+
+          <div class="filter-field sort-dir-filter">
+            <i class="pi pi-sort-alt"></i>
+
+            <Dropdown
+                v-model="sortDir"
+                :options="sortDirOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="ASC"
+            />
+          </div>
         </div>
-
-        <div class="filter-field search-input">
-          <i class="pi pi-search"></i>
-
-          <InputText
-              v-model="search"
-              placeholder="Search vehicle..."
-          />
-        </div>
-
-        <div class="filter-field status-filter">
-          <i class="pi pi-flag"></i>
-
-          <Dropdown
-              :modelValue="statusFilter"
-              :options="statusOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Status"
-              showClear
-              @update:modelValue="setStatusAndLoad"
-          />
-        </div>
-
-        <div class="filter-field sort-filter">
-          <i class="pi pi-sort-alpha-down"></i>
-
-          <Dropdown
-              v-model="sortBy"
-              :options="sortOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Sort by"
-          />
-        </div>
-
-        <div class="filter-field sort-dir-filter">
-          <i class="pi pi-sort-alt"></i>
-
-          <Dropdown
-              v-model="sortDir"
-              :options="sortDirOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="ASC"
-          />
-        </div>
-      </div>
       </div>
 
       <DataTable
@@ -141,64 +144,100 @@
           @row-click="onRowClick"
           @page="onPage"
       >
-        <Column header="#" style="width: 36px">
+        <Column header="#" style="width: 38px">
           <template #body="slotProps">
-            {{ (page - 1) * perPage + slotProps.index + 1 }}
+            <div class="row-no">
+              {{ (page - 1) * perPage + slotProps.index + 1 }}
+            </div>
           </template>
         </Column>
 
-        <Column header="Status" style="width: 105px">
+        <Column header="Status" style="width: 118px">
           <template #body="slotProps">
-            <i
-                :class="[
-                getStatusIcon(slotProps.data.status),
-                'status-icon',
-                slotProps.data.status,
-              ]"
-                :style="getStatusIconStyle(slotProps.data.status, slotProps.data.heading)"
-                v-tooltip="slotProps.data.status"
-            />
+            <div class="status-box">
+              <div class="status-row">
+                <i
+                    :class="[
+                    getStatusIcon(slotProps.data.status),
+                    'status-icon',
+                    slotProps.data.status,
+                  ]"
+                    :style="getStatusIconStyle(slotProps.data.status, slotProps.data.heading)"
+                    v-tooltip="slotProps.data.status"
+                />
 
-            {{ slotProps.data.status }}
+                <span :class="['status-text', slotProps.data.status]">
+                  {{ slotProps.data.status }}
+                </span>
+              </div>
 
-            <template v-if="getDriverStatus(slotProps.data) !== 'hide'">
-              <i
-                  :class="[
-                  'pi',
-                  getDriverIcon(getDriverStatus(slotProps.data)),
-                  getDriverClass(getDriverStatus(slotProps.data)),
-                ]"
-                  v-tooltip="getDriverTooltip(getDriverStatus(slotProps.data))"
-              />
-            </template>
-          </template>
-        </Column>
+              <div class="speed-text">
+                {{ slotProps.data.speed ?? 0 }} km/h
+              </div>
 
-        <Column field="plate_no" header="Plate">
-          <template #body="slotProps">
-            <div class="plate-cell">
-              <strong>{{ slotProps.data.plate_no }}</strong>
-
-              <span class="time-cell">
-                Speed: {{ slotProps.data.speed ?? 0 }} km/h
-                <br />
+              <div class="fuel-badge">
+                <i class="pi pi-car"></i>
                 Fuel: {{ formatFuel(slotProps.data.fuel_left) }}
-              </span>
+              </div>
+
+              <template v-if="getDriverStatus(slotProps.data) !== 'hide'">
+                <i
+                    :class="[
+                    'pi',
+                    getDriverIcon(getDriverStatus(slotProps.data)),
+                    getDriverClass(getDriverStatus(slotProps.data)),
+                  ]"
+                    v-tooltip="getDriverTooltip(getDriverStatus(slotProps.data))"
+                />
+              </template>
             </div>
           </template>
         </Column>
 
-        <Column header="GPSTime" style="width: 90px">
+        <Column field="plate_no" header="Vehicle">
           <template #body="slotProps">
-            <div class="time-cell-gps">
-              {{ formatGpsTimeCompact(slotProps.data.gps_time) }}
+            <div class="vehicle-box">
+              <div class="plate-text">
+                {{ slotProps.data.plate_no }}
+              </div>
+
+              <div
+                  class="address-text"
+                  :title="slotProps.data.address"
+              >
+                {{ slotProps.data.address ?? '-' }}
+              </div>
             </div>
           </template>
         </Column>
 
-        <Column header="" style="width: 44px">
+        <Column header="GPS / Temp" style="width: 150px">
           <template #body="slotProps">
-            <div class="eye-cell">
+            <div class="gps-box">
+              <div class="gps-line">
+                <i class="pi pi-clock"></i>
+                <span>{{ formatGpsTimeCompact(slotProps.data.gps_time) }}</span>
+              </div>
+
+              <div class="temp-line">
+                <i class="pi pi-thermometer"></i>
+                <span>
+                  {{
+                    slotProps.data.temperature !== null &&
+                    slotProps.data.temperature !== undefined &&
+                    slotProps.data.temperature !== ''
+                        ? slotProps.data.temperature + ' °C'
+                        : '- °C'
+                  }}
+                </span>
+              </div>
+            </div>
+          </template>
+        </Column>
+
+        <Column header="" style="width: 42px">
+          <template #body="slotProps">
+            <div class="eye-box">
               <Button
                   text
                   rounded
@@ -251,7 +290,6 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-// type StatusCount = Record<VehicleStatus, number>
 type StatusCount = {
   running: number
   idle: number
@@ -260,9 +298,10 @@ type StatusCount = {
   no_gps: number
   offline: number
 }
+
 type DriverStatus = 'ok' | 'missing' | 'no_license' | 'hide'
+
 const showFilters = ref(false)
-// const showFilters = ref(window.innerWidth > 768)
 const auth = useAuthStore()
 
 const defaultStatusCount: StatusCount = {
@@ -349,7 +388,6 @@ const noDriverCardCount = computed(() => {
   return vehicles.value.filter(isNoDriverCard).length
 })
 
-
 onMounted(async () => {
   statusFilter.value = getStatusFromQuery()
 })
@@ -433,12 +471,6 @@ function resetListState() {
   page.value = 1
   selectedVehicleId.value = null
 }
-
-// function setStatusAndLoad(status: VehicleStatus | null) {
-//   statusFilter.value = status
-//   resetListState()
-//   loadVehicles()
-// }
 
 function setStatusAndLoad(status: VehicleStatus | null) {
   statusFilter.value = status
@@ -680,12 +712,15 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .tracking-page {
-  flex: 1;
   display: grid;
-  grid-template-columns: 420px minmax(0, 1fr);
+  grid-template-columns: minmax(500px, 38vw) minmax(0, 1fr);
   gap: 16px;
+  width: 100%;
+  height: calc(100vh - 118px);
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+  background: #020617;
 }
 
 .vehicle-panel {
@@ -695,82 +730,84 @@ onBeforeUnmount(() => {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-radius: 18px;
-  background: #111827;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: #0f172a;
 }
 
+/* header */
 .panel-header {
   position: relative;
   flex-shrink: 0;
-  padding: 10px 10px 10px;
-  background: #111827;
+  padding: 18px 22px 10px;
+  background: #0f172a;
+}
+
+.header-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.subtitle {
+  margin: 16px 0 0;
+  color: #94a3b8;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.subtitle span {
+  color: #22c55e;
 }
 
 .loading-text {
   position: absolute;
-  top: 10px;
-  right: 16px;
+  top: 8px;
+  right: 22px;
   opacity: 0;
   pointer-events: none;
-  color: #93c5fd;
+  color: #60a5fa;
   font-size: 11px;
-  font-weight: 700;
-  transition: opacity 0.15s ease;
+  font-weight: 800;
 }
 
 .loading-text.active {
   opacity: 1;
 }
 
-.panel-header h2 {
-  margin: 0;
-  color: #ffffff;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.panel-subtitle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2px;
-  margin-top: 2px;
-}
-
-.panel-subtitle p {
-  margin: 0;
-  color: #9ca3af;
-  font-size: 13px;
-  font-weight: 500;
-}
-
+/* refresh */
 .refresh-field {
   display: flex;
   align-items: center;
-  gap: 6px;
-
-  width: 82px;
-  height: 34px;
-  padding: 0 8px;
-
-  border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-
-  background: #0f172a;
+  gap: 7px;
+  width: 96px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: #111827;
 }
 
 .refresh-field > .pi {
   color: #94a3b8;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .refresh-field :deep(.p-dropdown),
 .refresh-field :deep(.p-select) {
   flex: 1;
   min-width: 0;
-  height: 32px;
-
+  height: 38px;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
@@ -779,50 +816,58 @@ onBeforeUnmount(() => {
 .refresh-field :deep(.p-dropdown-label),
 .refresh-field :deep(.p-select-label) {
   padding: 0 !important;
-
-  color: #e5e7eb !important;
-
-  font-size: 13px !important;
-  font-weight: 700;
-  line-height: 32px;
+  color: #f8fafc !important;
+  font-size: 16px !important;
+  font-weight: 900;
+  line-height: 38px;
 }
 
 .refresh-field :deep(.p-dropdown-trigger),
 .refresh-field :deep(.p-select-dropdown) {
-  width: 20px;
+  width: 18px;
   color: #94a3b8 !important;
+}
+
+/* filter */
+.filter-toggle {
+  flex-shrink: 0;
+  padding: 6px 22px 14px;
+  background: #0f172a;
+}
+
+.filter-toggle :deep(.p-button) {
+  padding: 0;
+  color: #34d399 !important;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.filter-toggle :deep(.p-button:hover) {
+  background: transparent !important;
+}
+
+.tracking-filters {
+  flex-shrink: 0;
+  padding: 0 12px 12px;
+  background: #0f172a;
 }
 
 .summary-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
+  gap: 6px;
+  padding: 0 8px 10px;
 }
 
 .summary-item {
-  display: inline-flex;
-  align-items: center;
   height: 24px;
-  padding: 0 6px;
+  padding: 0 7px;
   border: 0;
   border-radius: 999px;
   color: #ffffff;
   font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
+  font-weight: 900;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-
-.summary-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
-}
-
-.summary-item.active {
-  outline: 2px solid rgba(255, 255, 255, 0.85);
-  outline-offset: 2px;
 }
 
 .summary-item.running {
@@ -838,11 +883,11 @@ onBeforeUnmount(() => {
 }
 
 .summary-item.parking {
-  background: #6b7280;
+  background: #2563eb;
 }
 
 .summary-item.no_gps {
-  background: #2563eb;
+  background: #64748b;
 }
 
 .summary-item.offline,
@@ -850,15 +895,19 @@ onBeforeUnmount(() => {
   background: #ef4444;
 }
 
+.summary-item.active {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
 .control-bar {
-  flex-shrink: 0;
   display: grid;
-  grid-template-columns: 1.7fr 1.4fr 100px;
+  grid-template-columns: 1.4fr 1.6fr 90px;
   gap: 5px;
-  padding: 5px;
+  padding: 7px;
+  border-radius: 14px;
   background: #020617;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .group-filter {
@@ -884,22 +933,18 @@ onBeforeUnmount(() => {
 .filter-field {
   display: flex;
   align-items: center;
-  gap: 8px;
-
+  gap: 7px;
   min-width: 0;
-  height: 38px;
-  padding: 0 10px;
-
-  border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-
+  height: 34px;
+  padding: 0 9px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
   background: #0f172a;
 }
 
 .filter-field > .pi {
-  flex: 0 0 auto;
   color: #94a3b8;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .filter-field :deep(.p-dropdown),
@@ -908,127 +953,136 @@ onBeforeUnmount(() => {
   flex: 1;
   width: 100%;
   min-width: 0;
-  height: 36px;
-  font-size: 12px !important;
+  height: 32px;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-
   color: #e5e7eb !important;
+  font-size: 12px !important;
 }
 
 .filter-field :deep(.p-dropdown-label),
 .filter-field :deep(.p-select-label),
 .filter-field :deep(.p-inputtext) {
   padding: 0 !important;
-
   color: #e5e7eb !important;
-
   font-size: 12px !important;
-  font-weight: 700;
-  line-height: 36px;
+  font-weight: 800;
+  line-height: 32px;
 }
 
-.filter-field :deep(.p-placeholder) {
-  color: #64748b !important;
-}
-
-.filter-field :deep(.p-dropdown-trigger),
-.filter-field :deep(.p-select-dropdown) {
-  width: 24px;
-  color: #94a3b8 !important;
-}
-
-.filter-field:focus-within {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
-}
-
-.tracking-error {
-  margin-bottom: 8px;
-}
-
+/* datatable */
 .vehicle-table {
-  height: calc(100vh - 150px);
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: #0f172a !important;
 }
 
+.vehicle-table :deep(.p-datatable),
 .vehicle-table :deep(.p-datatable-wrapper),
 .vehicle-table :deep(.p-datatable-table-container) {
   flex: 1;
   min-height: 0;
-}
-
-.vehicle-table :deep(.p-paginator) {
-  flex-shrink: 0;
-  display: flex !important;
-  background: #111827;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-:deep(.p-datatable-table-container) {
-  width: 100% !important;
-  max-width: 100% !important;
+  background: #0f172a !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
 }
 
-:deep(.p-datatable-table) {
+.vehicle-table :deep(.p-datatable-table) {
   width: 100% !important;
   table-layout: fixed !important;
+  background: #0f172a !important;
 }
 
-:deep(.p-datatable-thead > tr > th) {
-  padding: 12px;
-  background: #ffffff !important;
-  color: #334155 !important;
+.vehicle-table :deep(.p-datatable-thead > tr > th) {
+  height: 42px;
+  padding: 7px 10px !important;
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-top: 1px solid rgba(148, 163, 184, 0.16) !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2) !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1.12;
+}
+
+.vehicle-table :deep(.p-datatable-tbody > tr) {
+  background: #0f172a !important;
+}
+
+.vehicle-table :deep(.p-datatable-tbody > tr:hover) {
+  background: #182235 !important;
+}
+
+.vehicle-table :deep(.p-datatable-tbody > tr > td) {
+  height: 82px;
+  padding: 8px 10px !important;
+  background: transparent !important;
+  color: #e5e7eb !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+  vertical-align: middle !important;
+  overflow: hidden;
+}
+
+.vehicle-table :deep(.selected-vehicle-row) {
+  background: #1e293b !important;
+  box-shadow: inset 3px 0 0 #22c55e;
+}
+
+/* cells */
+.row-no {
+  text-align: center;
+  color: #f8fafc;
   font-size: 15px;
-  font-weight: 800;
-  border-bottom: 1px solid #e2e8f0 !important;
+  font-weight: 900;
 }
 
-:deep(.p-datatable-tbody > tr > td) {
-  padding: 12px;
-  color: #334155;
-  border-bottom: 1px solid #e2e8f0 !important;
+.status-box {
+  min-height: 66px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  padding-left: 8px;
+  border-left: 1px solid rgba(148, 163, 184, 0.14);
 }
 
-:deep(.selected-vehicle-row) {
-  background: #ecfdf5 !important;
-}
-
-:deep(.selected-vehicle-row td) {
-  border-top: 1px solid #22c55e !important;
-  border-bottom: 1px solid #22c55e !important;
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
 }
 
 .status-icon {
-  width: 24px;
-  height: 24px;
+  width: 17px;
+  height: 17px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  filter: saturate(1.35) contrast(1.2) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
-  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  font-size: 15px;
 }
 
-.status-icon.running {
+.status-icon.running,
+.status-icon.moving {
   color: #22c55e;
 }
 
 .status-icon.idle {
-  color: #eab308;
+  color: #facc15;
 }
 
 .status-icon.acc_on {
-  color: #f97316;
+  color: #fb923c;
 }
 
 .status-icon.parking {
-  color: #64748b;
+  color: #60a5fa;
 }
 
 .status-icon.no_gps {
@@ -1039,73 +1093,183 @@ onBeforeUnmount(() => {
   color: #ef4444;
 }
 
-.plate-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.status-text {
   min-width: 0;
-}
-
-.plate-cell strong {
-  display: block;
-  max-width: 100%;
-  color: #334155;
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1.15;
-  word-break: break-word;
-}
-
-.time-cell {
-  width: auto;
-  max-width: 100%;
   overflow: hidden;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.3;
-  white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.time-cell-gps {
-  color: #334155;
-  font-size: 12px;
-  font-weight: 600;
   white-space: nowrap;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: lowercase;
 }
 
-.eye-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.eye-cell :deep(.p-button) {
-  width: 28px;
-  height: 28px;
-  padding: 0;
+.status-text.running,
+.status-text.moving {
   color: #22c55e;
 }
 
-.eye-cell :deep(.p-button:hover) {
-  background: rgba(34, 197, 94, 0.12);
+.status-text.idle {
+  color: #facc15;
 }
 
-.eye-cell :deep(.p-button .pi) {
+.status-text.acc_on {
+  color: #fb923c;
+}
+
+.status-text.parking {
+  color: #60a5fa;
+}
+
+.status-text.no_gps,
+.status-text.offline {
+  color: #ef4444;
+}
+
+.speed-text {
+  color: #22c55e;
+  font-size: 16px;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.fuel-badge {
+  width: fit-content;
+  max-width: 100%;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: #1e293b;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.fuel-badge .pi {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.vehicle-box {
+  min-height: 66px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.plate-text {
+  max-width: 100%;
+  color: #f8fafc;
+  font-size: 16px;
+  font-weight: 950;
+  line-height: 1.15;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.address-text {
+  max-width: 100%;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gps-box {
+  min-height: 66px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.gps-line,
+.temp-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #e5e7eb;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.gps-line .pi,
+.temp-line .pi {
+  color: #60a5fa;
   font-size: 16px;
 }
 
-:deep(.p-datatable-tbody > tr > td:last-child) {
-  padding-right: 8px;
+.eye-box {
+  height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid rgba(148, 163, 184, 0.14);
 }
 
-:deep(.p-datatable-thead > tr > th) {
-  background: #111827 !important;
+.eye-box :deep(.p-button) {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #22c55e !important;
+}
+
+.eye-box :deep(.p-button:hover) {
+  background: rgba(34, 197, 94, 0.12) !important;
+}
+
+.eye-box :deep(.p-button .pi) {
+  font-size: 16px;
+}
+
+/* paginator */
+.vehicle-table :deep(.p-paginator) {
+  flex-shrink: 0;
+  min-height: 48px;
+  display: flex !important;
+  background: #0f172a !important;
   color: #cbd5e1 !important;
+  border-top: 1px solid rgba(148, 163, 184, 0.18) !important;
 }
-:deep(.p-datatable-tbody > tr > td) {
-  padding: 14px 12px;
+
+.vehicle-table :deep(.p-paginator .p-paginator-page),
+.vehicle-table :deep(.p-paginator .p-paginator-next),
+.vehicle-table :deep(.p-paginator .p-paginator-prev),
+.vehicle-table :deep(.p-paginator .p-paginator-first),
+.vehicle-table :deep(.p-paginator .p-paginator-last) {
+  color: #94a3b8 !important;
+  border-radius: 10px;
 }
+
+.vehicle-table :deep(.p-paginator .p-paginator-page.p-highlight),
+.vehicle-table :deep(.p-paginator .p-paginator-page.p-paginator-page-selected) {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border-color: #22c55e !important;
+}
+
 .driver-ok {
   color: #22c55e;
 }
@@ -1118,13 +1282,53 @@ onBeforeUnmount(() => {
   color: #f59e0b;
 }
 
-.tracking-filters {
-  transition: all .2s ease;
-}
-
+/* map */
 .map-area {
   display: flex;
-  min-width: 0;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+@media (max-width: 1280px) {
+  .tracking-page {
+    grid-template-columns: minmax(470px, 42vw) minmax(0, 1fr);
+  }
+
+  .panel-header h2 {
+    font-size: 24px;
+  }
+
+  .vehicle-table :deep(.p-datatable-tbody > tr > td) {
+    height: 78px;
+  }
+
+  .plate-text,
+  .speed-text {
+    font-size: 15px;
+  }
+
+  .gps-line,
+  .temp-line {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 980px) {
+  .tracking-page {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+
+  .vehicle-panel {
+    height: 620px;
+  }
+
+  .map-area {
+    min-height: 520px;
+  }
 }
 </style>

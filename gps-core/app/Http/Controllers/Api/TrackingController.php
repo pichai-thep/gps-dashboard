@@ -222,6 +222,7 @@ class TrackingController extends Controller
             'dlt_synch' => $row->dlt_synch,
             'track1' => $row->track1 ?? null,
             'track3' => $row->track3 ?? null,
+            'address' => $row->address ?? null,
         ];
     }
 

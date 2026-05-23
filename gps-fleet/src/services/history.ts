@@ -26,6 +26,7 @@ export interface HistoryPoint {
     gps_status?: string
     fuel?: number
     fuel_per?: number
+    address?: string
 }
 
 export async function getHistoryTracking(
@@ -38,7 +39,8 @@ export async function getHistoryTracking(
         }
     )
 
-    return response.data
+    console.log(`getHistoryTracking Service res:${JSON.stringify(response.data)}`);
+    return response.data.data as HistoryPoint[]
 }
 
 export async function exportHistoryTracking(
