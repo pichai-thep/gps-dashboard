@@ -713,7 +713,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .tracking-page {
   display: grid;
-  grid-template-columns: minmax(500px, 38vw) minmax(0, 1fr);
+  grid-template-columns: minmax(420px, 32vw) minmax(0, 1fr);
   gap: 16px;
   width: 100%;
   height: calc(100vh - 118px);
@@ -753,7 +753,7 @@ onBeforeUnmount(() => {
 .panel-header h2 {
   margin: 0;
   color: #ffffff;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 950;
   letter-spacing: -0.04em;
   line-height: 1.05;
@@ -762,7 +762,7 @@ onBeforeUnmount(() => {
 .subtitle {
   margin: 16px 0 0;
   color: #94a3b8;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -817,7 +817,7 @@ onBeforeUnmount(() => {
 .refresh-field :deep(.p-select-label) {
   padding: 0 !important;
   color: #f8fafc !important;
-  font-size: 16px !important;
+  font-size: 14px !important;
   font-weight: 900;
   line-height: 38px;
 }
@@ -838,7 +838,7 @@ onBeforeUnmount(() => {
 .filter-toggle :deep(.p-button) {
   padding: 0;
   color: #34d399 !important;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 900;
 }
 
@@ -1004,7 +1004,7 @@ onBeforeUnmount(() => {
   color: #cbd5e1 !important;
   border-top: 1px solid rgba(148, 163, 184, 0.16) !important;
   border-bottom: 1px solid rgba(148, 163, 184, 0.2) !important;
-  font-size: 13px !important;
+  font-size: 11px !important;
   font-weight: 900 !important;
   line-height: 1.12;
 }
@@ -1018,7 +1018,7 @@ onBeforeUnmount(() => {
 }
 
 .vehicle-table :deep(.p-datatable-tbody > tr > td) {
-  height: 82px;
+  height: 72px;
   padding: 8px 10px !important;
   background: transparent !important;
   color: #e5e7eb !important;
@@ -1098,7 +1098,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
   line-height: 1;
   text-transform: lowercase;
@@ -1128,7 +1128,7 @@ onBeforeUnmount(() => {
 
 .speed-text {
   color: #22c55e;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 950;
   line-height: 1;
   white-space: nowrap;
@@ -1170,7 +1170,7 @@ onBeforeUnmount(() => {
 .plate-text {
   max-width: 100%;
   color: #f8fafc;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 950;
   line-height: 1.15;
   white-space: normal;
@@ -1181,7 +1181,7 @@ onBeforeUnmount(() => {
 .address-text {
   max-width: 100%;
   color: #cbd5e1;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 650;
   line-height: 1.35;
   white-space: normal;
@@ -1210,7 +1210,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 7px;
   color: #e5e7eb;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
   white-space: nowrap;
 }
