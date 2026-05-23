@@ -21,13 +21,18 @@ export type Vehicle = {
     heading?: number | null
     gps_time?: string | null
     received_time?: string | null
-    fuel_left?: number | string | null
+
     icon?: string
     dlt_synch: boolean
     driver_name?: string | null
     driver_phone?: string | null
+
     track1?: string
     track3?: string
+
+    fuel_left?: number | string | null
+    temperature?: string
+
     address?: string
 }
 

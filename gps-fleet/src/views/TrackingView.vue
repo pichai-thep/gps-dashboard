@@ -175,7 +175,7 @@
                 {{ slotProps.data.speed ?? 0 }} km/h
               </div>
 
-              <div class="fuel-badge">
+              <div class="fuel-badge" v-if="slotProps.data.fuel_left!=null">
                 <i class="pi pi-car"></i>
                 Fuel: {{ formatFuel(slotProps.data.fuel_left) }}
               </div>
@@ -219,18 +219,21 @@
                 <span>{{ formatGpsTimeCompact(slotProps.data.gps_time) }}</span>
               </div>
 
-              <div class="temp-line">
-                <i class="pi pi-thermometer"></i>
-                <span>
-                  {{
-                    slotProps.data.temperature !== null &&
-                    slotProps.data.temperature !== undefined &&
-                    slotProps.data.temperature !== ''
-                        ? slotProps.data.temperature + ' °C'
-                        : '- °C'
-                  }}
-                </span>
+              <div
+                  class="temp-line"
+                  v-if="
+                      slotProps.data.temperature !== null &&
+                      slotProps.data.temperature !== undefined &&
+                      slotProps.data.temperature !== ''
+                    "
+                                >
+                                  <i class="pi pi-thermometer"></i>
+
+                                  <span>
+                      {{ slotProps.data.temperature }} °C
+                    </span>
               </div>
+
             </div>
           </template>
         </Column>
@@ -437,6 +440,7 @@ async function loadVehicles() {
     })
 
     vehicles.value = response.vehicles
+    console.log("vehicle.value: " + JSON.stringify(vehicles.value))
     totalRecords.value = response.meta.total
     statusCount.value = response.meta.status_counts ?? { ...defaultStatusCount }
   } catch (e: any) {
@@ -1004,7 +1008,7 @@ onBeforeUnmount(() => {
   color: #cbd5e1 !important;
   border-top: 1px solid rgba(148, 163, 184, 0.16) !important;
   border-bottom: 1px solid rgba(148, 163, 184, 0.2) !important;
-  font-size: 11px !important;
+  font-size: 14px !important;
   font-weight: 900 !important;
   line-height: 1.12;
 }
@@ -1036,7 +1040,7 @@ onBeforeUnmount(() => {
 .row-no {
   text-align: center;
   color: #f8fafc;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -1098,8 +1102,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
-  font-weight: 900;
+  font-size: 18px;
+  font-weight: 500;
   line-height: 1;
   text-transform: lowercase;
 }
@@ -1128,9 +1132,9 @@ onBeforeUnmount(() => {
 
 .speed-text {
   color: #22c55e;
-  font-size: 15px;
-  font-weight: 950;
-  line-height: 1;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 2;
   white-space: nowrap;
 }
 
@@ -1170,8 +1174,8 @@ onBeforeUnmount(() => {
 .plate-text {
   max-width: 100%;
   color: #f8fafc;
-  font-size: 15px;
-  font-weight: 950;
+  font-size: 16px;
+  font-weight: 900;
   line-height: 1.15;
   white-space: normal;
   word-break: normal;
@@ -1181,8 +1185,8 @@ onBeforeUnmount(() => {
 .address-text {
   max-width: 100%;
   color: #cbd5e1;
-  font-size: 10px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 400;
   line-height: 1.35;
   white-space: normal;
   word-break: normal;
@@ -1211,7 +1215,7 @@ onBeforeUnmount(() => {
   gap: 7px;
   color: #e5e7eb;
   font-size: 13px;
-  font-weight: 900;
+  font-weight:600;
   white-space: nowrap;
 }
 
@@ -1305,15 +1309,6 @@ onBeforeUnmount(() => {
     height: 78px;
   }
 
-  .plate-text,
-  .speed-text {
-    font-size: 15px;
-  }
-
-  .gps-line,
-  .temp-line {
-    font-size: 13px;
-  }
 }
 
 @media (max-width: 980px) {
