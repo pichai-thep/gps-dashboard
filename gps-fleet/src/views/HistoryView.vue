@@ -63,29 +63,42 @@
             </div>
           </div>
 
+<!--          <div class="date-grid">-->
+<!--            <div class="form-group">-->
+<!--              <label>Start Date</label>-->
+<!--              <input type="date" v-model="startDate" />-->
+<!--            </div>-->
+
+<!--            <div class="form-group">-->
+<!--              <label>Start Time</label>-->
+<!--              <input type="time" v-model="startTime" />-->
+<!--            </div>-->
+<!--          </div>-->
+
+<!--          <div class="date-grid">-->
+<!--            <div class="form-group">-->
+<!--              <label>End Date</label>-->
+<!--              <input type="date" v-model="endDate" />-->
+<!--            </div>-->
+
+<!--            <div class="form-group">-->
+<!--              <label>End Time</label>-->
+<!--              <input type="time" v-model="endTime" />-->
+<!--            </div>-->
+<!--          </div>-->
+
           <div class="date-grid">
             <div class="form-group">
-              <label>Start Date</label>
-              <input type="date" v-model="startDate" />
+              <label>Start Date-time</label>
+              <DatePicker id="datepicker-24h" v-model="datetime1" date-format="dd/mm/yy" showTime hourFormat="24" fluid />
             </div>
 
             <div class="form-group">
-              <label>Start Time</label>
-              <input type="time" v-model="startTime" />
+              <label>End Date-time</label>
+              <DatePicker id="datepicker-24h" v-model="datetime2" date-format="dd/mm/yy" showTime hourFormat="24" fluid />
             </div>
           </div>
 
-          <div class="date-grid">
-            <div class="form-group">
-              <label>End Date</label>
-              <input type="date" v-model="endDate" />
-            </div>
-
-            <div class="form-group">
-              <label>End Time</label>
-              <input type="time" v-model="endTime" />
-            </div>
-          </div>
 
           <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
@@ -230,6 +243,7 @@ import {
 import { getGroups } from '@/services/groups'
 import { getVehicles } from '@/services/vehicles'
 import Button from "primevue/button";
+import {DatePicker} from "primevue";
 
 type GroupItem = {
   group_id: number | string
@@ -282,6 +296,13 @@ const startDate = ref(todayText)
 const endDate = ref(todayText)
 const startTime = ref('00:00')
 const endTime = ref('23:59')
+
+const d1 = new Date()
+const d2 = new Date()
+d1.setHours(0, 0, 0, 0)
+d2.setHours(23, 59, 59, 0)
+const datetime1 = ref<Date | null>(d1)
+const datetime2 = ref<Date | null>(d2)
 
 const showFilters = ref(false)
 
@@ -501,13 +522,19 @@ async function loadHistory() {
   rows.value = []
   selectedHistoryIndex.value = null
 
+  const hh1 = String(datetime1.value?.getHours()).padStart(2, '0')
+  const mm1 = String(datetime1.value?.getMinutes()).padStart(2, '0')
+  const hh2 = String(datetime2.value?.getHours()).padStart(2, '0')
+  const mm2 = String(datetime2.value?.getMinutes()).padStart(2, '0')
+  const hhmm1 = `${hh1}:${mm1}`
+  const hhmm2 = `${hh2}:${mm2}`
   try {
     const response = await getHistoryTracking({
       imei: vehicle.imei,
       start_date: startDate.value,
       end_date: endDate.value,
-      start_time: startTime.value,
-      end_time: endTime.value,
+      start_time: hhmm1,
+      end_time: hhmm2,
     })
 
     const list = normalizeList<any>(
