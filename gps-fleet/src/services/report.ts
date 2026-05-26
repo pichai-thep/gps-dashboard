@@ -7,27 +7,38 @@ export interface ReportGroupOption {
 
 export interface ReportVehicleOption {
     imei: string
-    label: string
+    plate_no: string
     group_id?: number
 }
+
+// export async function getReportGroups() {
+//     const res = await api.get('/reports/options/groups')
+//     return res.data.data as ReportGroupOption[]
+// }
+//
+// export async function getReportVehicles(params?: {
+//     group_ids?: number[]
+// }) {
+//     const res = await api.get('/reports/options/vehicles', {
+//         params,
+//     })
+//
+//     return res.data.data as ReportVehicleOption[]
+// }
 
 export async function getReportGroups() {
     const res = await api.get('/reports/options/groups')
     return res.data.data as ReportGroupOption[]
 }
 
-export async function getReportVehicles(params?: {
-    group_ids?: number[]
-}) {
-    const res = await api.get('/reports/options/vehicles', {
-        params,
-    })
-
+export async function getReportVehicles(params?: { group_ids?: number[] }) {
+    const res = await api.get('/reports/options/vehicles', { params })
     return res.data.data as ReportVehicleOption[]
 }
 
 export interface DailySummaryRow {
     imei: string
+    plate_no: string
     data_date: string
     run_time_s: number
     idle_time_s: number
@@ -73,6 +84,7 @@ export async function getDailySummary(params: {
 export interface StatusSummaryRow {
     id: number
     imei: string
+    plate_no: string
     data_date: string
     gps_status: string
     start_time: string
@@ -84,6 +96,7 @@ export interface StatusSummaryRow {
 export interface StationSummaryRow {
     id: number
     imei: string
+    plate_no: string
     data_date: string
     station_id: number
     station_name: string | null
@@ -96,7 +109,8 @@ export interface StationSummaryRow {
 export async function getStatusSummary(params: {
     date_from: string
     date_to: string
-    imei?: string
+    group_ids?: number[]
+    imeis?: string[]
     status?: string
     page?: number
     per_page?: number
@@ -108,7 +122,8 @@ export async function getStatusSummary(params: {
 export async function getStationSummary(params: {
     date_from: string
     date_to: string
-    imei?: string
+    group_ids?: number[]
+    imeis?: string[]
     station_id?: string
     page?: number
     per_page?: number

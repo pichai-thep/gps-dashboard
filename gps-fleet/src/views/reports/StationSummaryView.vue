@@ -12,7 +12,28 @@
     <div class="filter-card">
       <Calendar v-model="dateFrom" dateFormat="yy-mm-dd" showIcon />
       <Calendar v-model="dateTo" dateFormat="yy-mm-dd" showIcon />
-      <InputText v-model="imei" placeholder="IMEI" @keyup.enter="search" />
+
+      <MultiSelect
+          v-model="selectedGroups"
+          :options="groupOptions"
+          optionLabel="group_name"
+          optionValue="group_id"
+          placeholder="Select Group"
+          display="chip"
+          filter
+          @change="onGroupChange"
+      />
+
+      <MultiSelect
+          v-model="selectedVehicles"
+          :options="vehicleOptions"
+          optionLabel="plate_no"
+          optionValue="imei"
+          placeholder="Select Vehicle"
+          display="chip"
+          filter
+      />
+
       <InputText v-model="stationId" placeholder="Station ID" @keyup.enter="search" />
 
       <Button label="Search" icon="pi pi-search" :loading="loading" @click="search" />
@@ -88,14 +109,24 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Paginator from 'primevue/paginator'
 
-import { getStationSummary, type StationSummaryRow } from '@/services/report'
+import MultiSelect from 'primevue/multiselect'
+import {
+  getStationSummary,
+  getReportGroups,
+  getReportVehicles,
+  type StationSummaryRow,
+} from '@/services/report'
 
 const loading = ref(false)
 
 const dateFrom = ref<Date | null>(new Date())
 const dateTo = ref<Date | null>(new Date())
 
-const imei = ref('')
+const selectedGroups = ref<number[]>([])
+const selectedVehicles = ref<string[]>([])
+
+const groupOptions = ref<any[]>([])
+const vehicleOptions = ref<any[]>([])
 const stationId = ref('')
 
 const rows = ref<StationSummaryRow[]>([])
@@ -135,7 +166,8 @@ async function loadData() {
     const res = await getStationSummary({
       date_from: toDateString(dateFrom.value),
       date_to: toDateString(dateTo.value),
-      imei: imei.value,
+      group_ids: selectedGroups.value,
+      imeis: selectedVehicles.value,
       station_id: stationId.value,
       page: page.value,
       per_page: perPage.value,
@@ -160,10 +192,35 @@ function onPage(event: any) {
   loadData()
 }
 
+function normalizeOptions(res: any) {
+  if (Array.isArray(res)) return res
+  if (Array.isArray(res?.data)) return res.data
+  return []
+}
+
+async function loadOptions() {
+  const groupsRes = await getReportGroups()
+  const vehiclesRes = await getReportVehicles()
+
+  groupOptions.value = normalizeOptions(groupsRes)
+  vehicleOptions.value = normalizeOptions(vehiclesRes)
+}
+
+async function onGroupChange() {
+  selectedVehicles.value = []
+
+  const vehiclesRes = await getReportVehicles({
+    group_ids: selectedGroups.value,
+  })
+
+  vehicleOptions.value = normalizeOptions(vehiclesRes)
+}
+
 function exportCsv() {
   const header = [
     'date',
     'imei',
+    'plate_no',
     'station_id',
     'station_name',
     'start_time',
@@ -174,6 +231,7 @@ function exportCsv() {
   const body = rows.value.map((r) => [
     r.data_date,
     r.imei,
+    r.plate_no,
     r.station_id,
     r.station_name || '',
     r.start_time,

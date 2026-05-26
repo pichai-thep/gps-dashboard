@@ -27,6 +27,7 @@ export interface HistoryPoint {
     fuel?: number
     fuel_per?: number
     address?: string
+    track3?: string
 }
 
 export async function getHistoryTracking(

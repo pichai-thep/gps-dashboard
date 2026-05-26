@@ -204,7 +204,7 @@ class VehicleManagementController extends Controller
             'fuel_mont' => ['nullable', 'boolean'],
             'remark' => ['nullable', 'string', 'max:100'],
 
-            'ur_rate_type' => ['nullable', 'in:A,B'],
+            'ur_rate_type' => ['nullable', 'in:A,B,C'],
             'ur_rate_satsun' => ['nullable', 'boolean'],
             'ur_rate_work_hour' => ['nullable', 'integer', 'min:0', 'max:24'],
 

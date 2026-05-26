@@ -5,14 +5,39 @@
         <h1>Status Timeline Report</h1>
         <p>รายงานช่วงเวลาสถานะรถ</p>
       </div>
-
-      <Button label="Refresh" icon="pi pi-refresh" :loading="loading" @click="loadData" />
+      <Button
+          label="Export CSV"
+          icon="pi pi-download"
+          severity="secondary"
+          :disabled="rows.length === 0"
+          @click="exportCsv"
+      />
     </div>
 
     <div class="filter-card">
       <Calendar v-model="dateFrom" dateFormat="yy-mm-dd" showIcon />
       <Calendar v-model="dateTo" dateFormat="yy-mm-dd" showIcon />
-      <InputText v-model="imei" placeholder="IMEI" @keyup.enter="search" />
+
+      <MultiSelect
+          v-model="selectedGroups"
+          :options="groupOptions"
+          optionLabel="group_name"
+          optionValue="group_id"
+          placeholder="Select Group"
+          display="chip"
+          filter
+          @change="onGroupChange"
+      />
+
+      <MultiSelect
+          v-model="selectedVehicles"
+          :options="vehicleOptions"
+          optionLabel="plate_no"
+          optionValue="imei"
+          placeholder="Select Vehicle"
+          display="chip"
+          filter
+      />
 
       <Dropdown
           v-model="status"
@@ -44,9 +69,11 @@
     </div>
 
     <div class="table-card">
+
       <DataTable :value="rows" :loading="loading" stripedRows responsiveLayout="scroll">
         <Column field="data_date" header="วันที่" />
-        <Column field="imei" header="IMEI" />
+<!--        <Column field="imei" header="IMEI" />-->
+        <Column field="plate_no" header="Plate" style="width: 180px" />
 
         <Column header="Status">
           <template #body="{ data }">
@@ -86,14 +113,23 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Paginator from 'primevue/paginator'
-
-import { getStatusSummary, type StatusSummaryRow } from '@/services/report'
+import MultiSelect from 'primevue/multiselect'
+import {
+  getStatusSummary,
+  getReportGroups,
+  getReportVehicles,
+  type StatusSummaryRow,
+} from '@/services/report'
 
 const loading = ref(false)
 
 const dateFrom = ref<Date | null>(new Date())
 const dateTo = ref<Date | null>(new Date())
-const imei = ref('')
+const selectedGroups = ref<number[]>([])
+const selectedVehicles = ref<string[]>([])
+
+const groupOptions = ref<any[]>([])
+const vehicleOptions = ref<any[]>([])
 const status = ref<string | null>(null)
 
 const rows = ref<StatusSummaryRow[]>([])
@@ -115,6 +151,29 @@ const statusOptions = [
   { label: 'No GPS', value: 'no_gps' },
 ]
 
+function normalizeOptions(res: any) {
+  if (Array.isArray(res)) return res
+  if (Array.isArray(res?.data)) return res.data
+  return []
+}
+
+async function loadOptions() {
+  const groupsRes = await getReportGroups()
+  const vehiclesRes = await getReportVehicles()
+
+  groupOptions.value = normalizeOptions(groupsRes)
+  vehicleOptions.value = normalizeOptions(vehiclesRes)
+}
+
+async function onGroupChange() {
+  selectedVehicles.value = []
+
+  const vehiclesRes = await getReportVehicles({
+    group_ids: selectedGroups.value,
+  })
+
+  vehicleOptions.value = normalizeOptions(vehiclesRes)
+}
 function toDateString(date: Date | null) {
   if (!date) return ''
   const y = date.getFullYear()
@@ -132,11 +191,17 @@ function formatDuration(seconds: number) {
 }
 
 function statusSeverity(value: string) {
-  if (value === 'running') return 'success'
-  if (value === 'idle') return 'warning'
-  if (value === 'parking') return 'info'
-  if (value === 'offline') return 'danger'
-  return 'secondary'
+  const v = String(value || '')
+      .trim()
+      .toLowerCase()
+
+  if (v === 'run') return 'success'
+  if (v === 'idle') return 'warn'
+  if (v === 'park') return 'info'
+  if (v === 'offline') return 'danger'
+  if (v === 'no_gps') return 'secondary'
+
+  return 'contrast'
 }
 
 async function loadData() {
@@ -146,7 +211,8 @@ async function loadData() {
     const res = await getStatusSummary({
       date_from: toDateString(dateFrom.value),
       date_to: toDateString(dateTo.value),
-      imei: imei.value,
+      group_ids: selectedGroups.value,
+      imeis: selectedVehicles.value,
       status: status.value || '',
       page: page.value,
       per_page: perPage.value,
@@ -175,6 +241,7 @@ function exportCsv() {
   const header = [
     'date',
     'imei',
+    'plate_no',
     'status',
     'start_time',
     'end_time',
@@ -184,6 +251,7 @@ function exportCsv() {
   const body = rows.value.map((r) => [
     r.data_date,
     r.imei,
+    r.plate_no,
     r.gps_status,
     r.start_time,
     r.end_time,
@@ -215,7 +283,11 @@ function downloadCsv(filename: string, header: string[], rows: Array<Array<strin
   URL.revokeObjectURL(link.href)
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await loadOptions()
+  await loadData()
+})
+
 </script>
 
 <style scoped>

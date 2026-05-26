@@ -1,3 +1,6 @@
+
+http://localhost:8000/api/reports/daily-summary?date_from=2026-05-24&date_to=2026-05-26&imeis%5B%5D=864606041741959&imeis%5B%5D=864606041747246&imeis%5B%5D=860470063304947&page=1&per_page=50
+
 <template>
   <div class="report-page">
     <div class="page-header">
@@ -14,13 +17,7 @@
           @click="exportCsv"
       />
 
-      <Button
-          label="Refresh"
-          icon="pi pi-refresh"
-          class="refresh-btn"
-          :loading="loading"
-          @click="loadData"
-      />
+
     </div>
 
     <div class="filter-card">
@@ -50,11 +47,12 @@
       <MultiSelect
           v-model="selectedVehicles"
           :options="vehicleOptions"
-          optionLabel="label"
+          optionLabel="plate_no"
           optionValue="imei"
           placeholder="Select Vehicle"
           display="chip"
           filter
+          aria-multiline="true"
       />
 
       <Button
@@ -63,6 +61,7 @@
           :loading="loading"
           @click="search"
       />
+
     </div>
 
     <div class="summary-grid">
@@ -100,11 +99,12 @@
           responsiveLayout="scroll"
           class="summary-table"
       >
-        <Column field="data_date" header="วันที่" style="width: 130px" />
+        <Column field="data_date" header="วันที่" style="width: 120px" />
 
-        <Column field="imei" header="IMEI" style="width: 180px" />
+<!--        <Column field="imei" header="IMEI" style="width: 180px" />-->
+        <Column field="plate_no" header="Plate" style="width: 180px" />
 
-        <Column header="Running">
+        <Column header="Running" style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatDuration(data.run_time_s)"
@@ -113,7 +113,7 @@
           </template>
         </Column>
 
-        <Column header="Idle">
+        <Column header="Idle" style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatDuration(data.idle_time_s)"
@@ -122,7 +122,7 @@
           </template>
         </Column>
 
-        <Column header="Parking">
+        <Column header="Parking" style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatDuration(data.park_time_s)"
@@ -131,13 +131,31 @@
           </template>
         </Column>
 
-        <Column header="Distance">
+        <Column header="Distance" style="width: 120px">
           <template #body="{ data }">
             <b>{{ formatKm(data.distance_m) }}</b>
           </template>
         </Column>
 
-        <Column field="updated_at" header="Updated" style="width: 180px" />
+        <Column field="ur_formula" header="Formula" style="width: 170px">
+          <template #body="{ data }">
+            <Tag
+                :value="data.ur_formula"
+                severity="secondary"
+            />
+          </template>
+        </Column>
+
+        <Column header="UR Rate" style="width: 120px">
+          <template #body="{ data }">
+            <Tag
+                :value="formatPercent(data.ur_rate)"
+                :severity="urRateSeverity(data.ur_rate)"
+            />
+          </template>
+        </Column>
+
+        <Column field="updated_at" header="Updated" style="width: 200px" />
       </DataTable>
 
       <Paginator
@@ -195,17 +213,47 @@ const summary = ref({
   distance_m: 0,
 })
 
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined) return '-'
+  return `${Number(value).toFixed(2)}%`
+}
+
+function urRateSeverity(value?: number | null) {
+  if (value == null) return 'secondary'
+
+  if (value >= 80) return 'success'
+  if (value >= 50) return 'warning'
+
+  return 'danger'
+}
+
+function normalizeOptions(res: any) {
+  if (Array.isArray(res)) return res
+  if (Array.isArray(res?.data)) return res.data
+  return []
+}
+
 async function loadOptions() {
-  groupOptions.value = await getReportGroups()
-  vehicleOptions.value = await getReportVehicles()
+  const groupsRes = await getReportGroups()
+  const vehiclesRes = await getReportVehicles()
+
+  groupOptions.value = normalizeOptions(groupsRes)
+  vehicleOptions.value = normalizeOptions(vehiclesRes)
+
+  console.log('groups', groupOptions.value)
+  console.log('vehicles', vehicleOptions.value)
 }
 
 async function onGroupChange() {
   selectedVehicles.value = []
 
-  vehicleOptions.value = await getReportVehicles({
+  const vehiclesRes = await getReportVehicles({
     group_ids: selectedGroups.value,
   })
+
+  vehicleOptions.value = normalizeOptions(vehiclesRes)
+
+  console.log('vehicles by group', vehicleOptions.value)
 }
 
 function toDateString(date: Date | null) {
@@ -270,20 +318,26 @@ function exportCsv() {
   const header = [
     'date',
     'imei',
+    'plate_no',
     'running',
     'idle',
     'parking',
     'distance_km',
+    'ur_formula',
+    'ur_rate',
     'updated_at',
   ]
 
   const body = rows.value.map((r) => [
     r.data_date,
     r.imei,
+    r.plate_no,
     formatDuration(r.run_time_s),
     formatDuration(r.idle_time_s),
     formatDuration(r.park_time_s),
     (Number(r.distance_m || 0) / 1000).toFixed(2),
+    (r as any).ur_formula,
+    formatPercent((r as any).ur_rate),
     r.updated_at,
   ])
 
