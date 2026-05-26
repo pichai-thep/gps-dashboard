@@ -6,7 +6,7 @@ ALTER TABLE tracker
         COMMENT 'include saturday/sunday',
 
     ADD `ur_rate_work_hour` TINYINT NULL
-        COMMENT 'working hour/day'
+        COMMENT 'working hour/day',
 
     ADD `ur_rate_target_km` DECIMAL(8,2) NULL
         COMMENT 'target distance km/day for C:Distance-base';
