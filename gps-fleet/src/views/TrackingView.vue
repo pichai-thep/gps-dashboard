@@ -207,6 +207,14 @@
               >
                 {{ slotProps.data.address ?? '-' }}
               </div>
+
+              <div v-if="slotProps.data.track3"
+                  class="address-text"
+                  :title="slotProps.data.track3"
+              >
+                {{ slotProps.data.track3 ?? '-' }}
+              </div>
+
             </div>
           </template>
         </Column>
