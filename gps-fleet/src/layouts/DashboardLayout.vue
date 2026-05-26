@@ -25,46 +25,104 @@
         />
       </div>
 
-      <nav class="menu">
-        <RouterLink to="/" class="menu-item">
-          <i class="pi pi-chart-line" title="Fleet Dashboard"></i>
-          <span v-if="!sidebarCollapsed">Dashboard</span>
-        </RouterLink>
+<!--      <nav class="menu">-->
+<!--        <RouterLink to="/" class="menu-item">-->
+<!--          <i class="pi pi-chart-line" title="Fleet Dashboard"></i>-->
+<!--          <span v-if="!sidebarCollapsed">Dashboard</span>-->
+<!--        </RouterLink>-->
 
-        <RouterLink to="/tracking" class="menu-item">
-          <i class="pi pi-map" title="Current tracking"></i>
-          <span v-if="!sidebarCollapsed">Tracking</span>
-        </RouterLink>
+<!--        <RouterLink to="/tracking" class="menu-item">-->
+<!--          <i class="pi pi-map" title="Current tracking"></i>-->
+<!--          <span v-if="!sidebarCollapsed">Tracking</span>-->
+<!--        </RouterLink>-->
 
-        <RouterLink to="/history" class="menu-item">
-          <i class="pi pi-history" title="History Query"></i>
-          <span v-if="!sidebarCollapsed">History</span>
-        </RouterLink>
+<!--        <RouterLink to="/history" class="menu-item">-->
+<!--          <i class="pi pi-history" title="History Query"></i>-->
+<!--          <span v-if="!sidebarCollapsed">History</span>-->
+<!--        </RouterLink>-->
 
-        <RouterLink to="/vehicles" class="menu-item">
-          <i class="pi pi-car" title="Manage Vehicles"></i>
-          <span v-if="!sidebarCollapsed">Vehicle Management</span>
-        </RouterLink>
+<!--        <RouterLink to="/vehicles" class="menu-item">-->
+<!--          <i class="pi pi-car" title="Manage Vehicles"></i>-->
+<!--          <span v-if="!sidebarCollapsed">Vehicle Management</span>-->
+<!--        </RouterLink>-->
 
-        <RouterLink to="/stations" class="menu-item">
-          <i class="pi pi-warehouse" title="Manage Stations"></i>
-          <span v-if="!sidebarCollapsed">Station Management</span>
-        </RouterLink>
+<!--        <RouterLink to="/stations" class="menu-item">-->
+<!--          <i class="pi pi-warehouse" title="Manage Stations"></i>-->
+<!--          <span v-if="!sidebarCollapsed">Station Management</span>-->
+<!--        </RouterLink>-->
 
-        <RouterLink to="/pois" class="menu-item">
-          <i class="pi pi-map-marker" title="Manage POIs"></i>
-          <span v-if="!sidebarCollapsed">POI Management</span>
-        </RouterLink>
+<!--        <RouterLink to="/pois" class="menu-item">-->
+<!--          <i class="pi pi-map-marker" title="Manage POIs"></i>-->
+<!--          <span v-if="!sidebarCollapsed">POI Management</span>-->
+<!--        </RouterLink>-->
 
-        <RouterLink to="/forbidden-zones" class="menu-item">
-          <i class="pi pi-ban" title="Manage Forbidden Zones"></i>
-          <span v-if="!sidebarCollapsed">Forbidden Zone Management</span>
-        </RouterLink>
+<!--        <RouterLink to="/forbidden-zones" class="menu-item">-->
+<!--          <i class="pi pi-ban" title="Manage Forbidden Zones"></i>-->
+<!--          <span v-if="!sidebarCollapsed">Forbidden Zone Management</span>-->
+<!--        </RouterLink>-->
 
+<!--        <NotificationBell title="Notification Messages" />-->
 
-        <NotificationBell title="Notification Messages" />
+<!--      </nav>-->
 
-      </nav>
+      <PanelMenu
+          v-if="!sidebarCollapsed"
+          v-model:expandedKeys="expandedKeys"
+          :model="menuItems"
+          class="sidebar-panel-menu"
+      />
+
+      <div v-else class="collapsed-menu">
+        <button :class="{ active: route.path === '/' }" @click="router.push('/')">
+          <i class="pi pi-chart-line"></i>
+        </button>
+
+        <button :class="{ active: isActive('/tracking') }" @click="router.push('/tracking')">
+          <i class="pi pi-map"></i>
+        </button>
+
+        <button :class="{ active: isActive('/history') }" @click="router.push('/history')">
+          <i class="pi pi-history"></i>
+        </button>
+
+        <button :class="{ active: isActive('/vehicles') }" @click="router.push('/vehicles')">
+          <i class="pi pi-car"></i>
+        </button>
+
+        <button :class="{ active: isActive('/stations') }" @click="router.push('/stations')">
+          <i class="pi pi-warehouse"></i>
+        </button>
+
+        <button :class="{ active: isActive('/pois') }" @click="router.push('/pois')">
+          <i class="pi pi-map-marker"></i>
+        </button>
+
+        <button :class="{ active: isActive('/forbidden-zones') }" @click="router.push('/forbidden-zones')">
+          <i class="pi pi-ban"></i>
+        </button>
+
+<!--        <button :class="{ active: isActive('/reports') }" @click="router.push('/reports/daily-summary')">-->
+<!--          <i class="pi pi-chart-bar"></i>-->
+<!--        </button>-->
+
+        <button
+            :class="{ active: isActive('/vehicles') || isActive('/stations') || isActive('/pois') || isActive('/forbidden-zones') }"
+            title="Management"
+            @click="openManagementMenu"
+        >
+          <i class="pi pi-cog"></i>
+        </button>
+
+        <button
+            :class="{ active: isActive('/reports') }"
+            title="Reports"
+            @click="openReportsMenu"
+        >
+          <i class="pi pi-chart-bar"></i>
+        </button>
+
+      </div>
+
     </aside>
 
     <div class="main">
@@ -128,7 +186,96 @@ import Button from 'primevue/button'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import NotificationBell from "@/components/notifications/NotificationBell.vue";
-const sidebarCollapsed = ref(true)
+import PanelMenu from 'primevue/panelmenu'
+import MultiSelect from 'primevue/multiselect'
+
+function isActive(path: string) {
+  return route.path === path || route.path.startsWith(path + '/')
+}
+
+const expandedKeys = ref<Record<string, boolean>>({
+  management: true,
+  reports: true,
+})
+
+const menuItems = computed(() => [
+  {
+    label: 'Dashboard',
+    icon: 'pi pi-chart-line',
+    styleClass: route.path === '/' ? 'active-menu' : '',
+    command: () => router.push('/'),
+  },
+  {
+    label: 'Tracking',
+    icon: 'pi pi-map',
+    styleClass: isActive('/tracking') ? 'active-menu' : '',
+    command: () => router.push('/tracking'),
+  },
+  {
+    label: 'History',
+    icon: 'pi pi-history',
+    styleClass: isActive('/history') ? 'active-menu' : '',
+    command: () => router.push('/history'),
+  },
+  {
+    key: 'management',
+    label: 'Management',
+    icon: 'pi pi-cog',
+    items: [
+      {
+        label: 'Vehicle Management',
+        icon: 'pi pi-car',
+        styleClass: isActive('/vehicles') ? 'active-menu' : '',
+        command: () => router.push('/vehicles'),
+      },
+      {
+        label: 'Station Management',
+        icon: 'pi pi-warehouse',
+        styleClass: isActive('/stations') ? 'active-menu' : '',
+        command: () => router.push('/stations'),
+      },
+      {
+        label: 'POI Management',
+        icon: 'pi pi-map-marker',
+        styleClass: isActive('/pois') ? 'active-menu' : '',
+        command: () => router.push('/pois'),
+      },
+      {
+        label: 'Forbidden Zone',
+        icon: 'pi pi-ban',
+        styleClass: isActive('/forbidden-zones') ? 'active-menu' : '',
+        command: () => router.push('/forbidden-zones'),
+      },
+    ],
+  },
+  {
+    key: 'reports',
+    label: 'Reports',
+    icon: 'pi pi-chart-bar',
+    items: [
+      {
+        label: 'Daily Summary',
+        icon: 'pi pi-calendar',
+        styleClass: isActive('/reports/daily-summary') ? 'active-menu' : '',
+        command: () => router.push('/reports/daily-summary'),
+      },
+      {
+        label: 'Status Timeline',
+        icon: 'pi pi-clock',
+        styleClass: isActive('/reports/status-summary') ? 'active-menu' : '',
+        command: () => router.push('/reports/status-summary'),
+      },
+      {
+        label: 'Station Visit',
+        icon: 'pi pi-warehouse',
+        styleClass: isActive('/reports/station-summary') ? 'active-menu' : '',
+        command: () => router.push('/reports/station-summary'),
+      },
+    ],
+  },
+])
+
+const sidebarCollapsed = ref(false)
 
 const router = useRouter()
 const route = useRoute()
@@ -195,6 +342,7 @@ onMounted(async () => {
   }
 })
 
+
 async function logout() {
   await auth.logout()
   router.push('/login')
@@ -209,6 +357,21 @@ function onLogoError(event: Event) {
   }
 }
 
+function openReportsMenu() {
+  sidebarCollapsed.value = false
+  expandedKeys.value = {
+    ...expandedKeys.value,
+    reports: true,
+  }
+}
+
+function openManagementMenu() {
+  sidebarCollapsed.value = false
+  expandedKeys.value = {
+    ...expandedKeys.value,
+    management: true,
+  }
+}
 
 </script>
 
@@ -217,6 +380,90 @@ function onLogoError(event: Event) {
   display: flex;
   min-height: 100vh;
   background: #020617;
+}
+
+.sidebar-panel-menu {
+  border: none;
+  background: transparent;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-panel) {
+  background: transparent;
+  border: none;
+  margin-bottom: 4px;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-header-content) {
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-header-link) {
+  color: #cbd5e1;
+  padding: 11px 12px;
+  border-radius: 10px;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-header-link:hover) {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+
+:deep(.sidebar-panel-menu .p-menuitem-link) {
+  color: #cbd5e1;
+  padding: 10px 12px 10px 28px;
+  border-radius: 10px;
+}
+
+:deep(.sidebar-panel-menu .p-menuitem-link:hover) {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+:deep(.sidebar-panel-menu .p-menuitem-icon),
+:deep(.sidebar-panel-menu .p-panelmenu-header-icon) {
+  color: #94a3b8;
+}
+
+:deep(.sidebar-panel-menu .active-menu > .p-menuitem-content) {
+  background: #2563eb;
+}
+
+:deep(.sidebar-panel-menu .active-menu > .p-menuitem-content .p-menuitem-link) {
+  color: #ffffff;
+}
+
+:deep(.sidebar-panel-menu .active-menu .p-menuitem-icon) {
+  color: #ffffff;
+}
+
+.collapsed-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.collapsed-menu button {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.collapsed-menu button:hover {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+.collapsed-menu button.active {
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .sidebar {
@@ -404,4 +651,99 @@ function onLogoError(event: Event) {
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
+
+.sidebar-panel-menu {
+  border: none;
+  background: transparent;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-panel) {
+  background: transparent;
+  border: none;
+  margin-bottom: 4px;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-header-content) {
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-header-link) {
+  color: #cbd5e1;
+  padding: 11px 12px;
+  border-radius: 10px;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-header-link:hover) {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-content) {
+  background: transparent;
+  border: none;
+  padding: 4px 0 6px 0;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-submenu) {
+  display: block;
+  padding-left: 8px;
+}
+
+:deep(.sidebar-panel-menu .p-menuitem-link) {
+  color: #cbd5e1;
+  padding: 10px 12px 10px 28px;
+  border-radius: 10px;
+}
+
+:deep(.sidebar-panel-menu .p-menuitem-link:hover) {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+:deep(.sidebar-panel-menu .p-menuitem-icon),
+:deep(.sidebar-panel-menu .p-panelmenu-header-icon) {
+  color: #94a3b8;
+}
+
+.collapsed-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.collapsed-menu button {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.collapsed-menu button:hover {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+:deep(.sidebar-panel-menu .active-menu > .p-menuitem-content) {
+  background: #2563eb;
+}
+
+:deep(.sidebar-panel-menu .active-menu > .p-menuitem-content .p-menuitem-link) {
+  color: #ffffff;
+}
+
+:deep(.sidebar-panel-menu .active-menu .p-menuitem-icon) {
+  color: #ffffff;
+}
+
+.collapsed-menu button.active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
 </style>

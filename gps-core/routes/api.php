@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\MapLayerController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PoiController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\TrackingController;
 use App\Http\Controllers\Api\VehicleManagementController;
@@ -66,6 +67,15 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::get('/notifications/recent', [NotificationController::class, 'recent']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
+
+    Route::prefix('reports')->group(function () {
+        Route::get('/daily-summary', [ReportController::class, 'dailySummary']);
+        Route::get('/status-summary', [ReportController::class, 'statusSummary']);
+        Route::get('/station-summary', [ReportController::class, 'stationSummary']);
+
+        Route::get('/options/groups', [ReportController::class, 'groupOptions']);
+        Route::get('/options/vehicles', [ReportController::class, 'vehicleOptions']);
+    });
 
 });
 

@@ -8,6 +8,15 @@ export interface VehicleItem {
     group_id?: number | string
 }
 
+export async function getReportVehicles(params?: {
+    group_ids?: number[]
+}) {
+    const res = await api.get('/reports/options/vehicles', {
+        params,
+    })
+
+    return res.data.data
+}
 export async function getVehiclesByGroup(groupId: number | string) {
     const response = await api.get('/tracking/current', {
         params: {

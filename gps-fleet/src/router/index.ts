@@ -113,6 +113,35 @@ const router = createRouter({
                     name: 'notifications',
                     component: NotificationsView,
                 },
+
+                {
+                    path: '/reports/daily-summary',
+                    name: 'DailySummary',
+                    component: () => import('@/views/reports/DailySummaryView.vue'),
+                    meta: {
+                        requiresAuth: true,
+                        title: 'Daily Summary Report',
+                    },
+                },
+
+                {
+                    path: '/reports/status-summary',
+                    name: 'StatusSummary',
+                    component: () => import('@/views/reports/StatusSummaryView.vue'),
+                    meta: {
+                        requiresAuth: true,
+                        title: 'Status Timeline Report',
+                    },
+                },
+                {
+                    path: '/reports/station-summary',
+                    name: 'StationSummary',
+                    component: () => import('@/views/reports/StationSummaryView.vue'),
+                    meta: {
+                        requiresAuth: true,
+                        title: 'Station Visit Report',
+                    },
+                },
             ],
         },
     ],
