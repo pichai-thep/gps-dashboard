@@ -159,6 +159,15 @@
                 >
                   {{ row.address ?? '-' }}
                 </div>
+
+                <div v-if="row.track3"
+                    class="track3-text"
+                    :title="row.address"
+                >
+                  <i class="pi pi-id-card" />
+                  {{ row.track3 ?? '-' }}
+                </div>
+
               </td>
               <td>{{ row.speed ?? 0 }}</td>
               <td>
@@ -984,6 +993,15 @@ td {
   white-space: normal;
   word-break: break-word;
 
+  max-width: 260px;
+}
+
+.track3-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #22c55e;
+  white-space: normal;
+  word-break: break-word;
   max-width: 260px;
 }
 
