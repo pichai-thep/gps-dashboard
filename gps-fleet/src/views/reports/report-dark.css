@@ -34,12 +34,13 @@
 .filter-card {
     display: grid;
     grid-template-columns:
-    180px   /* date from */
-    180px   /* date to */
-    260px   /* group */
-    minmax(320px, 1fr) /* vehicle */
-    140px;   /* search */
-    gap: 12px;
+    160px   /* date from */
+    160px   /* date to */
+    200px   /* group */
+    minmax(100px, 1fr) /* vehicle */
+    150px
+    100px;   /* search */
+    gap: 10px;
     align-items: center;
 }
 

@@ -39,6 +39,7 @@ export interface HistoryPoint {
     acc_state?: boolean | number
     state?: string | number
     gps_status?: string
+    num_sats?: number
     fuel?: number
     fuel_per?: number
     address?: string

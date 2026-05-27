@@ -164,6 +164,7 @@
               <th>#</th>
               <th>GPS Time</th>
               <th>Speed</th>
+              <th>Sat</th>
               <th>Status</th>
             </tr>
             </thead>
@@ -205,6 +206,7 @@
 
               </td>
               <td>{{ row.speed ?? 0 }}</td>
+              <td>{{ row.num_sats ?? '-' }}</td>
               <td>
                 <span
                     class="status-pill"
@@ -998,7 +1000,7 @@ td {
   justify-content: center;
   gap: 5px;
 
-  width: 110px;
+  width: 100px;
   height: 24px;
 
   border-radius: 999px;
