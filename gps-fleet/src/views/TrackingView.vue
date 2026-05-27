@@ -228,6 +228,15 @@
               </div>
 
               <div
+                  class="gps-line satellite-line"
+                  :class="{
+                      low: Number(slotProps.data.num_sats ?? 0) < 4
+                    }">
+                <i class="pi pi-wave-pulse"></i>
+                <span>Sat: {{ slotProps.data.num_sats ?? '-' }}</span>
+              </div>
+
+              <div
                   class="temp-line"
                   v-if="
                       slotProps.data.temperature !== null &&
@@ -1254,6 +1263,18 @@ onBeforeUnmount(() => {
 
 .eye-box :deep(.p-button .pi) {
   font-size: 16px;
+}
+
+.satellite-line .pi {
+  color: #22c55e;
+}
+.satellite-line.low {
+  color: #ef4444;
+  font-weight: 800;
+}
+
+.satellite-line.low .pi {
+  color: #ef4444;
 }
 
 /* paginator */

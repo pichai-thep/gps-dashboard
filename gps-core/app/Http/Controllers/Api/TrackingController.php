@@ -223,6 +223,7 @@ class TrackingController extends Controller
             'track1' => $row->track1 ?? null,
             'track3' => $row->track3 ?? null,
             'address' => $row->address ?? null,
+            'num_sats' => $row->num_sats ?? null,
         ];
     }
 

@@ -34,5 +34,6 @@ export type Vehicle = {
     temperature?: string
 
     address?: string
+    num_sats?: number | string | null
 }
 
