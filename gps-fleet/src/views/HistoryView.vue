@@ -345,7 +345,7 @@ const selectedHistoryIndex = ref<number | null>(null)
 const rows = ref<HistoryPoint[]>([])
 
 const currentPage = ref(1)
-const perPage = ref(100)
+const perPage = ref(1000)
 const totalRows = ref(0)
 const totalPages = ref(0)
 
