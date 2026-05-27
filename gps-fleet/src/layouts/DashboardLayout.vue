@@ -105,13 +105,13 @@
 <!--          <i class="pi pi-chart-bar"></i>-->
 <!--        </button>-->
 
-        <button
-            :class="{ active: isActive('/vehicles') || isActive('/stations') || isActive('/pois') || isActive('/forbidden-zones') }"
-            title="Management"
-            @click="openManagementMenu"
-        >
-          <i class="pi pi-cog"></i>
-        </button>
+<!--        <button-->
+<!--            :class="{ active: isActive('/vehicles') || isActive('/stations') || isActive('/pois') || isActive('/forbidden-zones') }"-->
+<!--            title="Management"-->
+<!--            @click="openManagementMenu"-->
+<!--        >-->
+<!--          <i class="pi pi-cog"></i>-->
+<!--        </button>-->
 
         <button
             :class="{ active: isActive('/reports') }"
@@ -218,38 +218,31 @@ const menuItems = computed(() => [
     command: () => router.push('/history'),
   },
   {
-    key: 'management',
-    label: 'Management',
-    icon: 'pi pi-cog',
-    items: [
-      {
-        label: 'Vehicle Management',
-        icon: 'pi pi-car',
-        styleClass: isActive('/vehicles') ? 'active-menu' : '',
-        command: () => router.push('/vehicles'),
-      },
-      {
-        label: 'Station Management',
-        icon: 'pi pi-warehouse',
-        styleClass: isActive('/stations') ? 'active-menu' : '',
-        command: () => router.push('/stations'),
-      },
-      {
-        label: 'POI Management',
-        icon: 'pi pi-map-marker',
-        styleClass: isActive('/pois') ? 'active-menu' : '',
-        command: () => router.push('/pois'),
-      },
-      {
-        label: 'Forbidden Zone',
-        icon: 'pi pi-ban',
-        styleClass: isActive('/forbidden-zones') ? 'active-menu' : '',
-        command: () => router.push('/forbidden-zones'),
-      },
-    ],
+    label: 'My Vehicles',
+    icon: 'pi pi-car',
+    styleClass: isActive('/vehicles') ? 'active-menu' : '',
+    command: () => router.push('/vehicles'),
   },
   {
-    key: 'reports',
+    label: 'My Stations',
+    icon: 'pi pi-warehouse',
+    styleClass: isActive('/stations') ? 'active-menu' : '',
+    command: () => router.push('/stations'),
+  },
+  {
+    label: 'My POIs',
+    icon: 'pi pi-map-marker',
+    styleClass: isActive('/pois') ? 'active-menu' : '',
+    command: () => router.push('/pois'),
+  },
+  {
+    label: 'Forbidden Zones',
+    icon: 'pi pi-ban',
+    styleClass: isActive('/forbidden-zones') ? 'active-menu' : '',
+    command: () => router.push('/forbidden-zones'),
+  },
+  {
+    key: 'Reports',
     label: 'Reports',
     icon: 'pi pi-chart-bar',
     items: [

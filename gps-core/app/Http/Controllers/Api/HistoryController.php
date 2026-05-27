@@ -50,9 +50,7 @@ class HistoryController extends Controller
 
         $pdo = DB::connection($dbConnection)->getPdo();
         $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
-
-//        $stmt = $pdo->prepare('CALL sp_history_track_all7(?, ?, ?, ?, ?)');
-        $stmt = $pdo->prepare('CALL sp_webapi_history(?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_webapi_history2(?, ?, ?, ?, ?)');
 
         $imei = $request->imei;
         $sdate = $request->start_date;

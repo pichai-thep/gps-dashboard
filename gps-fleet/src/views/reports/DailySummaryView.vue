@@ -99,7 +99,7 @@ http://localhost:8000/api/reports/daily-summary?date_from=2026-05-24&date_to=202
           responsiveLayout="scroll"
           class="summary-table"
       >
-        <Column field="data_date" header="วันที่" style="width: 120px" />
+        <Column field="data_date" header="วันที่" style="width: 150px" />
 
 <!--        <Column field="imei" header="IMEI" style="width: 180px" />-->
         <Column field="plate_no" header="Plate" style="width: 180px" />
@@ -131,7 +131,7 @@ http://localhost:8000/api/reports/daily-summary?date_from=2026-05-24&date_to=202
           </template>
         </Column>
 
-        <Column header="Distance" style="width: 120px">
+        <Column header="Distance" style="width: 150px">
           <template #body="{ data }">
             <b>{{ formatKm(data.distance_m) }}</b>
           </template>
