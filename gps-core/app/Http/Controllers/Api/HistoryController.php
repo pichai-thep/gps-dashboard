@@ -18,6 +18,8 @@ class HistoryController extends Controller
             'end_date' => 'required|date_format:Y-m-d',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i',
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:5000',
         ]);
 
         $dbConnection = $request->attributes->get('gps_connection');
@@ -39,7 +41,81 @@ class HistoryController extends Controller
             ], 422);
         }
 
+        if (!$dbConnection) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Database connection not found',
+            ], 400);
+        }
 
+        $pdo = DB::connection($dbConnection)->getPdo();
+        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
+        $stmt = $pdo->prepare('CALL sp_webapi_history4(?, ?, ?, ?, ?, ?, ?)');
+        $imei = $request->imei;
+        $sdate = $request->start_date;
+        $edate = $request->end_date;
+        $stime = $request->start_time;
+        $etime = $request->end_time;
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 1000);
+
+        $stmt->bindParam(1, $imei, PDO::PARAM_STR);
+        $stmt->bindParam(2, $sdate, PDO::PARAM_STR);
+        $stmt->bindParam(3, $edate, PDO::PARAM_STR);
+        $stmt->bindParam(4, $stime, PDO::PARAM_STR);
+        $stmt->bindParam(5, $etime, PDO::PARAM_STR);
+        $stmt->bindParam(6, $page, PDO::PARAM_INT);
+        $stmt->bindParam(7, $perPage, PDO::PARAM_INT);
+
+        $stmt->execute();
+
+        $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        $pagination = [];
+        if ($stmt->nextRowset()) {
+            $pagination = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        }
+        $rows = [];
+        if ($stmt->nextRowset()) {
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        $stmt->closeCursor();
+
+        return response()->json([
+            'success' => true,
+            'summary' => $summary,
+            'pagination' => $pagination,
+            'data' => $rows,
+        ]);
+    }
+
+    public function export(Request $request)
+    {
+        $request->validate([
+            'imei' => 'required|string',
+            'start_date' => 'required|date_format:Y-m-d',
+            'end_date' => 'required|date_format:Y-m-d',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i',
+        ]);
+
+        $dbConnection = $request->attributes->get('gps_connection');
+
+        $start = Carbon::parse($request->start_date . ' ' . $request->start_time . ':00');
+        $end = Carbon::parse($request->end_date . ' ' . $request->end_time . ':59');
+
+        if ($start->greaterThanOrEqualTo($end)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Start time must be before end time',
+            ], 422);
+        }
+
+        if ($start->diffInDays($end) > 7) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Date range cannot exceed 7 days',
+            ], 422);
+        }
 
         if (!$dbConnection) {
             return response()->json([
@@ -50,37 +126,98 @@ class HistoryController extends Controller
 
         $pdo = DB::connection($dbConnection)->getPdo();
         $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
-        $stmt = $pdo->prepare('CALL sp_webapi_history2(?, ?, ?, ?, ?)');
-
+        $stmt = $pdo->prepare('CALL sp_webapi_history4(?, ?, ?, ?, ?, ?, ?)');
         $imei = $request->imei;
         $sdate = $request->start_date;
         $edate = $request->end_date;
         $stime = $request->start_time;
         $etime = $request->end_time;
+        $page = 1;
+        $perPage = 10000;
 
         $stmt->bindParam(1, $imei, PDO::PARAM_STR);
         $stmt->bindParam(2, $sdate, PDO::PARAM_STR);
         $stmt->bindParam(3, $edate, PDO::PARAM_STR);
         $stmt->bindParam(4, $stime, PDO::PARAM_STR);
         $stmt->bindParam(5, $etime, PDO::PARAM_STR);
+        $stmt->bindParam(6, $page, PDO::PARAM_INT);
+        $stmt->bindParam(7, $perPage, PDO::PARAM_INT);
 
         $stmt->execute();
 
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        $pagination = [];
+        if ($stmt->nextRowset()) {
+            $pagination = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        }
+        $rows = [];
+        if ($stmt->nextRowset()) {
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
         $stmt->closeCursor();
 
-        return response()->json([
-            'success' => true,
-            'total' => count($rows),
-            'data' => $rows,
-        ]);
-    }
+        $csvRows = [];
 
-    public function export(Request $request)
-    {
-        return response()->json([
-            'success' => false,
-            'message' => 'Export not implemented yet',
-        ], 501);
+// UTF-8 BOM ให้ Excel เปิดภาษาไทยได้
+        $csv = "\xEF\xBB\xBF";
+
+// Summary
+        $csvRows[] = ['Summary'];
+        $csvRows[] = ['Run-time', $summary['run_time'] ?? '00:00:00'];
+        $csvRows[] = ['Idle-time', $summary['idle_time'] ?? '00:00:00'];
+        $csvRows[] = ['Park-time', $summary['park_time'] ?? '00:00:00'];
+        $csvRows[] = ['Distance (km)', $summary['distance_km'] ?? 0];
+        $csvRows[] = [];
+
+// Header
+        $csvRows[] = [
+            'No',
+            'GPS Time',
+            'Plate No',
+            'Speed',
+            'Status',
+            'Latitude',
+            'Longitude',
+            'Fuel',
+            'Temperature',
+            'Address',
+        ];
+
+        foreach ($rows as $index => $row) {
+            $csvRows[] = [
+                $index + 1,
+                $row['data_date'] ?? $row['gps_time'] ?? '',
+                $row['plate_no'] ?? '',
+                $row['speed'] ?? 0,
+                $row['car_status'] ?? '',
+                $row['lat'] ?? '',
+                $row['lng'] ?? '',
+                $row['fuel_left'] ?? '',
+                $row['temperature'] ?? '',
+                $row['address'] ?? '',
+            ];
+        }
+
+        $handle = fopen('php://temp', 'r+');
+
+        foreach ($csvRows as $line) {
+            fputcsv($handle, $line);
+        }
+
+        rewind($handle);
+        $csv .= stream_get_contents($handle);
+        fclose($handle);
+
+        $filename = sprintf(
+            'history-%s-%s-%s.csv',
+            $imei,
+            $sdate,
+            $edate
+        );
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
     }
 }

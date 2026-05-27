@@ -6,6 +6,21 @@ export interface HistoryTrackingParams {
     end_date: string
     start_time: string
     end_time: string
+    page?: number
+    per_page?: number
+}
+
+export interface HistoryResponse {
+    success: boolean
+    summary: any
+    pagination: {
+        total_rows: number
+        page: number
+        per_page: number
+        total_pages: number
+        offset_rows: number
+    }
+    data: HistoryPoint[]
 }
 
 export interface HistoryPoint {
@@ -30,18 +45,9 @@ export interface HistoryPoint {
     track3?: string
 }
 
-export async function getHistoryTracking(
-    params: HistoryTrackingParams
-) {
-    const response = await api.get(
-        '/tracking/history',
-        {
-            params,
-        }
-    )
-
-    console.log(`getHistoryTracking Service res:${JSON.stringify(response.data)}`);
-    return response.data.data as HistoryPoint[]
+export async function getHistoryTracking(params: HistoryTrackingParams): Promise<HistoryResponse> {
+    const response = await api.get('/tracking/history', { params })
+    return response.data
 }
 
 export async function exportHistoryTracking(

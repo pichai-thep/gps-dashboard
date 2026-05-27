@@ -135,6 +135,28 @@
 <!--          </div>-->
 <!--        </div>-->
 
+        <div v-if="summary" class="summary-grid">
+          <div class="summary-card running">
+            <span>Run-time</span>
+            <strong>{{ summary.run_time ?? '00:00:00' }}</strong>
+          </div>
+
+          <div class="summary-card idle">
+            <span>Idle-time</span>
+            <strong>{{ summary.idle_time ?? '00:00:00' }}</strong>
+          </div>
+
+          <div class="summary-card parking">
+            <span>Park-time</span>
+            <strong>{{ summary.park_time ?? '00:00:00' }}</strong>
+          </div>
+
+          <div class="summary-card distance">
+            <span>Distance</span>
+            <strong>{{ summary.distance_km ?? 0 }} km</strong>
+          </div>
+        </div>
+
         <div class="table-scroll">
           <table>
             <thead>
@@ -217,6 +239,41 @@
             </tbody>
           </table>
         </div>
+
+        <div
+            v-if="totalRows > 0"
+            class="pagination-footer"
+        >
+          <div class="pagination-info">
+            {{ totalRows }} records
+            / {{ totalPages }} pages
+          </div>
+
+          <div class="pagination-buttons">
+
+            <button
+                class="secondary-button"
+                :disabled="currentPage <= 1"
+                @click="goToPage(currentPage - 1)"
+            >
+              Prev
+            </button>
+
+            <div class="page-number">
+              {{ currentPage }}
+            </div>
+
+            <button
+                class="secondary-button"
+                :disabled="currentPage >= totalPages"
+                @click="goToPage(currentPage + 1)"
+            >
+              Next
+            </button>
+
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -237,6 +294,7 @@ import HistoryMap from '@/components/maps/HistoryMap.vue'
 
 import {
   getHistoryTracking,
+  exportHistoryTracking,
   type HistoryPoint,
 } from '@/services/history'
 
@@ -285,6 +343,13 @@ const selectedVehicle = ref<number | string | null>(null)
 const selectedHistoryIndex = ref<number | null>(null)
 
 const rows = ref<HistoryPoint[]>([])
+
+const currentPage = ref(1)
+const perPage = ref(100)
+const totalRows = ref(0)
+const totalPages = ref(0)
+
+const summary = ref<any>({})
 
 const today = new Date()
 const yyyy = today.getFullYear()
@@ -390,6 +455,13 @@ function getStatusIcon(
 //       normalizeStatus(state, speed, gpsStatus)
 //       ] ?? 'pi pi-circle'
 // }
+
+function formatDate(d: Date) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 function getStatusClass(
     state: any,
@@ -531,26 +603,22 @@ async function loadHistory() {
   try {
     const response = await getHistoryTracking({
       imei: vehicle.imei,
-      start_date: startDate.value,
-      end_date: endDate.value,
+      start_date: formatDate(datetime1.value!),
+      end_date: formatDate(datetime2.value!),
       start_time: hhmm1,
       end_time: hhmm2,
+      page: currentPage.value,
+      per_page: perPage.value,
     })
 
-    const list = normalizeList<any>(
-        response,
-        ['data', 'rows', 'result']
-    )
+    const list = response?.data ?? []
+    summary.value = response?.summary ?? {}
+    totalRows.value = response?.pagination?.total_rows ?? 0
+    totalPages.value = response?.pagination?.total_pages ?? 0
 
-    console.log(
-        'HISTORY RAW FIRST ROW',
-        list[0]
-    )
+    console.log('HISTORY RAW FIRST ROW', list[0])
 
-    console.log(
-        'NORMALIZED FIRST ROW',
-        normalizeHistoryPoint(list[0])
-    )
+    console.log('NORMALIZED FIRST ROW', normalizeHistoryPoint(list[0]))
 
     rows.value = list.map(normalizeHistoryPoint)
   } catch (error: any) {
@@ -562,6 +630,15 @@ async function loadHistory() {
   }
 }
 
+async function goToPage(page: number) {
+
+  if (page < 1) return
+  if (page > totalPages.value) return
+
+  currentPage.value = page
+
+  await loadHistory()
+}
 
 function normalizeHistoryPoint(item: any): HistoryPoint {
   const gpsTime =
@@ -610,74 +687,32 @@ function selectHistoryRow(index: number) {
   selectedHistoryIndex.value = index
 }
 
-function exportXls() {
+async function exportXls() {
+  const vehicle = findSelectedVehicle()
 
-  const header = [
-    'No',
-    'GPS Time',
-    'Speed',
-    'Status',
-    'Latitude',
-    'Longitude',
-  ]
+  if (!vehicle?.imei || !datetime1.value || !datetime2.value) {
+    errorMessage.value = 'กรุณาเลือกรถและช่วงเวลา'
+    return
+  }
 
-  const lines = rows.value.map((row, index) => {
+  const hh1 = String(datetime1.value.getHours()).padStart(2, '0')
+  const mm1 = String(datetime1.value.getMinutes()).padStart(2, '0')
+  const hh2 = String(datetime2.value.getHours()).padStart(2, '0')
+  const mm2 = String(datetime2.value.getMinutes()).padStart(2, '0')
 
-    const lat =
-        row.lat ??
-        row.latitude ??
-        ''
-
-    const lng =
-        row.lng ??
-        row.longitude ??
-        ''
-
-    return [
-
-      index + 1,
-
-      row.gps_time ?? '',
-
-      row.speed ?? 0,
-
-      getStatusLabel(
-          row.state,
-          row.speed,
-          row.gps_status,
-      ),
-
-      lat,
-
-      lng,
-
-    ].join('\t')
+  const blob = await exportHistoryTracking({
+    imei: vehicle.imei,
+    start_date: formatDate(datetime1.value),
+    end_date: formatDate(datetime2.value),
+    start_time: `${hh1}:${mm1}`,
+    end_time: `${hh2}:${mm2}`,
   })
 
-  const content = [
-    header.join('\t'),
-    ...lines,
-  ].join('\n')
-
-  const blob = new Blob(
-      [content],
-      {
-        type:
-            'application/vnd.ms-excel;charset=utf-8;',
-      }
-  )
-
-  const url =
-      URL.createObjectURL(blob)
-
-  const link =
-      document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
 
   link.href = url
-
-  link.download =
-      `history-${startDate.value}-${endDate.value}.xls`
-
+  link.download = `history-${vehicle.plate_no}-${formatDate(datetime1.value)}-${formatDate(datetime2.value)}.csv`
   link.click()
 
   URL.revokeObjectURL(url)
@@ -1047,5 +1082,79 @@ td {
   .map-panel {
     height: 560px;
   }
+}
+
+.pagination-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 12px 16px;
+
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+
+  background: #0f172a;
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-number {
+  min-width: 44px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.summary-card {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.summary-card span {
+  display: block;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.summary-card strong {
+  display: block;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.summary-card.running strong {
+  color: #22c55e;
+}
+
+.summary-card.idle strong {
+  color: #eab308;
+}
+
+.summary-card.parking strong {
+  color: #ef4444;
+}
+
+.summary-card.distance strong {
+  color: #38bdf8;
 }
 </style>
