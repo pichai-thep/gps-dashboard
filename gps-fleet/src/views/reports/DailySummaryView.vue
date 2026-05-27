@@ -75,6 +75,14 @@ http://localhost:8000/api/reports/daily-summary?date_from=2026-05-24&date_to=202
         <strong>{{ formatKm(summary.distance_m) }}</strong>
       </div>
 
+      <div class="summary-card ur-rate">
+        <span>UR Rate Avg</span>
+
+        <strong>
+          {{ formatPercent(avgUrRate) }}
+        </strong>
+      </div>
+
       <div class="summary-card running">
         <span>Running</span>
         <strong>{{ formatDuration(summary.run_time_s) }}</strong>
@@ -170,7 +178,7 @@ http://localhost:8000/api/reports/daily-summary?date_from=2026-05-24&date_to=202
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import Button from 'primevue/button'
 import Calendar from 'primevue/calendar'
 import InputText from 'primevue/inputtext'
@@ -195,8 +203,16 @@ const vehicleOptions = ref<any[]>([])
 
 const loading = ref(false)
 
-const dateFrom = ref<Date | null>(new Date())
-const dateTo = ref<Date | null>(new Date())
+// const dateFrom = ref<Date | null>(new Date())
+// const dateTo = ref<Date | null>(new Date())
+
+const now = new Date()
+const yesterday = new Date()
+yesterday.setDate(yesterday.getDate() - 1)
+yesterday.setHours(0, 0, 0, 0)
+
+const dateFrom = ref<Date | null>(yesterday)
+const dateTo = ref<Date | null>(now)
 
 const rows = ref<DailySummaryRow[]>([])
 
@@ -211,6 +227,23 @@ const summary = ref({
   idle_time_s: 0,
   park_time_s: 0,
   distance_m: 0,
+  ur_rate_avg: 0,
+})
+
+const avgUrRate = computed(() => {
+  if (!rows.value.length) return 0
+
+  let total = 0
+  let count = 0
+  for (const row of rows.value) {
+    const ur = Number((row as any).ur_rate)
+    if (!isNaN(ur)) {
+      total += ur
+      count++
+    }
+  }
+  if (count <= 0) return 0
+  return total / count
 })
 
 function formatPercent(value: number | null | undefined) {
@@ -387,4 +420,13 @@ onMounted(async () => {
 .summary-card.parking {
   border-color: rgba(59, 130, 246, 0.35);
 }
+
+.summary-card.ur-rate {
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+.summary-card.ur-rate strong {
+  color: #c084fc;
+}
+
 </style>

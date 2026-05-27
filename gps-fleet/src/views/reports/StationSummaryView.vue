@@ -119,8 +119,13 @@ import {
 
 const loading = ref(false)
 
-const dateFrom = ref<Date | null>(new Date())
-const dateTo = ref<Date | null>(new Date())
+const now = new Date()
+const yesterday = new Date()
+yesterday.setDate(yesterday.getDate() - 1)
+yesterday.setHours(0, 0, 0, 0)
+
+const dateFrom = ref<Date | null>(yesterday)
+const dateTo = ref<Date | null>(now)
 
 const selectedGroups = ref<number[]>([])
 const selectedVehicles = ref<string[]>([])

@@ -56,6 +56,7 @@ export interface DailySummaryResponse {
         idle_time_s: number
         park_time_s: number
         distance_m: number
+        ur_rate_avg: number
     }
     data: DailySummaryRow[]
     pagination: {
