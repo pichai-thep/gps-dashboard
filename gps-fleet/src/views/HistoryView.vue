@@ -163,9 +163,8 @@
             <tr>
               <th>#</th>
               <th>GPS Time</th>
-              <th>Speed</th>
-              <th>Sat</th>
               <th>Status</th>
+              <th></th>
             </tr>
             </thead>
 
@@ -205,37 +204,51 @@
                 </div>
 
               </td>
-              <td>{{ row.speed ?? 0 }}</td>
-              <td>{{ row.num_sats ?? '-' }}</td>
+              <td>
+
+
+                  <div>Fuel: {{ row.fuel_left ?? 0 }}</div>
+                  <div>Temp: {{ row.temperature ?? 0 }}</div>
+
+              </td>
               <td>
                 <span
                     class="status-pill"
                     :class="
-                    getStatusClass(
-                      row.state,
-                      row.speed,
-                      row.gps_status,
-                    )
-                  "
-                >
-                  <i
-                      :class="
-                      getStatusIcon(
+                      getStatusClass(
                         row.state,
                         row.speed,
                         row.gps_status,
                       )
                     "
-                  />
+                                >
+                  <div
+                      class="status-arrow"
+                      :class="
+                        getStatusClass(
+                          row.state,
+                          row.speed,
+                          row.gps_status,
+                        )
+                      "
+                      :style="{
+                        transform: `rotate(${(row.heading ?? 0) - 90}deg)`
+                      }"
+                  >
+                    ➤
+                  </div>
 
                   {{
-                    getStatusLabel(
-                        row.state,
-                        row.speed,
-                        row.gps_status,
-                    )
-                  }}
+                                    getStatusLabel(
+                                        row.state,
+                                        row.speed,
+                                        row.gps_status,
+                                    )
+                                  }}
                 </span>
+                <div>sp: {{ row.speed ?? 0 }}</div>
+                <div>dir: {{ row.heading ?? 0 }}</div>
+                <div>Sat: {{ row.num_sats ?? 0 }}</div>
               </td>
             </tr>
             </tbody>
@@ -390,20 +403,20 @@ function normalizeStatus(
 
   // running
   if (stateValue === 1 && speedValue > 0) {
-    return 'running'
+    return 'run'
   }
 
   // start
   if (stateValue === 1 && speedValue <= 0) {
-    return 'start'
+    return 'idle'
   }
 
   // parking
   if (stateValue === 0) {
-    return 'parking'
+    return 'park'
   }
 
-  return 'parking'
+  return 'park'
 }
 
 function getStatusLabel(
@@ -413,50 +426,14 @@ function getStatusLabel(
 ): string {
 
   return {
-    running: 'Running',
-    start: 'Start',
-    parking: 'Parking',
-    no_gps: 'No GPS',
+    run: 'Run',
+    idle: 'Idle',
+    park: 'Park',
+    no_gps: 'No-GPS',
   }[
       normalizeStatus(state, speed, gpsStatus)
       ] ?? '-'
 }
-
-function getStatusIcon(
-    state: any,
-    speed: any,
-    gpsStatus: any,
-): string {
-
-  return {
-    running: 'pi pi-play-circle',
-    start: 'pi pi-pause-circle',
-    parking: 'pi pi-stop-circle',
-    no_gps: 'pi pi-times-circle',
-  }[
-      normalizeStatus(
-          state,
-          speed,
-          gpsStatus,
-      )
-      ] ?? 'pi pi-circle'
-}
-
-// function getStatusIcon(
-//     state: any,
-//     speed: any,
-//     gpsStatus: any,
-// ): string {
-//
-//   return {
-//     running: 'pi pi-play-circle',
-//     start: 'pi pi-pause-circle',
-//     parking: 'pi pi-stop-circle',
-//     no_gps: 'pi pi-exclamation-circle',
-//   }[
-//       normalizeStatus(state, speed, gpsStatus)
-//       ] ?? 'pi pi-circle'
-// }
 
 function formatDate(d: Date) {
   const y = d.getFullYear()
@@ -1023,19 +1000,19 @@ td {
   flex-shrink: 0;
 }
 
-.status-running {
+.status-run {
   color: #052e16;
   background: #22c55e;
 }
 
-.status-start {
+.status-idle {
   color: #422006;
   background: #eab308;
 }
 
-.status-parking {
+.status-park {
   color: #ffffff;
-  background: #ef4444;
+  background: #64748b;
 }
 
 .status-no_gps {
@@ -1159,4 +1136,37 @@ td {
 .summary-card.distance strong {
   color: #38bdf8;
 }
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  min-width: 105px;
+  height: 28px;
+
+  padding: 0 10px;
+
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-arrow {
+  width: 18px;
+  height: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 16px;
+  font-weight: 900;
+
+  transition: transform 0.2s ease;
+}
+
+
 </style>

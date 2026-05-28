@@ -48,6 +48,11 @@
           <strong>{{ popupData.lat }}, {{ popupData.lng }}</strong>
         </div>
 
+        <div class="popup-row">
+          <span>Direction</span>
+          <strong>{{ popupData.heading }}</strong>
+        </div>
+
         <div class="popup-row" v-if="popupData.driver_license_name">
           <span>License Name</span>
           <strong>{{ popupData.driver_license_name ?? '-' }}</strong>

@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\DB;
 class TrackingController extends Controller
 {
     private const DEFAULT_STATUS_COUNTS = [
-        'running' => 0,
+        'run' => 0,
         'idle' => 0,
         'acc_on' => 0,
-        'parking' => 0,
+        'park' => 0,
         'no_gps' => 0,
         'offline' => 0,
     ];
@@ -304,11 +304,11 @@ class TrackingController extends Controller
         }
 
         if (!$isAccOn) {
-            return 'parking';
+            return 'park';
         }
 
         if ($speed > 0) {
-            return 'running';
+            return 'run';
         }
 
         if ($extPower > $engineVolt) {

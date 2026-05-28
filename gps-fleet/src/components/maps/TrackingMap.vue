@@ -588,7 +588,7 @@ function getVehicleIcon(
 
   switch (vehicle.status) {
 
-    case 'running':
+    case 'run':
       return `/cars/${carType}/${getDirectionName(vehicle.heading)}.png`
 
     case 'idle':
@@ -597,7 +597,7 @@ function getVehicleIcon(
     case 'acc_on':
       return `/cars/${carType}/acc-on.png`
 
-    case 'parking':
+    case 'park':
     case 'offline':
     case 'no_gps':
 

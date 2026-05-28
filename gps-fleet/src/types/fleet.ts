@@ -1,8 +1,8 @@
 export type VehicleStatus =
-    | 'running'
+    | 'run'
     | 'idle'
     | 'acc_on'
-    | 'parking'
+    | 'park'
     | 'no_gps'
     | 'offline'
 

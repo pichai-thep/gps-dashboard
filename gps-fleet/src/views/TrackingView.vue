@@ -311,10 +311,10 @@ const route = useRoute()
 const router = useRouter()
 
 type StatusCount = {
-  running: number
+  run: number
   idle: number
   acc_on: number
-  parking: number
+  park: number
   no_gps: number
   offline: number
 }
@@ -325,10 +325,10 @@ const showFilters = ref(false)
 const auth = useAuthStore()
 
 const defaultStatusCount: StatusCount = {
-  running: 0,
+  run: 0,
   idle: 0,
   acc_on: 0,
-  parking: 0,
+  park: 0,
   no_gps: 0,
   offline: 0,
 }
@@ -340,19 +340,19 @@ const refreshOptions = [
 ]
 
 const statusOptions = [
-  { label: 'Running', value: 'running' },
+  { label: 'Run', value: 'run' },
   { label: 'Idle', value: 'idle' },
   { label: 'ACC:on', value: 'acc_on' },
-  { label: 'Parking', value: 'parking' },
+  { label: 'Park', value: 'park' },
   { label: 'No GPS', value: 'no_gps' },
   { label: 'Offline', value: 'offline' },
 ]
 
 const statusSummaryItems = [
-  { label: 'Running', value: 'running' },
+  { label: 'Run', value: 'run' },
   { label: 'Idle', value: 'idle' },
   { label: 'ACC:on', value: 'acc_on' },
-  { label: 'Parking', value: 'parking' },
+  { label: 'Park', value: 'park' },
   { label: 'No GPS', value: 'no_gps' },
   { label: 'Offline', value: 'offline' },
 ] as const
@@ -597,17 +597,17 @@ function isNoDriverCard(vehicle: any): boolean {
 
 function getStatusIcon(status: VehicleStatus) {
   return {
-    running: 'pi pi-arrow-circle-up',
+    run: 'pi pi-arrow-circle-up',
     idle: 'pi pi-arrow-circle-up',
     acc_on: 'pi pi-key',
-    parking: 'pi pi-stop-circle',
+    park: 'pi pi-stop-circle',
     no_gps: 'pi pi-exclamation-circle',
     offline: 'pi pi-exclamation-triangle',
   }[status] || 'pi pi-circle'
 }
 
 function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
-  const shouldRotate = status === 'running' || status === 'idle'
+  const shouldRotate = status === 'run' || status === 'idle'
 
   return {
     transform:
@@ -1080,15 +1080,16 @@ onBeforeUnmount(() => {
 }
 
 .status-icon {
-  width: 17px;
-  height: 17px;
+  width: 20px;
+  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 15px;
+  font-size: 22px;
 }
 
+.status-icon.run,
 .status-icon.running,
 .status-icon.moving {
   color: #22c55e;
@@ -1102,6 +1103,7 @@ onBeforeUnmount(() => {
   color: #fb923c;
 }
 
+.status-icon.park,
 .status-icon.parking {
   color: #60a5fa;
 }
@@ -1125,6 +1127,7 @@ onBeforeUnmount(() => {
   text-transform: lowercase;
 }
 
+.status-text.run,
 .status-text.running,
 .status-text.moving {
   color: #22c55e;
@@ -1138,7 +1141,7 @@ onBeforeUnmount(() => {
   color: #fb923c;
 }
 
-.status-text.parking {
+.status-text.park {
   color: #60a5fa;
 }
 
@@ -1168,7 +1171,7 @@ onBeforeUnmount(() => {
   background: #1e293b;
   color: #cbd5e1;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 500;
   white-space: nowrap;
 }
 

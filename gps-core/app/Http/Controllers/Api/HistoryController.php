@@ -126,30 +126,21 @@ class HistoryController extends Controller
 
         $pdo = DB::connection($dbConnection)->getPdo();
         $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
-        $stmt = $pdo->prepare('CALL sp_webapi_history4(?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_webapi_history_csv(?, ?, ?, ?, ?)');
         $imei = $request->imei;
         $sdate = $request->start_date;
         $edate = $request->end_date;
         $stime = $request->start_time;
         $etime = $request->end_time;
-        $page = 1;
-        $perPage = 10000;
 
         $stmt->bindParam(1, $imei, PDO::PARAM_STR);
         $stmt->bindParam(2, $sdate, PDO::PARAM_STR);
         $stmt->bindParam(3, $edate, PDO::PARAM_STR);
         $stmt->bindParam(4, $stime, PDO::PARAM_STR);
         $stmt->bindParam(5, $etime, PDO::PARAM_STR);
-        $stmt->bindParam(6, $page, PDO::PARAM_INT);
-        $stmt->bindParam(7, $perPage, PDO::PARAM_INT);
-
         $stmt->execute();
 
         $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-        $pagination = [];
-        if ($stmt->nextRowset()) {
-            $pagination = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-        }
         $rows = [];
         if ($stmt->nextRowset()) {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -176,9 +167,10 @@ class HistoryController extends Controller
             'Plate No',
             'Speed',
             'Status',
+            'num_sats',
             'Latitude',
             'Longitude',
-            'Fuel',
+            'Fuel_left',
             'Temperature',
             'Address',
         ];
@@ -190,6 +182,7 @@ class HistoryController extends Controller
                 $row['plate_no'] ?? '',
                 $row['speed'] ?? 0,
                 $row['car_status'] ?? '',
+                $row['num_sats'] ?? 0,
                 $row['lat'] ?? '',
                 $row['lng'] ?? '',
                 $row['fuel_left'] ?? '',

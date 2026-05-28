@@ -40,7 +40,8 @@ export interface HistoryPoint {
     state?: string | number
     gps_status?: string
     num_sats?: number
-    fuel?: number
+    fuel_left?: number
+    temperature?: string
     fuel_per?: number
     address?: string
     track3?: string
