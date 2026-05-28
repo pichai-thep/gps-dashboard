@@ -26,40 +26,35 @@
             <div class="form-group">
               <label>Group</label>
 
-              <select
+              <Select
                   v-model="selectedGroup"
+                  :options="groups"
+                  optionLabel="group_name"
+                  optionValue="group_id"
+                  placeholder="All Group"
+                  fluid
+                  filter
+                  showClear
                   :disabled="pageLoading"
-              >
-                <option :value="null">All Group</option>
+              />
 
-                <option
-                    v-for="group in groups"
-                    :key="group.group_id"
-                    :value="group.group_id"
-                >
-                  {{ group.group_name }}
-                </option>
-              </select>
             </div>
             <div class="form-group">
               <label>Vehicle</label>
 
-              <select
-                  v-model="selectedVehicle"
+              <AutoComplete
+                  v-model="selectedVehicleOption"
+                  :suggestions="filteredVehicles"
+                  optionLabel="plate_no"
+                  placeholder="Select Vehicle"
+                  dropdown
+                  forceSelection
+                  fluid
                   :disabled="pageLoading"
-              >
-                <option :value="null">
-                  {{ pageLoading ? 'Loading...' : 'Select Vehicle' }}
-                </option>
+                  @complete="searchVehicle"
+                  @item-select="onVehicleSelect"
+              />
 
-                <option
-                    v-for="vehicle in vehicles"
-                    :key="vehicle.vehicle_id"
-                    :value="vehicle.vehicle_id"
-                >
-                  {{ vehicle.plate_no }}
-                </option>
-              </select>
             </div>
           </div>
 
@@ -90,12 +85,12 @@
           <div class="date-grid">
             <div class="form-group">
               <label>Start Date-time</label>
-              <DatePicker id="datepicker-24h" v-model="datetime1" date-format="dd/mm/yy" showTime hourFormat="24" fluid />
+              <DatePicker id="datepicker-24h" v-model="datetime1" :hide-on-date-time-select="true" date-format="dd/mm/yy" showTime hourFormat="24" fluid />
             </div>
 
             <div class="form-group">
               <label>End Date-time</label>
-              <DatePicker id="datepicker-24h" v-model="datetime2" date-format="dd/mm/yy" showTime hourFormat="24" fluid />
+              <DatePicker id="datepicker-24h" v-model="datetime2" :hide-on-date-time-select="true" date-format="dd/mm/yy" showTime hourFormat="24" fluid />
             </div>
           </div>
 
@@ -327,6 +322,8 @@ import { getGroups } from '@/services/groups'
 import { getVehicles } from '@/services/vehicles'
 import Button from "primevue/button";
 import {DatePicker} from "primevue";
+import AutoComplete from 'primevue/autocomplete'
+import Select from 'primevue/select'
 
 type GroupItem = {
   group_id: number | string
@@ -395,6 +392,28 @@ const datetime1 = ref<Date | null>(d1)
 const datetime2 = ref<Date | null>(d2)
 
 const showFilters = ref(false)
+const selectedVehicleOption = ref<VehicleItem | null>(null)
+const filteredVehicles = ref<VehicleItem[]>([])
+
+function searchVehicle(event: any) {
+  const keyword = normalizeText(event.query)
+
+  if (!keyword) {
+    filteredVehicles.value = vehicles.value
+    return
+  }
+
+  filteredVehicles.value = vehicles.value.filter((vehicle) => {
+    return (
+        normalizeText(vehicle.plate_no).includes(keyword) ||
+        normalizeText(vehicle.imei).includes(keyword)
+    )
+  })
+}
+
+function onVehicleSelect(event: any) {
+  selectedVehicle.value = event.value?.vehicle_id ?? null
+}
 
 function normalizeStatus(
     state: any,
@@ -758,6 +777,10 @@ function validateRange() {
 }
 
 function findSelectedVehicle() {
+  if (selectedVehicleOption.value?.imei) {
+    return selectedVehicleOption.value
+  }
+
   return vehicles.value.find((item) => {
     return String(item.vehicle_id) === String(selectedVehicle.value)
   })
@@ -784,7 +807,11 @@ function normalizeList<T>(response: any, keys: string[] = []): T[] {
 }
 
 watch(selectedGroup, async (groupId) => {
+
   selectedVehicle.value = null
+  selectedVehicleOption.value = null
+  filteredVehicles.value = []
+
   selectedHistoryIndex.value = null
   rows.value = []
   errorMessage.value = ''

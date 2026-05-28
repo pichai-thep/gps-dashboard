@@ -184,17 +184,14 @@
 import { computed, ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import NotificationBell from "@/components/notifications/NotificationBell.vue";
+import { useAuthStore } from '@/stores/auth'
 import PanelMenu from 'primevue/panelmenu'
-import MultiSelect from 'primevue/multiselect'
 
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
 }
 
 const expandedKeys = ref<Record<string, boolean>>({
-  management: true,
   reports: true,
 })
 
@@ -242,7 +239,7 @@ const menuItems = computed(() => [
     command: () => router.push('/forbidden-zones'),
   },
   {
-    key: 'Reports',
+    key: 'reports',
     label: 'Reports',
     icon: 'pi pi-chart-bar',
     items: [
