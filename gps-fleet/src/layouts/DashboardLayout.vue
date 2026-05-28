@@ -72,7 +72,45 @@
           class="sidebar-panel-menu"
       />
 
+<!--      <PanelMenu-->
+<!--          v-if="!sidebarCollapsed"-->
+<!--          v-model:expandedKeys="expandedKeys"-->
+<!--          :model="menuItems"-->
+<!--          class="sidebar-panel-menu"-->
+<!--      >-->
+
+<!--        <template #item="{ item }">-->
+
+<!--          &lt;!&ndash; notification &ndash;&gt;-->
+<!--          <div-->
+<!--              v-if="item.notification"-->
+<!--              class="notification-menu-wrap"-->
+<!--          >-->
+<!--            <NotificationBell title="Notification Messages" />-->
+<!--          </div>-->
+
+<!--          &lt;!&ndash; normal menu &ndash;&gt;-->
+<!--          <a-->
+<!--              v-else-->
+<!--              class="p-menuitem-link"-->
+<!--              @click="item.command && item.command()"-->
+<!--          >-->
+<!--            <span :class="item.icon" class="p-menuitem-icon"></span>-->
+
+<!--            <span class="p-menuitem-text">-->
+<!--              {{ item.label }}-->
+<!--            </span>-->
+<!--          </a>-->
+
+<!--        </template>-->
+
+<!--      </PanelMenu>-->
+
+
       <div v-else class="collapsed-menu">
+
+        <NotificationBell title="Notification Messages" />
+
         <button :class="{ active: route.path === '/' }" @click="router.push('/')">
           <i class="pi pi-chart-line"></i>
         </button>
@@ -101,18 +139,6 @@
           <i class="pi pi-ban"></i>
         </button>
 
-<!--        <button :class="{ active: isActive('/reports') }" @click="router.push('/reports/daily-summary')">-->
-<!--          <i class="pi pi-chart-bar"></i>-->
-<!--        </button>-->
-
-<!--        <button-->
-<!--            :class="{ active: isActive('/vehicles') || isActive('/stations') || isActive('/pois') || isActive('/forbidden-zones') }"-->
-<!--            title="Management"-->
-<!--            @click="openManagementMenu"-->
-<!--        >-->
-<!--          <i class="pi pi-cog"></i>-->
-<!--        </button>-->
-
         <button
             :class="{ active: isActive('/reports') }"
             title="Reports"
@@ -121,7 +147,11 @@
           <i class="pi pi-chart-bar"></i>
         </button>
 
+
+
       </div>
+
+
 
     </aside>
 
@@ -186,6 +216,7 @@ import Button from 'primevue/button'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import PanelMenu from 'primevue/panelmenu'
+import NotificationBell from "@/components/notifications/NotificationBell.vue";
 
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
@@ -196,6 +227,9 @@ const expandedKeys = ref<Record<string, boolean>>({
 })
 
 const menuItems = computed(() => [
+  {
+    notification: true,
+  },
   {
     label: 'Dashboard',
     icon: 'pi pi-chart-line',
@@ -263,6 +297,8 @@ const menuItems = computed(() => [
       },
     ],
   },
+
+
 ])
 
 const sidebarCollapsed = ref(false)
@@ -735,5 +771,6 @@ function openManagementMenu() {
   background: #2563eb;
   color: #ffffff;
 }
+
 
 </style>
