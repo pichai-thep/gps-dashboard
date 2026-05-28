@@ -168,90 +168,100 @@
             </tr>
             </thead>
 
+
             <tbody>
-            <tr v-if="!rows.length">
-              <td colspan="4" class="empty-cell">
-                No history data
-              </td>
-            </tr>
+              <tr v-if="!rows.length">
+                <td colspan="4" class="empty-cell">No history data</td>
+              </tr>
 
-            <tr
-                v-for="(row, index) in rows"
-                :key="index"
-                class="history-row"
-                :class="{ active: selectedHistoryIndex === index }"
-                @click="selectHistoryRow(index)"
-            >
-              <td>{{ index + 1 }}</td>
-              <td>
-                <div class="gps-time">
-                  {{ row.gps_time ?? '-' }}
-                </div>
+              <tr
+                  v-for="(row, index) in rows"
+                  :key="index"
+                  class="history-row"
+                  :class="{ active: selectedHistoryIndex === index }"
+                  @click="selectHistoryRow(index)"
+              >
+                <td colspan="4">
+                  <div class="history-item">
+                    <div class="row-index">
+                      {{ index + 1 }}
+                    </div>
 
-                <div
-                    class="address-text"
-                    :title="row.address"
-                >
-                  {{ row.address ?? '-' }}
-                </div>
+                    <div class="row-body">
+                      <div class="top-line">
+                        <div class="gps-time">
+                          {{ row.gps_time ?? '-' }}
+                        </div>
 
-                <div v-if="row.track3"
-                    class="track3-text"
-                    :title="row.address"
-                >
-                  <i class="pi pi-id-card" />
-                  {{ row.track3 ?? '-' }}
-                </div>
+                        <div class="meta-row">
+                          <div class="mini-chip">
+                            <span>SP</span>
+                            <strong>{{ row.speed ?? 0 }}</strong>
+                          </div>
 
-              </td>
-              <td>
+                          <div
+                              class="mini-chip"
+                              :class="{ danger: Number(row.num_sats ?? 0) < 4 }"
+                          >
+                            <span>SAT</span>
+                            <strong>{{ row.num_sats ?? 0 }}</strong>
+                          </div>
 
+                          <div class="mini-chip">
+                            <span>DIR</span>
+                            <strong>{{ Number(row.heading ?? 0).toFixed(0) }}°</strong>
+                          </div>
+                        </div>
+                      </div>
 
-                  <div>Fuel: {{ row.fuel_left ?? 0 }}</div>
-                  <div>Temp: {{ row.temperature ?? 0 }}</div>
+                      <div class="second-line">
+      <span
+          class="status-pill"
+          :class="getStatusClass(row.state, row.speed, row.gps_status)"
+      >
+        <span
+            class="status-arrow"
+            :style="{ transform: `rotate(${(Number(row.heading ?? 0) - 90)}deg)` }"
+        >
+          ➤
+        </span>
 
-              </td>
-              <td>
-                <span
-                    class="status-pill"
-                    :class="
-                      getStatusClass(
-                        row.state,
-                        row.speed,
-                        row.gps_status,
-                      )
-                    "
-                                >
-                  <div
-                      class="status-arrow"
-                      :class="
-                        getStatusClass(
-                          row.state,
-                          row.speed,
-                          row.gps_status,
-                        )
-                      "
-                      :style="{
-                        transform: `rotate(${(row.heading ?? 0) - 90}deg)`
-                      }"
-                  >
-                    ➤
+        {{ getStatusLabel(row.state, row.speed, row.gps_status) }}
+      </span>
+
+                        <div class="sensor-row">
+                          <div
+                              v-if="row.fuel_left !== null && row.fuel_left !== undefined"
+                              class="sensor-chip fuel"
+                          >
+                            <span>Fuel</span>
+                            <strong>{{ row.fuel_left }}</strong>
+                          </div>
+
+                          <div
+                              v-if="row.temperature !== null && row.temperature !== undefined"
+                              class="sensor-chip temp"
+                          >
+                            <span>Temp</span>
+                            <strong>{{ row.temperature }}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div v-if="row.track3" class="track3-text">
+                        <i class="pi pi-id-card" />
+                        {{ row.track3 }}
+                      </div>
+
+                      <div v-if="row.address" class="address-text">
+                        {{ row.address }}
+                      </div>
+                    </div>
                   </div>
-
-                  {{
-                                    getStatusLabel(
-                                        row.state,
-                                        row.speed,
-                                        row.gps_status,
-                                    )
-                                  }}
-                </span>
-                <div>sp: {{ row.speed ?? 0 }}</div>
-                <div>dir: {{ row.heading ?? 0 }}</div>
-                <div>Sat: {{ row.num_sats ?? 0 }}</div>
-              </td>
-            </tr>
+                </td>
+              </tr>
             </tbody>
+
           </table>
         </div>
 
@@ -658,7 +668,26 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
         ''
     ),
 
-    address: item.address ?? ''
+    address: item.address ?? '',
+
+    fuel_left:
+        item.fuel_left ??
+        item.fuelLeft ??
+        item.fuel ??
+        null,
+
+    temperature:
+        item.temperature ??
+        item.temp ??
+        null,
+
+    num_sats:
+        item.num_sats ??
+        item.sat_num ??
+        item.satNum ??
+        item.satellite ??
+        item.sat ??
+        null,
   }
 }
 
@@ -1169,4 +1198,407 @@ td {
 }
 
 
+.history-row > td {
+  padding: 0;
+  white-space: normal;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 34px 1fr 150px 110px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.history-row:hover .history-item,
+.history-row.active .history-item {
+  background: rgba(34, 197, 94, 0.11);
+}
+
+.row-index {
+  font-size: 13px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.row-main {
+  min-width: 0;
+}
+
+.gps-time {
+  font-size: 13px;
+  font-weight: 800;
+  color: #f8fafc;
+  margin-bottom: 5px;
+}
+
+.address-text {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #94a3b8;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.track3-text {
+  margin-top: 5px;
+  font-size: 11px;
+  color: #34d399;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.row-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.info-chip {
+  min-height: 38px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.info-chip span {
+  display: block;
+  font-size: 10px;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.info-chip strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #f8fafc;
+}
+
+.info-chip.danger {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.info-chip.danger strong {
+  color: #f87171;
+}
+
+.row-status {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 96px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.status-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.status-run {
+  color: #052e16;
+  background: #22c55e;
+}
+
+.status-idle {
+  color: #422006;
+  background: #eab308;
+}
+
+.status-park {
+  color: #ffffff;
+  background: #64748b;
+}
+
+.status-no_gps {
+  color: #ffffff;
+  background: #3b82f6;
+}
+
+@media (max-width: 640px) {
+  .history-item {
+    grid-template-columns: 28px 1fr;
+  }
+
+  .row-info {
+    grid-column: 2;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .row-status {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 42px minmax(150px, 1fr) 170px 110px;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.row-info {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.info-chip {
+  min-height: 44px;
+}
+
+.row-status {
+  display: flex;
+  justify-content: flex-end;
+}
+.gps-time {
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.history-item {
+  grid-template-columns: 34px 1fr;
+}
+
+.row-info,
+.row-status {
+  grid-column: 2;
+}
+
+.row-info {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.row-status {
+  justify-content: flex-start;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 34px 1fr 220px;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.meta-row {
+  display: flex;
+  gap: 6px;
+}
+
+.mini-chip {
+  min-width: 58px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  text-align: center;
+}
+
+.mini-chip span {
+  display: block;
+  font-size: 9px;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.mini-chip strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #f8fafc;
+}
+
+.mini-chip.danger {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.mini-chip.danger strong {
+  color: #f87171;
+}
+
+.extra-row {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.gps-time {
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .history-item {
+    grid-template-columns: 30px 1fr;
+  }
+
+  .row-right {
+    grid-column: 2;
+    align-items: flex-start;
+  }
+
+  .meta-row {
+    width: 100%;
+  }
+
+  .mini-chip {
+    flex: 1;
+  }
+}
+
+
+
+.history-item {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 14px;
+  padding: 14px 16px;
+  align-items: start;
+}
+
+.row-index {
+  padding-top: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.row-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top-line,
+.second-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.gps-time {
+  font-size: 14px;
+  font-weight: 800;
+  color: #f8fafc;
+  white-space: nowrap;
+}
+
+.meta-row,
+.sensor-row {
+  display: flex;
+  gap: 6px;
+}
+
+.mini-chip,
+.sensor-chip {
+  min-width: 58px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  text-align: center;
+}
+
+.mini-chip span,
+.sensor-chip span {
+  display: block;
+  font-size: 9px;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.mini-chip strong,
+.sensor-chip strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #f8fafc;
+}
+
+.sensor-chip.fuel strong {
+  color: #4ade80;
+}
+
+.sensor-chip.temp strong {
+  color: #fb923c;
+}
+
+.mini-chip.danger {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.mini-chip.danger strong {
+  color: #f87171;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  min-width: 96px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-arrow {
+  font-size: 16px;
+  transition: transform 0.2s ease;
+}
+
+.track3-text {
+  font-size: 11px;
+  color: #34d399;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.address-text {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #94a3b8;
+  white-space: normal;
+  word-break: break-word;
+}
 </style>
