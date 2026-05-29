@@ -1151,7 +1151,7 @@ onBeforeUnmount(() => {
 }
 
 .speed-text {
-  color: #22c55e;
+  color: #cbd5e1;
   font-size: 14px;
   font-weight: 500;
   line-height: 2;
