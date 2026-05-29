@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PDO;
 
 class ReportController extends Controller
 {
@@ -44,18 +45,32 @@ class ReportController extends Controller
             $imeis = [$imeis];
         }
 
-        $imeis = array_values(array_filter($imeis, fn ($v) => trim((string) $v) !== ''));
+        $imeis = array_values(array_filter($imeis, function ($v) {
+            return trim((string) $v) !== '';
+        }));
+
         $imeiCsv = implode(',', $imeis);
 
-        $summary = DB::connection($connection)->selectOne(
-            "CALL sp_report_daily_summary_total(?, ?, ?)",
-            [$dateFrom, $dateTo, $imeiCsv]
-        );
+        $pdo = DB::connection($connection)->getPdo();
 
-        $rows = DB::connection($connection)->select(
-            "CALL sp_report_daily_summary_rows(?, ?, ?, ?, ?)",
-            [$dateFrom, $dateTo, $imeiCsv, $perPage, $offset]
-        );
+        $stmt = $pdo->prepare("CALL sp_report_daily_summary(?, ?, ?, ?, ?)");
+
+        $stmt->execute([
+            $dateFrom,
+            $dateTo,
+            $imeiCsv,
+            $perPage,
+            $offset,
+        ]);
+
+        // result set 1: summary
+        $summary = $stmt->fetch(PDO::FETCH_OBJ);
+
+        // result set 2: rows
+        $stmt->nextRowset();
+        $rows = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+        $stmt->closeCursor();
 
         return response()->json([
             'success' => true,
