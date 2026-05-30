@@ -1,6 +1,3 @@
-
-http://localhost:8000/api/reports/daily-summary?date_from=2026-05-24&date_to=2026-05-26&imeis%5B%5D=864606041741959&imeis%5B%5D=864606041747246&imeis%5B%5D=860470063304947&page=1&per_page=50
-
 <template>
   <div class="report-page">
     <div class="page-header">
@@ -13,7 +10,7 @@ http://localhost:8000/api/reports/daily-summary?date_from=2026-05-24&date_to=202
           label="Export CSV"
           icon="pi pi-download"
           severity="secondary"
-          :disabled="rows.length === 0"
+          :disabled="totalRows === 0"
           @click="exportCsv"
       />
 
@@ -168,9 +165,11 @@ http://localhost:8000/api/reports/daily-summary?date_from=2026-05-24&date_to=202
 
       <Paginator
           :rows="perPage"
-          :totalRecords="total"
+          :totalRecords="totalRows"
           :first="(page - 1) * perPage"
-          :rowsPerPageOptions="[20, 50, 100, 200]"
+          :rowsPerPageOptions="[10, 20, 50, 100, 200, 500]"
+          template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
+          currentPageReportTemplate="{first} - {last} / {totalRecords}"
           @page="onPage"
       />
     </div>
@@ -218,7 +217,9 @@ const rows = ref<DailySummaryRow[]>([])
 
 const page = ref(1)
 const perPage = ref(50)
-const total = ref(0)
+
+const totalRows = ref(0)
+const totalPages = ref(0)
 
 const summary = ref({
   total_rows: 0,
@@ -245,6 +246,12 @@ const avgUrRate = computed(() => {
   if (count <= 0) return 0
   return total / count
 })
+
+async function onPage(event: any) {
+  perPage.value = event.rows
+  page.value = Math.floor(event.first / event.rows) + 1
+  await loadData()
+}
 
 function formatPercent(value: number | null | undefined) {
   if (value === null || value === undefined) return '-'
@@ -328,26 +335,46 @@ async function loadData() {
       per_page: perPage.value,
     })
 
-    rows.value = res.data
-    summary.value = res.summary
-    total.value = res.pagination.total
+    rows.value = res.data ?? []
+
+    summary.value = {
+      total_rows: res.summary?.total_rows ?? 0,
+      total_vehicle: res.summary?.total_vehicle ?? 0,
+      run_time_s: res.summary?.run_time_s ?? 0,
+      idle_time_s: res.summary?.idle_time_s ?? 0,
+      park_time_s: res.summary?.park_time_s ?? 0,
+      distance_m: res.summary?.distance_m ?? 0,
+      ur_rate_avg: res.summary?.ur_rate_avg ?? 0,
+    }
+
+    page.value = res.pagination?.current_page ?? page.value
+    perPage.value = res.pagination?.per_page ?? perPage.value
+    totalRows.value = res.pagination?.total_rows ?? 0
+    totalPages.value = res.pagination?.total_pages ?? 0
+
   } finally {
     loading.value = false
   }
 }
 
-function search() {
+async function search() {
   page.value = 1
-  loadData()
+  await loadData()
 }
 
-function onPage(event: any) {
-  page.value = event.page + 1
-  perPage.value = event.rows
-  loadData()
-}
+async function exportCsv() {
+  const res = await getDailySummary({
+    date_from: toDateString(dateFrom.value),
+    date_to: toDateString(dateTo.value),
+    group_ids: selectedGroups.value,
+    imeis: selectedVehicles.value,
+    page: 1,
+    per_page: totalRows.value || 100000,
+    export: true,
+  })
 
-function exportCsv() {
+  const exportRows = res.data ?? []
+
   const header = [
     'date',
     'imei',
@@ -361,7 +388,7 @@ function exportCsv() {
     'updated_at',
   ]
 
-  const body = rows.value.map((r) => [
+  const body = exportRows.map((r: any) => [
     r.data_date,
     r.imei,
     r.plate_no,
@@ -369,8 +396,8 @@ function exportCsv() {
     formatDuration(r.idle_time_s),
     formatDuration(r.park_time_s),
     (Number(r.distance_m || 0) / 1000).toFixed(2),
-    (r as any).ur_formula,
-    formatPercent((r as any).ur_rate),
+    r.ur_formula,
+    formatPercent(r.ur_rate),
     r.updated_at,
   ])
 

@@ -53,14 +53,24 @@
           <strong>{{ popupData.heading }}</strong>
         </div>
 
-        <div class="popup-row" v-if="popupData.driver_license_name">
-          <span>License Name</span>
-          <strong>{{ popupData.driver_license_name ?? '-' }}</strong>
+<!--        <div class="popup-row" v-if="popupData.driver_license_name">-->
+<!--          <span>License Name</span>-->
+<!--          <strong>{{ popupData.driver_license_name ?? '-' }}</strong>-->
+<!--        </div>-->
+
+<!--        <div class="popup-row" v-if="popupData.driver_license_no">-->
+<!--          <span>License No</span>-->
+<!--          <strong>{{ popupData.driver_license_no ?? '-' }}</strong>-->
+<!--        </div>-->
+
+        <div class="popup-row" v-if="popupData.track3">
+          <span>License-no</span>
+          <strong>{{popupData.track3 ?? '-' }}</strong>
         </div>
 
-        <div class="popup-row" v-if="popupData.driver_license_no">
-          <span>License No</span>
-          <strong>{{ popupData.driver_license_no ?? '-' }}</strong>
+        <div class="popup-row" v-if="popupData.track1">
+          <span>License-name</span>
+          <strong>{{ formatDriverName(popupData?.track1) }}</strong>
         </div>
 
         <div class="popup-row">
@@ -625,6 +635,8 @@ function showPopup(
         point.driver_license_no ??
         point.track3 ??
         '-',
+    track1: point.track1,
+    track3: point.track3,
   }
 
   popupOverlay?.setPosition(coordinate)

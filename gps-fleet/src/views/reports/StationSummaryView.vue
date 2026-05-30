@@ -6,7 +6,14 @@
         <p>รายงานรถเข้า-ออกสถานี / จุดจอด</p>
       </div>
 
-      <Button label="Refresh" icon="pi pi-refresh" :loading="loading" @click="loadData" />
+      <Button
+          label="Export CSV"
+          icon="pi pi-download"
+          severity="secondary"
+          :disabled="totalRows === 0"
+          @click="exportCsv"
+      />
+
     </div>
 
     <div class="filter-card">
@@ -34,7 +41,15 @@
           filter
       />
 
-      <InputText v-model="stationId" placeholder="Station ID" @keyup.enter="search" />
+      <Dropdown
+          v-model="stationId"
+          :options="stationOptions"
+          optionLabel="station_name"
+          optionValue="station_id"
+          placeholder="Select Station"
+          showClear
+          filter
+      />
 
       <Button label="Search" icon="pi pi-search" :loading="loading" @click="search" />
     </div>
@@ -89,9 +104,11 @@
 
       <Paginator
           :rows="perPage"
-          :totalRecords="total"
+          :totalRecords="totalRows"
           :first="(page - 1) * perPage"
-          :rowsPerPageOptions="[20, 50, 100, 200]"
+          :rowsPerPageOptions="[10, 20, 50, 100, 200, 500]"
+          template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
+          currentPageReportTemplate="{first} - {last} / {totalRecords}"
           @page="onPage"
       />
     </div>
@@ -108,12 +125,13 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Paginator from 'primevue/paginator'
-
+import Dropdown from 'primevue/dropdown'
 import MultiSelect from 'primevue/multiselect'
 import {
   getStationSummary,
   getReportGroups,
   getReportVehicles,
+  getReportStations,
   type StationSummaryRow,
 } from '@/services/report'
 
@@ -132,12 +150,14 @@ const selectedVehicles = ref<string[]>([])
 
 const groupOptions = ref<any[]>([])
 const vehicleOptions = ref<any[]>([])
-const stationId = ref('')
+const stationOptions = ref<any[]>([])
+const stationId = ref<number | null>(null)
 
 const rows = ref<StationSummaryRow[]>([])
 const page = ref(1)
 const perPage = ref(50)
-const total = ref(0)
+const totalRows = ref(0)
+const totalPages = ref(0)
 
 const summary = ref({
   total_rows: 0,
@@ -173,14 +193,24 @@ async function loadData() {
       date_to: toDateString(dateTo.value),
       group_ids: selectedGroups.value,
       imeis: selectedVehicles.value,
-      station_id: stationId.value,
+      station_id: stationId.value || 0,
       page: page.value,
       per_page: perPage.value,
     })
 
-    rows.value = res.data
-    summary.value = res.summary
-    total.value = res.pagination.total
+    rows.value = res.data ?? []
+
+    summary.value = {
+      total_rows: res.summary?.total_rows ?? 0,
+      total_vehicle: res.summary?.total_vehicle ?? 0,
+      total_station: res.summary?.total_station ?? 0,
+      duration_s: res.summary?.duration_s ?? 0,
+    }
+
+    page.value = res.pagination?.current_page ?? page.value
+    perPage.value = res.pagination?.per_page ?? perPage.value
+    totalRows.value = res.pagination?.total_rows ?? 0
+    totalPages.value = res.pagination?.total_pages ?? 0
   } finally {
     loading.value = false
   }
@@ -191,10 +221,10 @@ function search() {
   loadData()
 }
 
-function onPage(event: any) {
-  page.value = event.page + 1
+async function onPage(event: any) {
   perPage.value = event.rows
-  loadData()
+  page.value = Math.floor(event.first / event.rows) + 1
+  await loadData()
 }
 
 function normalizeOptions(res: any) {
@@ -206,9 +236,11 @@ function normalizeOptions(res: any) {
 async function loadOptions() {
   const groupsRes = await getReportGroups()
   const vehiclesRes = await getReportVehicles()
+  const stationsRes = await getReportStations()
 
   groupOptions.value = normalizeOptions(groupsRes)
   vehicleOptions.value = normalizeOptions(vehiclesRes)
+  stationOptions.value = normalizeOptions(stationsRes)
 }
 
 async function onGroupChange() {
@@ -221,38 +253,61 @@ async function onGroupChange() {
   vehicleOptions.value = normalizeOptions(vehiclesRes)
 }
 
-function exportCsv() {
+async function exportCsv() {
+  const res = await getStationSummary({
+    date_from: toDateString(dateFrom.value),
+    date_to: toDateString(dateTo.value),
+    station_id: stationId.value || 0,
+    group_ids: selectedGroups.value,
+    imeis: selectedVehicles.value,
+    page: 1,
+    per_page: totalRows.value || 100000,
+    export: true,
+  })
+
+  const exportRows = res.data ?? []
+
   const header = [
     'date',
     'imei',
     'plate_no',
     'station_id',
-    'station_name',
     'start_time',
     'end_time',
     'duration',
+    'updated_at',
   ]
 
-  const body = rows.value.map((r) => [
+  const body = exportRows.map((r: any) => [
     r.data_date,
     r.imei,
     r.plate_no,
     r.station_id,
-    r.station_name || '',
     r.start_time,
     r.end_time,
     formatDuration(r.duration_s),
+    r.updated_at,
   ])
 
-  downloadCsv('station-summary.csv', header, body)
+  downloadCsv(
+      `station-summary-${toDateString(dateFrom.value)}-${toDateString(dateTo.value)}.csv`,
+      header,
+      body
+  )
 }
 
-function downloadCsv(filename: string, header: string[], rows: Array<Array<string | number>>) {
+function downloadCsv(
+    filename: string,
+    header: string[],
+    rows: Array<Array<string | number>>
+) {
   const csv = [
     header.join(','),
     ...rows.map((row) =>
         row
-            .map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`)
+            .map((value) =>
+                `"${String(value ?? '').replace(/"/g, '""')}"`
+            )
             .join(',')
     ),
   ].join('\n')
@@ -269,7 +324,10 @@ function downloadCsv(filename: string, header: string[], rows: Array<Array<strin
   URL.revokeObjectURL(link.href)
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await loadOptions()
+  await loadData()
+})
 
 </script>
 

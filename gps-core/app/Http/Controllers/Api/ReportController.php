@@ -21,232 +21,6 @@ class ReportController extends Controller
         return $request->attributes->get('gps_connection');
     }
 
-    public function dailySummary(Request $request)
-    {
-        $connection = $request->attributes->get('gps_connection');
-
-        if (!$connection) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unsupported GPS server',
-            ], 400);
-        }
-
-        $dateFrom = $request->query('date_from', now()->toDateString());
-        $dateTo = $request->query('date_to', now()->toDateString());
-
-        $page = max((int) $request->query('page', 1), 1);
-        $perPage = min(max((int) $request->query('per_page', 50), 10), 200);
-        $offset = ($page - 1) * $perPage;
-
-        $imeis = $request->query('imeis', []);
-
-        if (!is_array($imeis)) {
-            $imeis = [$imeis];
-        }
-
-        $imeis = array_values(array_filter($imeis, function ($v) {
-            return trim((string) $v) !== '';
-        }));
-
-        $imeiCsv = implode(',', $imeis);
-
-        $pdo = DB::connection($connection)->getPdo();
-
-        $stmt = $pdo->prepare("CALL sp_report_daily_summary(?, ?, ?, ?, ?)");
-
-        $stmt->execute([
-            $dateFrom,
-            $dateTo,
-            $imeiCsv,
-            $perPage,
-            $offset,
-        ]);
-
-        // result set 1: summary
-        $summary = $stmt->fetch(PDO::FETCH_OBJ);
-
-        // result set 2: rows
-        $stmt->nextRowset();
-        $rows = $stmt->fetchAll(PDO::FETCH_OBJ);
-
-        $stmt->closeCursor();
-
-        return response()->json([
-            'success' => true,
-            'summary' => $summary,
-            'data' => $rows,
-            'pagination' => [
-                'page' => $page,
-                'per_page' => $perPage,
-                'total' => (int) ($summary->total_rows ?? 0),
-            ],
-        ]);
-    }
-
-    public function statusSummary(Request $request)
-    {
-        $connection = $request->attributes->get('gps_connection');
-
-        if (!$connection) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unsupported GPS server',
-            ], 400);
-        }
-
-        $dateFrom = $request->query('date_from', now()->toDateString());
-        $dateTo = $request->query('date_to', now()->toDateString());
-        $status = trim((string) $request->query('status', ''));
-        $page = max((int) $request->query('page', 1), 1);
-        $perPage = min(max((int) $request->query('per_page', 50), 10), 200);
-        $offset = ($page - 1) * $perPage;
-        $imeis = $request->query('imeis', []);
-        if (!is_array($imeis)) {
-            $imeis = [$imeis];
-        }
-
-        $where = ['data_date BETWEEN ? AND ?'];
-        $params = [$dateFrom, $dateTo];
-
-        if ($status !== '') {
-            $where[] = 'gps_status = ?';
-            $params[] = $status;
-        }
-
-        if (!empty($imeis)) {
-            $placeholders = implode(',', array_fill(0, count($imeis), '?'));
-            $where[] = "s.imei IN ($placeholders)";
-            $params = array_merge($params, $imeis);
-        }
-        $whereSql = implode(' AND ', $where);
-        $summary = DB::connection($connection)->selectOne("
-                SELECT
-                    COUNT(*) AS total_rows,
-                    COUNT(DISTINCT imei) AS total_vehicle,
-                    COALESCE(SUM(duration_s), 0) AS duration_s
-                FROM gps_status_sum s
-                WHERE {$whereSql}
-            ", $params);
-
-//        dd($summary->raw_sql());
-
-        $totalRow = DB::connection($connection)->selectOne("
-        SELECT COUNT(*) AS total
-        FROM gps_status_sum s
-        WHERE {$whereSql}
-    ", $params);
-
-        $rows = DB::connection($connection)->select("
-        SELECT
-            s.id,
-            s.imei,
-            t.plate_no,
-            s.data_date,
-            s.gps_status,
-            s.start_time,
-            s.end_time,
-            s.duration_s,
-            s.updated_at
-        FROM gps_status_sum s
-        INNER JOIN tracker t ON s.imei = t.imei
-        WHERE {$whereSql}
-        ORDER BY start_time DESC
-        LIMIT {$perPage} OFFSET {$offset}
-    ", $params);
-
-        return response()->json([
-            'success' => true,
-            'summary' => $summary,
-            'data' => $rows,
-            'pagination' => [
-                'page' => $page,
-                'per_page' => $perPage,
-                'total' => (int) $totalRow->total,
-            ],
-        ]);
-    }
-
-    public function stationSummary(Request $request)
-    {
-        $connection = $request->attributes->get('gps_connection');
-
-        if (!$connection) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unsupported GPS server',
-            ], 400);
-        }
-
-        $dateFrom = $request->query('date_from', now()->toDateString());
-        $dateTo = $request->query('date_to', now()->toDateString());
-        $imei = trim((string) $request->query('imei', ''));
-        $stationId = trim((string) $request->query('station_id', ''));
-        $page = max((int) $request->query('page', 1), 1);
-        $perPage = min(max((int) $request->query('per_page', 50), 10), 200);
-        $offset = ($page - 1) * $perPage;
-
-        $where = ['gss.data_date BETWEEN ? AND ?'];
-        $params = [$dateFrom, $dateTo];
-
-        if ($imei !== '') {
-            $where[] = 'gss.imei LIKE ?';
-            $params[] = "%{$imei}%";
-        }
-
-        if ($stationId !== '') {
-            $where[] = 'gss.station_id = ?';
-            $params[] = $stationId;
-        }
-
-        $whereSql = implode(' AND ', $where);
-
-        $summary = DB::connection($connection)->selectOne("
-        SELECT
-            COUNT(*) AS total_rows,
-            COUNT(DISTINCT gss.imei) AS total_vehicle,
-            COUNT(DISTINCT gss.station_id) AS total_station,
-            COALESCE(SUM(gss.duration_s), 0) AS duration_s
-        FROM gps_station_sum gss
-        WHERE {$whereSql}
-    ", $params);
-
-        $totalRow = DB::connection($connection)->selectOne("
-        SELECT COUNT(*) AS total
-        FROM gps_station_sum gss
-        WHERE {$whereSql}
-    ", $params);
-
-        $rows = DB::connection($connection)->select("
-        SELECT
-            gss.id,
-            gss.imei,
-            gss.data_date,
-            gss.station_id,
-            s.station_name,
-            gss.start_time,
-            gss.end_time,
-            gss.duration_s,
-            gss.updated_at
-        FROM gps_station_sum gss
-        LEFT JOIN station s ON s.station_id = gss.station_id
-        WHERE {$whereSql}
-        ORDER BY gss.start_time DESC
-        LIMIT {$perPage} OFFSET {$offset}
-    ", $params);
-
-        return response()->json([
-            'success' => true,
-            'summary' => $summary,
-            'data' => $rows,
-            'pagination' => [
-                'page' => $page,
-                'per_page' => $perPage,
-                'total' => (int) $totalRow->total,
-            ],
-        ]);
-    }
-
     public function groupOptions(Request $request)
     {
         $dbConnection = $this->dbConnection($request);
@@ -272,7 +46,6 @@ class ReportController extends Controller
             'data' => $rows,
         ]);
     }
-
     public function vehicleOptions(Request $request)
     {
         $dbConnection = $this->dbConnection($request);
@@ -308,27 +81,21 @@ class ReportController extends Controller
             'data' => $rows,
         ]);
     }
-
-    public function groups(Request $request)
+    public function stationOptions(Request $request)
     {
-        $connection = $this->dbConnection($request);
+        $connection = $request->attributes->get('gps_connection');
         $customerId = $this->customerId($request);
 
-        if (!$connection || !$customerId) {
-            return response()->json([
-                'success' => false,
-                'data' => [],
-            ], 400);
-        }
 
-        $rows = DB::connection($connection)->select("
-        SELECT
-            customer_group_id AS group_id,
-            customer_group_name AS group_name
-        FROM customer_group
-        WHERE customer_customer_id = ?
-        ORDER BY customer_group_name ASC
-    ", [$customerId]);
+        $rows = DB::connection($connection)
+            ->table('stations')
+            ->where('customer_customer_id', $customerId)
+            ->select([
+                'station_id',
+                'station_name',
+            ])
+            ->orderBy('station_name')
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -336,56 +103,253 @@ class ReportController extends Controller
         ]);
     }
 
-    public function vehicles(Request $request)
-    {
-        $connection = $this->dbConnection($request);
-        $customerId = $this->customerId($request);
 
-        if (!$connection || !$customerId) {
+    public function dailySummary(Request $request)
+    {
+        $connection = $request->attributes->get('gps_connection');
+
+        if (!$connection) {
             return response()->json([
                 'success' => false,
-                'data' => [],
+                'message' => 'Unsupported GPS server',
             ], 400);
         }
 
-        $groupIds = $request->query('group_ids', []);
+        $dateFrom = $request->query('date_from', now()->toDateString());
+        $dateTo = $request->query('date_to', now()->toDateString());
 
-        if (is_string($groupIds)) {
-            $groupIds = array_filter(explode(',', $groupIds));
+        $isExport = filter_var($request->query('export', false), FILTER_VALIDATE_BOOLEAN);
+
+        $page = max((int) $request->query('page', 1), 1);
+
+        if ($isExport) {
+            $perPage = min(max((int) $request->query('per_page', 100000), 1), 100000);
+        } else {
+            $perPage = min(max((int) $request->query('per_page', 50), 10), 500);
         }
 
-        $params = [$customerId];
+        $imeis = $request->query('imeis', []);
 
-        $where = [
-            'v.customer_customer_id = ?'
-        ];
-
-        if (!empty($groupIds)) {
-            $placeholders = implode(',', array_fill(0, count($groupIds), '?'));
-            $where[] = "v.customer_group_id IN ($placeholders)";
-            $params = array_merge($params, $groupIds);
+        if (!is_array($imeis)) {
+            $imeis = [$imeis];
         }
 
-        $whereSql = implode(' AND ', $where);
+        $imeis = array_values(array_filter($imeis, function ($v) {
+            return trim((string) $v) !== '';
+        }));
 
-        $rows = DB::connection($connection)->select("
-        SELECT
-            v.box_imei AS imei,
-            CONCAT(
-                COALESCE(NULLIF(v.plate_no, ''), v.box_imei),
-                ' / ',
-                v.box_imei
-            ) AS label,
-            v.plate_no,
-            v.customer_group_id AS group_id
-        FROM vehicle v
-        WHERE {$whereSql}
-        ORDER BY v.plate_no ASC, v.box_imei ASC
-    ", $params);
+        $imeiCsv = implode(',', $imeis);
+
+        $pdo = DB::connection($connection)->getPdo();
+
+        $stmt = $pdo->prepare('CALL sp_report_daily_summary(?, ?, ?, ?, ?)');
+        $stmt->execute([
+            $dateFrom,
+            $dateTo,
+            $imeiCsv,
+            $page,
+            $perPage,
+        ]);
+
+        $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $stmt->nextRowset();
+        $paginationRaw = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $stmt->nextRowset();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt->closeCursor();
+
+        $totalRows = (int) ($summary['total_rows'] ?? 0);
+        $totalPages = $perPage > 0 ? (int) ceil($totalRows / $perPage) : 0;
 
         return response()->json([
             'success' => true,
+            'summary' => [
+                'total_rows' => $totalRows,
+                'total_vehicle' => (int) ($summary['total_vehicle'] ?? 0),
+                'run_time_s' => (int) ($summary['run_time_s'] ?? 0),
+                'idle_time_s' => (int) ($summary['idle_time_s'] ?? 0),
+                'park_time_s' => (int) ($summary['park_time_s'] ?? 0),
+                'distance_m' => (float) ($summary['distance_m'] ?? 0),
+            ],
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total_rows' => $totalRows,
+                'total_pages' => $totalPages,
+                'offset' => (int) ($paginationRaw['offset'] ?? (($page - 1) * $perPage)),
+            ],
             'data' => $rows,
         ]);
     }
+
+    public function statusSummary(Request $request)
+    {
+        $connection = $request->attributes->get('gps_connection');
+
+        if (!$connection) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unsupported GPS server',
+            ], 400);
+        }
+
+        $dateFrom = $request->query('date_from', now()->toDateString());
+        $dateTo = $request->query('date_to', now()->toDateString());
+
+        $status = $request->query('status', '');
+
+        $isExport = filter_var($request->query('export', false), FILTER_VALIDATE_BOOLEAN);
+
+        $page = max((int) $request->query('page', 1), 1);
+
+        if ($isExport) {
+            $perPage = min(max((int) $request->query('per_page', 100000), 1), 100000);
+        } else {
+            $perPage = min(max((int) $request->query('per_page', 50), 10), 500);
+        }
+
+        $imeis = $request->query('imeis', []);
+
+        if (!is_array($imeis)) {
+            $imeis = [$imeis];
+        }
+
+        $imeis = array_values(array_filter($imeis, function ($v) {
+            return trim((string) $v) !== '';
+        }));
+
+        $imeiCsv = implode(',', $imeis);
+
+        $pdo = DB::connection($connection)->getPdo();
+
+        $stmt = $pdo->prepare('CALL sp_report_status_summary(?, ?, ?, ?, ?, ?)');
+        $stmt->execute([
+            $dateFrom,
+            $dateTo,
+            $status,
+            $imeiCsv,
+            $page,
+            $perPage,
+        ]);
+
+        $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $stmt->nextRowset();
+        $paginationRaw = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $stmt->nextRowset();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt->closeCursor();
+
+        $totalRows = (int) ($summary['total_rows'] ?? 0);
+        $totalPages = $perPage > 0 ? (int) ceil($totalRows / $perPage) : 0;
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_rows' => $totalRows,
+                'total_vehicle' => (int) ($summary['total_vehicle'] ?? 0),
+                'duration_s' => (int) ($summary['duration_s'] ?? 0),
+            ],
+            'pagination' => [
+                'current_page' => (int) ($paginationRaw['current_page'] ?? $page),
+                'per_page' => (int) ($paginationRaw['per_page'] ?? $perPage),
+                'total_rows' => $totalRows,
+                'total_pages' => $totalPages,
+                'offset' => (int) ($paginationRaw['offset'] ?? (($page - 1) * $perPage)),
+            ],
+            'data' => $rows,
+        ]);
+    }
+
+    public function stationSummary(Request $request)
+    {
+        $connection = $request->attributes->get('gps_connection');
+
+        if (!$connection) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unsupported GPS server',
+            ], 400);
+        }
+
+        $dateFrom = $request->query('date_from', now()->toDateString());
+        $dateTo = $request->query('date_to', now()->toDateString());
+
+        $stationId = (int) $request->query('station_id', 0);
+
+        $isExport = filter_var(
+            $request->query('export', false),
+            FILTER_VALIDATE_BOOLEAN
+        );
+
+        $page = max((int) $request->query('page', 1), 1);
+
+        if ($isExport) {
+            $perPage = min(max((int) $request->query('per_page', 100000), 1), 100000);
+        } else {
+            $perPage = min(max((int) $request->query('per_page', 50), 10), 500);
+        }
+
+        $imeis = $request->query('imeis', []);
+
+        if (!is_array($imeis)) {
+            $imeis = [$imeis];
+        }
+
+        $imeis = array_values(array_filter($imeis, function ($v) {
+            return trim((string) $v) !== '';
+        }));
+
+        $imeiCsv = implode(',', $imeis);
+
+        $pdo = DB::connection($connection)->getPdo();
+
+        $stmt = $pdo->prepare('CALL sp_report_station_summary(?, ?, ?, ?, ?, ?)');
+        $stmt->execute([
+            $dateFrom,
+            $dateTo,
+            $stationId,
+            $imeiCsv,
+            $page,
+            $perPage,
+        ]);
+
+        $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $stmt->nextRowset();
+        $paginationRaw = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $stmt->nextRowset();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt->closeCursor();
+
+        $totalRows = (int) ($summary['total_rows'] ?? 0);
+        $totalPages = $perPage > 0 ? (int) ceil($totalRows / $perPage) : 0;
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_rows' => $totalRows,
+                'total_vehicle' => (int) ($summary['total_vehicle'] ?? 0),
+                'total_station' => (int) ($summary['total_station'] ?? 0),
+                'duration_s' => (int) ($summary['duration_s'] ?? 0),
+            ],
+            'pagination' => [
+                'current_page' => (int) ($paginationRaw['current_page'] ?? $page),
+                'per_page' => (int) ($paginationRaw['per_page'] ?? $perPage),
+                'total_rows' => $totalRows,
+                'total_pages' => $totalPages,
+                'offset' => (int) ($paginationRaw['offset'] ?? (($page - 1) * $perPage)),
+            ],
+            'data' => $rows,
+        ]);
+    }
+
+
 }

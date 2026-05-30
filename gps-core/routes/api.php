@@ -75,6 +75,7 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
 
         Route::get('/options/groups', [ReportController::class, 'groupOptions']);
         Route::get('/options/vehicles', [ReportController::class, 'vehicleOptions']);
+        Route::get('/options/stations', [ReportController::class, 'stationOptions']);
     });
 
 });

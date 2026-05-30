@@ -9,7 +9,7 @@
           label="Export CSV"
           icon="pi pi-download"
           severity="secondary"
-          :disabled="rows.length === 0"
+          :disabled="totalRows === 0"
           @click="exportCsv"
       />
     </div>
@@ -93,9 +93,11 @@
 
       <Paginator
           :rows="perPage"
-          :totalRecords="total"
+          :totalRecords="totalRows"
           :first="(page - 1) * perPage"
-          :rowsPerPageOptions="[20, 50, 100, 200]"
+          :rowsPerPageOptions="[10, 20, 50, 100, 200, 500]"
+          template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
+          currentPageReportTemplate="{first} - {last} / {totalRecords}"
           @page="onPage"
       />
     </div>
@@ -140,7 +142,9 @@ const status = ref<string | null>(null)
 const rows = ref<StatusSummaryRow[]>([])
 const page = ref(1)
 const perPage = ref(50)
-const total = ref(0)
+const totalRows = ref(0)
+const totalPages = ref(0)
+
 
 const summary = ref({
   total_rows: 0,
@@ -223,9 +227,19 @@ async function loadData() {
       per_page: perPage.value,
     })
 
-    rows.value = res.data
-    summary.value = res.summary
-    total.value = res.pagination.total
+    rows.value = res.data ?? []
+
+    summary.value = {
+      total_rows: res.summary?.total_rows ?? 0,
+      total_vehicle: res.summary?.total_vehicle ?? 0,
+      duration_s: res.summary?.duration_s ?? 0,
+    }
+
+    page.value = res.pagination?.current_page ?? page.value
+    perPage.value = res.pagination?.per_page ?? perPage.value
+    totalRows.value = res.pagination?.total_rows ?? 0
+    totalPages.value = res.pagination?.total_pages ?? 0
+
   } finally {
     loading.value = false
   }
@@ -236,13 +250,26 @@ function search() {
   loadData()
 }
 
-function onPage(event: any) {
-  page.value = event.page + 1
+async function onPage(event: any) {
   perPage.value = event.rows
-  loadData()
+  page.value = Math.floor(event.first / event.rows) + 1
+  await loadData()
 }
 
-function exportCsv() {
+async function exportCsv() {
+  const res = await getStatusSummary({
+    date_from: toDateString(dateFrom.value),
+    date_to: toDateString(dateTo.value),
+    group_ids: selectedGroups.value,
+    imeis: selectedVehicles.value,
+    status: status.value || '',
+    page: 1,
+    per_page: totalRows.value || 100000,
+    export: true,
+  })
+
+  const exportRows = res.data ?? []
+
   const header = [
     'date',
     'imei',
@@ -253,7 +280,7 @@ function exportCsv() {
     'duration',
   ]
 
-  const body = rows.value.map((r) => [
+  const body = exportRows.map((r: any) => [
     r.data_date,
     r.imei,
     r.plate_no,

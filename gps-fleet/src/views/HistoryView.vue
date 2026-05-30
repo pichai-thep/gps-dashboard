@@ -57,31 +57,6 @@
 
             </div>
           </div>
-
-<!--          <div class="date-grid">-->
-<!--            <div class="form-group">-->
-<!--              <label>Start Date</label>-->
-<!--              <input type="date" v-model="startDate" />-->
-<!--            </div>-->
-
-<!--            <div class="form-group">-->
-<!--              <label>Start Time</label>-->
-<!--              <input type="time" v-model="startTime" />-->
-<!--            </div>-->
-<!--          </div>-->
-
-<!--          <div class="date-grid">-->
-<!--            <div class="form-group">-->
-<!--              <label>End Date</label>-->
-<!--              <input type="date" v-model="endDate" />-->
-<!--            </div>-->
-
-<!--            <div class="form-group">-->
-<!--              <label>End Time</label>-->
-<!--              <input type="time" v-model="endTime" />-->
-<!--            </div>-->
-<!--          </div>-->
-
           <div class="date-grid">
             <div class="form-group">
               <label>Start Date-time</label>
@@ -104,7 +79,7 @@
                 type="button"
                 class="primary-button"
                 :disabled="loading || pageLoading"
-                @click="loadHistory"
+                @click="searchHistory"
             >
               {{ loading ? 'Loading...' : 'Load History' }}
             </button>
@@ -153,145 +128,117 @@
         </div>
 
         <div class="table-scroll">
-          <table>
-            <thead>
-            <tr>
-              <th>#</th>
-              <th>GPS Time</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-            </thead>
+          <DataTable
+              :value="rows"
+              scrollable
+              scrollHeight="flex"
+              dataKey="gpsdata_id"
+              selectionMode="single"
+              v-model:selection="selectedHistoryRow"
+              class="history-datatable"
+              paginator
+              lazy
+              :rows="perPage"
+              :first="firstRow"
+              :totalRecords="totalRows"
+              :rowsPerPageOptions="[100, 300, 500, 1000]"
+              paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
+              currentPageReportTemplate="{first} - {last} / {totalRecords}"
+              @page="onPageChange"
+              @row-click="onHistoryRowClick"
+          >
+            <Column header="#" style="width: 52px">
+              <template #body="{ index }">
+                {{ index + 1 }}
+              </template>
+            </Column>
 
+            <Column header="History">
+              <template #body="{ data }">
+                <div class="history-cell">
+                  <div class="main-line">
+                    <span
+                        class="status-pill"
+                        :class="getStatusClass(data.state, data.speed, data.gps_status)"
+                    >
+                      <span
+                          class="status-arrow"
+                          :style="{ transform: `rotate(${Number(data.heading ?? 0) - 90}deg)` }"
+                      >
+                        ➤
+                      </span>
+                        {{ getStatusLabel(data.state, data.speed, data.gps_status) }}
+                    </span>
 
-            <tbody>
-              <tr v-if="!rows.length">
-                <td colspan="4" class="empty-cell">No history data</td>
-              </tr>
-
-              <tr
-                  v-for="(row, index) in rows"
-                  :key="index"
-                  class="history-row"
-                  :class="{ active: selectedHistoryIndex === index }"
-                  @click="selectHistoryRow(index)"
-              >
-                <td colspan="4">
-                  <div class="history-item">
-                    <div class="row-index">
-                      {{ index + 1 }}
+                    <div class="gps-time">
+                      {{ data.gps_time ?? '-' }}
                     </div>
 
-                    <div class="row-body">
-                      <div class="top-line">
-                        <div class="gps-time">
-                          {{ row.gps_time ?? '-' }}
-                        </div>
+                    <div class="mini-chip">
+                      <span>SP</span>
+                      <strong>{{ data.speed ?? 0 }}</strong>
+                    </div>
 
-                        <div class="meta-row">
-                          <div class="mini-chip">
-                            <span>SP</span>
-                            <strong>{{ row.speed ?? 0 }}</strong>
-                          </div>
+                    <div class="mini-chip">
+                      <span>DIR</span>
+                      <strong>{{ Number(data.heading ?? 0).toFixed(0) }}°</strong>
+                    </div>
 
-                          <div
-                              class="mini-chip"
-                              :class="{ danger: Number(row.num_sats ?? 0) < 4 }"
-                          >
-                            <span>SAT</span>
-                            <strong>{{ row.num_sats ?? 0 }}</strong>
-                          </div>
-
-                          <div class="mini-chip">
-                            <span>DIR</span>
-                            <strong>{{ Number(row.heading ?? 0).toFixed(0) }}°</strong>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="second-line">
-      <span
-          class="status-pill"
-          :class="getStatusClass(row.state, row.speed, row.gps_status)"
-      >
-        <span
-            class="status-arrow"
-            :style="{ transform: `rotate(${(Number(row.heading ?? 0) - 90)}deg)` }"
-        >
-          ➤
-        </span>
-
-        {{ getStatusLabel(row.state, row.speed, row.gps_status) }}
-      </span>
-
-                        <div class="sensor-row">
-                          <div
-                              v-if="row.fuel_left !== null && row.fuel_left !== undefined"
-                              class="sensor-chip fuel"
-                          >
-                            <span>Fuel</span>
-                            <strong>{{ row.fuel_left }}</strong>
-                          </div>
-
-                          <div
-                              v-if="row.temperature !== null && row.temperature !== undefined"
-                              class="sensor-chip temp"
-                          >
-                            <span>Temp</span>
-                            <strong>{{ row.temperature }}</strong>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div v-if="row.track3" class="track3-text">
-                        <i class="pi pi-id-card" />
-                        {{ row.track3 }}
-                      </div>
-
-                      <div v-if="row.address" class="address-text">
-                        {{ row.address }}
-                      </div>
+                    <div
+                        class="mini-chip"
+                        :class="{ danger: Number(data.num_sats ?? 0) < 4 }"
+                    >
+                      <span>SAT</span>
+                      <strong>{{ data.num_sats ?? 0 }}</strong>
                     </div>
                   </div>
-                </td>
-              </tr>
-            </tbody>
 
-          </table>
-        </div>
+                  <div
+                      v-if="
+                          data.track3 ||
+                          data.fuel_left !== null ||
+                          data.temperature !== null ||
+                          data.di_input !== null
+                        "
+                      class="optional-line"
+                  >
+                    <div v-if="data.track3" class="track3-text">
+                      <i class="pi pi-id-card" />
+                      {{ data.track3 }}
+                    </div>
 
-        <div
-            v-if="totalRows > 0"
-            class="pagination-footer"
-        >
-          <div class="pagination-info">
-            {{ totalRows }} records
-            / {{ totalPages }} pages
-          </div>
+                    <div
+                        v-if="data.fuel_left !== null && data.fuel_left !== undefined"
+                        class="sensor-chip fuel"
+                    >
+                      <span>Fuel</span>
+                      <strong>{{ data.fuel_left }}</strong>
+                    </div>
 
-          <div class="pagination-buttons">
+                    <div
+                        v-if="data.temperature !== null && data.temperature !== undefined"
+                        class="sensor-chip temp"
+                    >
+                      <span>Temp</span>
+                      <strong>{{ data.temperature }}</strong>
+                    </div>
 
-            <button
-                class="secondary-button"
-                :disabled="currentPage <= 1"
-                @click="goToPage(currentPage - 1)"
-            >
-              Prev
-            </button>
+                    <div
+                        v-if="data.di_input !== null && data.di_input !== undefined"
+                        class="sensor-chip di"
+                    >
+                      <span>DI</span>
+                      <strong>{{ data.di_input }}</strong>
+                    </div>
+                  </div>
 
-            <div class="page-number">
-              {{ currentPage }}
-            </div>
-
-            <button
-                class="secondary-button"
-                :disabled="currentPage >= totalPages"
-                @click="goToPage(currentPage + 1)"
-            >
-              Next
-            </button>
-
-          </div>
+                  <div v-if="data.address" class="address-text">
+                    {{ data.address }}
+                  </div>
+                </div>
+              </template>
+            </Column>
+          </DataTable>
         </div>
 
       </div>
@@ -324,6 +271,8 @@ import Button from "primevue/button";
 import {DatePicker} from "primevue";
 import AutoComplete from 'primevue/autocomplete'
 import Select from 'primevue/select'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 
 type GroupItem = {
   group_id: number | string
@@ -363,7 +312,7 @@ const vehicles = ref<VehicleItem[]>([])
 const selectedGroup = ref<number | string | null>(null)
 const selectedVehicle = ref<number | string | null>(null)
 const selectedHistoryIndex = ref<number | null>(null)
-
+const selectedHistoryRow = ref<HistoryPoint | null>(null)
 const rows = ref<HistoryPoint[]>([])
 
 const currentPage = ref(1)
@@ -395,6 +344,23 @@ const showFilters = ref(false)
 const selectedVehicleOption = ref<VehicleItem | null>(null)
 const filteredVehicles = ref<VehicleItem[]>([])
 
+const firstRow = computed(() => {
+  return (currentPage.value - 1) * perPage.value
+})
+
+async function onPageChange(event: any) {
+  currentPage.value = Math.floor(event.first / event.rows) + 1
+  perPage.value = event.rows
+
+  await loadHistory()
+}
+
+async function searchHistory() {
+  currentPage.value = 1
+  selectedHistoryIndex.value = null
+  await loadHistory()
+}
+
 function searchVehicle(event: any) {
   const keyword = normalizeText(event.query)
 
@@ -413,6 +379,13 @@ function searchVehicle(event: any) {
 
 function onVehicleSelect(event: any) {
   selectedVehicle.value = event.value?.vehicle_id ?? null
+}
+
+function onHistoryRowClick(event: any) {
+  const index = rows.value.findIndex((item) => item === event.data)
+  if (index >= 0) {
+    selectHistoryRow(index)
+  }
 }
 
 function normalizeStatus(
@@ -601,6 +574,7 @@ async function loadHistory() {
   loading.value = true
   rows.value = []
   selectedHistoryIndex.value = null
+  selectedHistoryRow.value = null
 
   const hh1 = String(datetime1.value?.getHours()).padStart(2, '0')
   const mm1 = String(datetime1.value?.getMinutes()).padStart(2, '0')
@@ -707,11 +681,20 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
         item.satellite ??
         item.sat ??
         null,
+
+    track1: item.track1 ?? null,
+    track3: item.track3 ?? null,
+
+    di_input:
+        item.input2 ??
+        null,
   }
+
 }
 
 function selectHistoryRow(index: number) {
   selectedHistoryIndex.value = index
+  selectedHistoryRow.value = rows.value[index] ?? null
 }
 
 async function exportXls() {
@@ -768,8 +751,8 @@ function validateRange() {
 
   const diffDays = (end.getTime() - start.getTime()) / 86400000
 
-  if (diffDays > 7) {
-    errorMessage.value = 'ดึงประวัติได้ไม่เกิน 7 วัน'
+  if (diffDays > 31) {
+    errorMessage.value = 'ดึงประวัติได้ไม่เกิน 31 วัน'
     return false
   }
 
@@ -832,26 +815,35 @@ watch(selectedGroup, async (groupId) => {
 }
 
 .left-panel {
-  width: 420px;
-  min-width: 420px;
+  width: 520px;
+  min-width: 520px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  flex-shrink: 0;
+  gap: 14px;
+}
+
+.map-panel {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: #020617;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  overflow: hidden;
 }
 
 .filter-card,
 .table-card {
-  background: rgba(15, 23, 42, 0.96);
+  background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 18px;
-  color: #ffffff;
-  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.3);
+  color: #fff;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
 .filter-card {
-  padding: 18px;
+  padding: 16px;
 }
 
 .table-card {
@@ -862,22 +854,20 @@ watch(selectedGroup, async (groupId) => {
   overflow: hidden;
 }
 
-.card-header,
-.table-header {
+.card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
 }
 
-.card-header h2,
-.table-header h3 {
+.card-header h2 {
   margin: 0;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 900;
 }
 
-.card-header p,
-.table-header p {
+.card-header p {
   margin: 4px 0 0;
   color: #94a3b8;
   font-size: 12px;
@@ -903,20 +893,36 @@ watch(selectedGroup, async (groupId) => {
   font-weight: 700;
 }
 
-.form-group input,
-.form-group select {
-  height: 40px;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  background: #020617;
-  color: #ffffff;
-  padding: 0 12px;
-  outline: none;
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 10px;
 }
 
-.form-group input:focus,
-.form-group select:focus {
-  border-color: #22c55e;
+.primary-button,
+.secondary-button {
+  height: 40px;
+  border-radius: 12px;
+  border: 0;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primary-button {
+  background: #22c55e;
+  color: #052e16;
+}
+
+.secondary-button {
+  background: rgba(148, 163, 184, 0.14);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #e5e7eb;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .error-message {
@@ -929,102 +935,110 @@ watch(selectedGroup, async (groupId) => {
   font-size: 13px;
 }
 
-.button-row {
+/* summary */
+.summary-grid {
   display: grid;
-  grid-template-columns: 1fr 120px;
-  gap: 10px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
 }
 
-.primary-button,
-.secondary-button {
-  height: 42px;
-  border: 0;
-  border-radius: 12px;
-  font-weight: 800;
-  cursor: pointer;
+.summary-card {
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
-.primary-button {
-  background: #22c55e;
-  color: #052e16;
+.summary-card span {
+  display: block;
+  font-size: 10px;
+  color: #94a3b8;
 }
 
-.secondary-button {
-  background: rgba(148, 163, 184, 0.16);
-  color: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+.summary-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
 }
 
-.primary-button:disabled,
-.secondary-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+.summary-card.running strong { color: #22c55e; }
+.summary-card.idle strong { color: #eab308; }
+.summary-card.parking strong { color: #ef4444; }
+.summary-card.distance strong { color: #38bdf8; }
 
-.table-header {
-  padding: 16px 16px 0;
-}
-
+/* datatable */
 .table-scroll {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-thead {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #0f172a;
-}
-
-th,
-td {
-  padding: 9px 10px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-  text-align: left;
-  white-space: nowrap;
-}
-
-th {
-  color: #94a3b8;
-  font-weight: 800;
-}
-
-td {
+:deep(.history-datatable) {
+  height: 100%;
+  background: transparent;
   color: #e5e7eb;
 }
 
-.history-row {
+:deep(.history-datatable .p-datatable-wrapper) {
+  height: 100%;
+  background: transparent;
+}
+
+:deep(.history-datatable .p-datatable-table) {
+  background: transparent;
+}
+
+:deep(.history-datatable .p-datatable-thead > tr > th) {
+  background: #020617;
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.12);
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+:deep(.history-datatable .p-datatable-tbody > tr) {
+  background: transparent;
+  color: #e5e7eb;
   cursor: pointer;
 }
 
-.history-row:hover,
-.history-row.active {
-  background: rgba(34, 197, 94, 0.12);
+:deep(.history-datatable .p-datatable-tbody > tr > td) {
+  background: transparent;
+  border-color: rgba(148, 163, 184, 0.10);
+  padding: 10px;
 }
 
-
-.empty-cell {
-  text-align: center;
-  color: #94a3b8;
-  padding: 28px 10px;
+:deep(.history-datatable .p-datatable-tbody > tr:hover > td) {
+  background: #2d3748;
 }
 
-.map-panel {
-  flex: 1;
+:deep(.history-datatable .p-highlight > td) {
+  background: rgba(34, 197, 94, 0.18) !important;
+}
+
+/* history content */
+.history-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
   min-width: 0;
-  height: 100%;
-  min-height: 560px;
-  background: #111827;
-  border-radius: 18px;
-  overflow: hidden;
+}
+
+.main-line {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) 150px 60px 60px 60px;
+  gap: 6px;
+  align-items: center;
+}
+
+.gps-time {
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .status-pill {
@@ -1032,76 +1046,146 @@ td {
   align-items: center;
   justify-content: center;
   gap: 5px;
-
-  width: 100px;
-  height: 24px;
-
+  width: 80px;
+  height: 30px;
   border-radius: 999px;
-
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
-.status-pill i {
-  width: 18px;
-  height: 18px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 14px;
-  line-height: 14px;
-
-  flex-shrink: 0;
+.status-arrow {
+  font-size: 15px;
+  line-height: 1;
 }
 
 .status-run {
-  color: #052e16;
   background: #22c55e;
+  color: #052e16;
 }
 
 .status-idle {
-  color: #422006;
   background: #eab308;
+  color: #422006;
 }
 
 .status-park {
-  color: #ffffff;
   background: #64748b;
+  color: #fff;
 }
 
 .status-no_gps {
-  color: #ffffff;
   background: #3b82f6;
+  color: #fff;
 }
 
-.gps-time {
-  font-weight: 700;
-  color: #f8fafc;
-  margin-bottom: 4px;
+.mini-chip,
+.sensor-chip {
+  height: 34px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  text-align: center;
 }
 
-.address-text {
-  font-size: 11px;
-  line-height: 1.4;
+.mini-chip span,
+.sensor-chip span {
+  display: block;
+  font-size: 9px;
+  line-height: 1;
   color: #94a3b8;
+}
 
-  white-space: normal;
-  word-break: break-word;
+.mini-chip strong,
+.sensor-chip strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1;
+  color: #f8fafc;
+}
 
-  max-width: 260px;
+.mini-chip.danger {
+  background: rgba(239, 68, 68, 0.13);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.mini-chip.danger strong {
+  color: #f87171;
+}
+
+.optional-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .track3-text {
-  font-size: 12px;
-  line-height: 1.4;
-  color: #22c55e;
-  white-space: normal;
-  word-break: break-word;
-  max-width: 260px;
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.18);
+  color: #34d399;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.sensor-chip {
+  min-width: 58px;
+}
+
+.sensor-chip.fuel strong { color: #4ade80; }
+.sensor-chip.temp strong { color: #fb923c; }
+.sensor-chip.di strong { color: #a78bfa; }
+
+.address-text {
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* pagination */
+.pagination-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  background: #020617;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.pagination-info {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-number {
+  min-width: 40px;
+  text-align: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+/* responsive */
 @media (max-width: 1100px) {
   .history-page {
     flex-direction: column;
@@ -1115,517 +1199,68 @@ td {
   }
 
   .map-panel {
-    height: 560px;
+    height: 420px;
+    min-height: 420px;
   }
 }
 
-.pagination-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+@media (max-width: 640px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
-  padding: 12px 16px;
+  .field-grid,
+  .date-grid {
+    grid-template-columns: 1fr;
+  }
 
+  .main-line {
+    grid-template-columns: 1fr 90px;
+  }
+
+  .main-line .mini-chip {
+    min-width: 0;
+  }
+
+  .optional-line {
+    flex-wrap: wrap;
+  }
+
+  .track3-text {
+    flex-basis: 100%;
+  }
+}
+
+:deep(.history-datatable .p-paginator) {
+  background: #020617;
   border-top: 1px solid rgba(148, 163, 184, 0.12);
-
-  background: #0f172a;
-}
-
-.pagination-info {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.pagination-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.page-number {
-  min-width: 44px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-}
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  padding: 12px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-}
-
-.summary-card {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(148, 163, 184, 0.12);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-}
-
-.summary-card span {
-  display: block;
-  font-size: 11px;
-  color: #94a3b8;
-  margin-bottom: 4px;
-}
-
-.summary-card strong {
-  display: block;
-  font-size: 16px;
-  color: #ffffff;
-}
-
-.summary-card.running strong {
-  color: #22c55e;
-}
-
-.summary-card.idle strong {
-  color: #eab308;
-}
-
-.summary-card.parking strong {
-  color: #ef4444;
-}
-
-.summary-card.distance strong {
-  color: #38bdf8;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-
-  min-width: 105px;
-  height: 28px;
-
-  padding: 0 10px;
-
-  border-radius: 999px;
-
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.status-arrow {
-  width: 18px;
-  height: 18px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 16px;
-  font-weight: 900;
-
-  transition: transform 0.2s ease;
-}
-
-
-.history-row > td {
-  padding: 0;
-  white-space: normal;
-}
-
-.history-item {
-  display: grid;
-  grid-template-columns: 34px 1fr 150px 110px;
-  gap: 12px;
-  align-items: center;
-  padding: 14px 14px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-}
-
-.history-row:hover .history-item,
-.history-row.active .history-item {
-  background: rgba(34, 197, 94, 0.11);
-}
-
-.row-index {
-  font-size: 13px;
-  font-weight: 800;
   color: #cbd5e1;
+  padding: 8px 10px;
 }
 
-.row-main {
-  min-width: 0;
-}
-
-.gps-time {
-  font-size: 13px;
-  font-weight: 800;
-  color: #f8fafc;
-  margin-bottom: 5px;
-}
-
-.address-text {
-  font-size: 11px;
-  line-height: 1.35;
-  color: #94a3b8;
-  white-space: normal;
-  word-break: break-word;
-}
-
-.track3-text {
-  margin-top: 5px;
-  font-size: 11px;
-  color: #34d399;
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-
-.row-info {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.info-chip {
-  min-height: 38px;
-  padding: 6px 8px;
+:deep(.history-datatable .p-paginator .p-paginator-page),
+:deep(.history-datatable .p-paginator .p-paginator-next),
+:deep(.history-datatable .p-paginator .p-paginator-prev),
+:deep(.history-datatable .p-paginator .p-paginator-first),
+:deep(.history-datatable .p-paginator .p-paginator-last) {
+  background: rgba(148, 163, 184, 0.10);
+  color: #e5e7eb;
   border-radius: 10px;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  min-width: 32px;
+  height: 32px;
 }
 
-.info-chip span {
-  display: block;
-  font-size: 10px;
-  color: #94a3b8;
-  line-height: 1;
-}
-
-.info-chip strong {
-  display: block;
-  margin-top: 4px;
-  font-size: 13px;
-  color: #f8fafc;
-}
-
-.info-chip.danger {
-  border-color: rgba(239, 68, 68, 0.45);
-  background: rgba(239, 68, 68, 0.12);
-}
-
-.info-chip.danger strong {
-  color: #f87171;
-}
-
-.row-status {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 96px;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.status-arrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;
-  line-height: 1;
-  transition: transform 0.2s ease;
-}
-
-.status-run {
-  color: #052e16;
+:deep(.history-datatable .p-paginator .p-paginator-page.p-highlight) {
   background: #22c55e;
+  color: #052e16;
+  font-weight: 900;
 }
 
-.status-idle {
-  color: #422006;
-  background: #eab308;
+:deep(.history-datatable .p-paginator .p-dropdown),
+:deep(.history-datatable .p-paginator .p-select) {
+  background: #0f172a;
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #e5e7eb;
 }
 
-.status-park {
-  color: #ffffff;
-  background: #64748b;
-}
-
-.status-no_gps {
-  color: #ffffff;
-  background: #3b82f6;
-}
-
-@media (max-width: 640px) {
-  .history-item {
-    grid-template-columns: 28px 1fr;
-  }
-
-  .row-info {
-    grid-column: 2;
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .row-status {
-    grid-column: 2;
-    justify-content: flex-start;
-  }
-}
-
-.history-item {
-  display: grid;
-  grid-template-columns: 42px minmax(150px, 1fr) 170px 110px;
-  gap: 14px;
-  align-items: center;
-  padding: 14px 16px;
-}
-
-.row-info {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.info-chip {
-  min-height: 44px;
-}
-
-.row-status {
-  display: flex;
-  justify-content: flex-end;
-}
-.gps-time {
-  white-space: nowrap;
-  font-size: 13px;
-}
-
-.history-item {
-  grid-template-columns: 34px 1fr;
-}
-
-.row-info,
-.row-status {
-  grid-column: 2;
-}
-
-.row-info {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.row-status {
-  justify-content: flex-start;
-}
-
-.history-item {
-  display: grid;
-  grid-template-columns: 34px 1fr 220px;
-  gap: 14px;
-  align-items: center;
-  padding: 14px 16px;
-}
-
-.row-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.meta-row {
-  display: flex;
-  gap: 6px;
-}
-
-.mini-chip {
-  min-width: 58px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  text-align: center;
-}
-
-.mini-chip span {
-  display: block;
-  font-size: 9px;
-  color: #94a3b8;
-  line-height: 1;
-}
-
-.mini-chip strong {
-  display: block;
-  margin-top: 4px;
-  font-size: 13px;
-  color: #f8fafc;
-}
-
-.mini-chip.danger {
-  border-color: rgba(239, 68, 68, 0.4);
-  background: rgba(239, 68, 68, 0.12);
-}
-
-.mini-chip.danger strong {
-  color: #f87171;
-}
-
-.extra-row {
-  display: flex;
-  gap: 10px;
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.gps-time {
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-@media (max-width: 640px) {
-  .history-item {
-    grid-template-columns: 30px 1fr;
-  }
-
-  .row-right {
-    grid-column: 2;
-    align-items: flex-start;
-  }
-
-  .meta-row {
-    width: 100%;
-  }
-
-  .mini-chip {
-    flex: 1;
-  }
-}
-
-
-
-.history-item {
-  display: grid;
-  grid-template-columns: 34px 1fr;
-  gap: 14px;
-  padding: 14px 16px;
-  align-items: start;
-}
-
-.row-index {
-  padding-top: 4px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #cbd5e1;
-}
-
-.row-body {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.top-line,
-.second-line {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items: center;
-}
-
-.gps-time {
-  font-size: 14px;
-  font-weight: 800;
-  color: #f8fafc;
-  white-space: nowrap;
-}
-
-.meta-row,
-.sensor-row {
-  display: flex;
-  gap: 6px;
-}
-
-.mini-chip,
-.sensor-chip {
-  min-width: 58px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  text-align: center;
-}
-
-.mini-chip span,
-.sensor-chip span {
-  display: block;
-  font-size: 9px;
-  color: #94a3b8;
-  line-height: 1;
-}
-
-.mini-chip strong,
-.sensor-chip strong {
-  display: block;
-  margin-top: 4px;
-  font-size: 13px;
-  color: #f8fafc;
-}
-
-.sensor-chip.fuel strong {
-  color: #4ade80;
-}
-
-.sensor-chip.temp strong {
-  color: #fb923c;
-}
-
-.mini-chip.danger {
-  border-color: rgba(239, 68, 68, 0.45);
-  background: rgba(239, 68, 68, 0.12);
-}
-
-.mini-chip.danger strong {
-  color: #f87171;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 34px;
-  min-width: 96px;
-  padding: 0 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.status-arrow {
-  font-size: 16px;
-  transition: transform 0.2s ease;
-}
-
-.track3-text {
-  font-size: 11px;
-  color: #34d399;
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-
-.address-text {
-  font-size: 11px;
-  line-height: 1.4;
-  color: #94a3b8;
-  white-space: normal;
-  word-break: break-word;
-}
 </style>

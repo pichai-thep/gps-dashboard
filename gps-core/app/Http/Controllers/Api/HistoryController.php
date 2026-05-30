@@ -34,10 +34,10 @@ class HistoryController extends Controller
             ], 422);
         }
 
-        if ($start->diffInDays($end) > 7) {
+        if ($start->diffInDays($end) > 31) {
             return response()->json([
                 'success' => false,
-                'message' => 'Date range cannot exceed 7 days',
+                'message' => 'Date range cannot exceed 31 days',
             ], 422);
         }
 
@@ -110,10 +110,10 @@ class HistoryController extends Controller
             ], 422);
         }
 
-        if ($start->diffInDays($end) > 7) {
+        if ($start->diffInDays($end) > 31) {
             return response()->json([
                 'success' => false,
-                'message' => 'Date range cannot exceed 7 days',
+                'message' => 'Date range cannot exceed 31 days',
             ], 422);
         }
 

@@ -44,11 +44,13 @@ export interface HistoryPoint {
     temperature?: string
     fuel_per?: number
     address?: string
+    track1?: string
     track3?: string
 }
 
 export async function getHistoryTracking(params: HistoryTrackingParams): Promise<HistoryResponse> {
     const response = await api.get('/tracking/history', { params })
+    console.log(`response.data: ${JSON.stringify(response.data)}`)
     return response.data
 }
 

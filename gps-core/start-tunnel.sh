@@ -11,7 +11,7 @@ start_tunnel () {
   REMOTE_PORT=$3
   HOST=$4
 
-  LOG_FILE="tunnel_${TYPE}_${LOCAL_PORT}.log"
+  LOG_FILE="logs/tunnel_${TYPE}_${LOCAL_PORT}.log"
 
   echo "→ [$TYPE] localhost:${LOCAL_PORT} → ${HOST}:127.0.0.1:${REMOTE_PORT}"
 
