@@ -36,6 +36,7 @@ export interface VehicleDetail {
     ur_rate_type:  'A' | 'B' | 'C' | null
     ur_rate_satsun: boolean | number | null
     ur_rate_work_hour: number | null
+    ur_rate_target_km: number | null
 
     export_to_active: boolean | number |null
 }
