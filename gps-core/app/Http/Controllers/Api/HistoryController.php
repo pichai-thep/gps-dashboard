@@ -126,18 +126,22 @@ class HistoryController extends Controller
 
         $pdo = DB::connection($dbConnection)->getPdo();
         $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
-        $stmt = $pdo->prepare('CALL sp_webapi_history_csv(?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_webapi_history(?, ?, ?, ?, ?, ? ,?)');
         $imei = $request->imei;
         $sdate = $request->start_date;
         $edate = $request->end_date;
         $stime = $request->start_time;
         $etime = $request->end_time;
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 50000);
 
         $stmt->bindParam(1, $imei, PDO::PARAM_STR);
         $stmt->bindParam(2, $sdate, PDO::PARAM_STR);
         $stmt->bindParam(3, $edate, PDO::PARAM_STR);
         $stmt->bindParam(4, $stime, PDO::PARAM_STR);
         $stmt->bindParam(5, $etime, PDO::PARAM_STR);
+        $stmt->bindParam(6, $page, PDO::PARAM_INT);
+        $stmt->bindParam(7, $perPage, PDO::PARAM_INT);
         $stmt->execute();
 
         $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];

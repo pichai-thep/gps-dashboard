@@ -46,12 +46,14 @@
                   v-model="selectedVehicleOption"
                   :suggestions="filteredVehicles"
                   optionLabel="plate_no"
-                  placeholder="Select Vehicle"
                   dropdown
+                  dropdownMode="blank"
                   forceSelection
                   fluid
                   :disabled="pageLoading"
                   @complete="searchVehicle"
+                  @dropdown-click="onVehicleDropdown"
+                  @focus="onVehicleDropdown"
                   @item-select="onVehicleSelect"
               />
 
@@ -354,7 +356,9 @@ async function onPageChange(event: any) {
 
   await loadHistory()
 }
-
+function onVehicleDropdown() {
+  filteredVehicles.value = [...vehicles.value]
+}
 async function searchHistory() {
   currentPage.value = 1
   selectedHistoryIndex.value = null
@@ -362,10 +366,10 @@ async function searchHistory() {
 }
 
 function searchVehicle(event: any) {
-  const keyword = normalizeText(event.query)
+  const keyword = normalizeText(event?.query ?? '')
 
   if (!keyword) {
-    filteredVehicles.value = vehicles.value
+    filteredVehicles.value = [...vehicles.value]
     return
   }
 
@@ -548,6 +552,8 @@ async function loadVehicles(groupId: string | number | null = -1) {
     }))
 
     vehicles.value = allVehicles.value
+    // เพิ่มบรรทัดนี้
+    filteredVehicles.value = vehicles.value
   } catch (error: any) {
     errorMessage.value =
         error?.response?.data?.message ||
