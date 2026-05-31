@@ -143,7 +143,7 @@ class VehicleManagementController extends Controller
                 't.ur_rate_type',
                 't.ur_rate_satsun',
                 't.ur_rate_work_hour',
-
+                't.ur_rate_target_km',
                 't.export_to_active',
             ])
             ->where('t.imei', $imei)
@@ -207,7 +207,7 @@ class VehicleManagementController extends Controller
             'ur_rate_type' => ['nullable', 'in:A,B,C'],
             'ur_rate_satsun' => ['nullable', 'boolean'],
             'ur_rate_work_hour' => ['nullable', 'integer', 'min:0', 'max:24'],
-
+            'ur_rate_target_km' => ['nullable', 'numeric', 'min:0'],
             'export_to_active' => ['nullable', 'boolean'],
         ]);
 

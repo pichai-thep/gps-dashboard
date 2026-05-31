@@ -461,6 +461,16 @@
                     />
                   </div>
 
+                  <div class="field">
+                    <label>Target distance (km)</label>
+                    <InputNumber
+                        v-model="form.ur_rate_target_km"
+                        :min="0"
+                        :max="1000"
+                        suffix=" km"
+                    />
+                  </div>
+
                   <div class="field checkbox-field">
                     <Checkbox
                         v-model="form.ur_rate_satsun"
@@ -483,6 +493,8 @@
                         suffix=" hr"
                     />
                   </div>
+
+
 
                   <div class="field checkbox-field">
                     <Checkbox
@@ -620,6 +632,7 @@ const form = reactive<VehicleDetail>({
   ur_rate_type: 'A',
   ur_rate_satsun: false,
   ur_rate_work_hour: 8,
+  ur_rate_target_km: 100,
 
   export_to_active: 0
 })
@@ -702,6 +715,7 @@ async function saveVehicle() {
       ur_rate_type: form.ur_rate_type,
       ur_rate_satsun: form.ur_rate_satsun ? 1 : 0,
       ur_rate_work_hour: form.ur_rate_work_hour,
+      ur_rate_target_km: form.ur_rate_target_km,
 
       export_to_active: form.export_to_active ? 1 : 0,
 
@@ -749,7 +763,7 @@ async function saveVehicleConfig() {
       ur_rate_type: form.ur_rate_type,
       ur_rate_satsun: form.ur_rate_satsun ? 1 : 0,
       ur_rate_work_hour: form.ur_rate_work_hour,
-
+      ur_rate_target_km: form.ur_rate_target_km,
       export_to_active: form.export_to_active ? 1 : 0,
     })
 
