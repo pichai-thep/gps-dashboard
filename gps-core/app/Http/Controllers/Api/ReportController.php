@@ -178,9 +178,9 @@ class ReportController extends Controller
                 'idle_time_s' => (int) ($summary['idle_time_s'] ?? 0),
                 'park_time_s' => (int) ($summary['park_time_s'] ?? 0),
                 'distance_m' => (float) ($summary['distance_m'] ?? 0),
-                'ur_rate_avg' => $summary['ur_rate_avg'] !== null
-                    ? (float) $summary['ur_rate_avg']
-                    : null,
+//                'ur_rate_avg' => $summary['ur_rate_avg'] !== null
+//                    ? (float) $summary['ur_rate_avg']
+//                    : null,
             ],
             'pagination' => [
                 'current_page' => $page,
