@@ -159,6 +159,8 @@ export async function getStationSummary(params: {
     imeis?: string[]
     page?: number
     per_page?: number
+    sort_by?: string
+    sort_order?: string
     export?: boolean
 }) {
     const res = await api.get<StationSummaryResponse>('/reports/station-summary', {
