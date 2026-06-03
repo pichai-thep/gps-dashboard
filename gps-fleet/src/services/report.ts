@@ -74,6 +74,8 @@ export async function getDailySummary(params: {
     imeis?: string[]
     page?: number
     per_page?: number
+    sort_by?: string
+    sort_order?: string
     export?: boolean
 }) {
     const res = await api.get<DailySummaryResponse>('/reports/daily-summary', {
@@ -114,6 +116,8 @@ export async function getStatusSummary(params: {
     status?: string
     page?: number
     per_page?: number
+    sort_by?: string
+    sort_order?: string
     export?: boolean
 }) {
     const res = await api.get<StatusSummaryResponse>('/reports/status-summary', {

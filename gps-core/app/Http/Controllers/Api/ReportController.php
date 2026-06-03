@@ -117,6 +117,9 @@ class ReportController extends Controller
 
         $dateFrom = $request->query('date_from', now()->toDateString());
         $dateTo = $request->query('date_to', now()->toDateString());
+        $sortField = $request->query('sort_by', 'data_date');
+        $sortOrder = $request->query('sort_order', 'desc');
+
 
         $isExport = filter_var($request->query('export', false), FILTER_VALIDATE_BOOLEAN);
 
@@ -142,13 +145,15 @@ class ReportController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_daily_summary(?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_daily_summary(?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $dateFrom,
             $dateTo,
             $imeiCsv,
             $page,
             $perPage,
+            $sortField,
+            $sortOrder,
         ]);
 
         $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
@@ -173,6 +178,9 @@ class ReportController extends Controller
                 'idle_time_s' => (int) ($summary['idle_time_s'] ?? 0),
                 'park_time_s' => (int) ($summary['park_time_s'] ?? 0),
                 'distance_m' => (float) ($summary['distance_m'] ?? 0),
+                'ur_rate_avg' => $summary['ur_rate_avg'] !== null
+                    ? (float) $summary['ur_rate_avg']
+                    : null,
             ],
             'pagination' => [
                 'current_page' => $page,
@@ -198,6 +206,8 @@ class ReportController extends Controller
 
         $dateFrom = $request->query('date_from', now()->toDateString());
         $dateTo = $request->query('date_to', now()->toDateString());
+        $sortField = $request->query('sort_by', 'data_date');
+        $sortOrder = $request->query('sort_order', 'desc');
 
         $status = $request->query('status', '');
 
@@ -225,7 +235,7 @@ class ReportController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_status_summary(?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_status_summary(?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $dateFrom,
             $dateTo,
@@ -233,6 +243,8 @@ class ReportController extends Controller
             $imeiCsv,
             $page,
             $perPage,
+            $sortField,
+            $sortOrder,
         ]);
 
         $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
@@ -279,6 +291,8 @@ class ReportController extends Controller
 
         $dateFrom = $request->query('date_from', now()->toDateString());
         $dateTo = $request->query('date_to', now()->toDateString());
+        $sortField = $request->query('sort_by', 'data_date');
+        $sortOrder = $request->query('sort_order', 'desc');
 
         $stationId = (int) $request->query('station_id', 0);
 
@@ -309,7 +323,7 @@ class ReportController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_station_summary(?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_station_summary(?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $dateFrom,
             $dateTo,
@@ -317,6 +331,8 @@ class ReportController extends Controller
             $imeiCsv,
             $page,
             $perPage,
+            $sortField,
+            $sortOrder,
         ]);
 
         $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
@@ -329,8 +345,8 @@ class ReportController extends Controller
 
         $stmt->closeCursor();
 
-        $totalRows = (int) ($summary['total_rows'] ?? 0);
-        $totalPages = $perPage > 0 ? (int) ceil($totalRows / $perPage) : 0;
+        $totalRows = (int) ($paginationRaw['total_rows'] ?? ($summary['total_rows'] ?? 0));
+        $totalPages = (int) ($paginationRaw['total_pages'] ?? ($perPage > 0 ? ceil($totalRows / $perPage) : 0));
 
         return response()->json([
             'success' => true,

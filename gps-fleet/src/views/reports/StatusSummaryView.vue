@@ -49,6 +49,14 @@
       />
 
       <Button label="Search" icon="pi pi-search" :loading="loading" @click="search" />
+      <Button
+          label="Reset"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          @click="resetFilter"
+      />
+
     </div>
 
     <div class="summary-grid">
@@ -70,21 +78,29 @@
 
     <div class="table-card">
 
-      <DataTable :value="rows" :loading="loading" stripedRows responsiveLayout="scroll">
-        <Column field="data_date" header="วันที่" />
-<!--        <Column field="imei" header="IMEI" />-->
-        <Column field="plate_no" header="Plate" style="width: 180px" />
+      <DataTable
+          :value="rows"
+          :loading="loading"
+          stripedRows
+          responsiveLayout="scroll"
+          lazy
+          :sortField="sortField"
+          :sortOrder="sortOrder === 'asc' ? 1 : -1"
+          @sort="onSort"
+      >
+        <Column field="data_date" header="วันที่" sortable />
+        <Column field="plate_no" header="Plate" sortable style="width: 180px" />
 
-        <Column header="Status">
+        <Column field="gps_status" header="Status" sortable>
           <template #body="{ data }">
-            <Tag :value="data.gps_status" :severity="statusSeverity(data.gps_status)" />
+            <Tag :value="data.gps_status" :severity="statusSeverity(data.gps_status)"/>
           </template>
         </Column>
 
-        <Column field="start_time" header="เริ่ม" />
-        <Column field="end_time" header="สิ้นสุด" />
+        <Column field="start_time" header="เริ่ม" sortable />
+        <Column field="end_time" header="สิ้นสุด" sortable />
 
-        <Column header="ระยะเวลา">
+        <Column field="duration_s" header="ระยะเวลา" sortable >
           <template #body="{ data }">
             <b>{{ formatDuration(data.duration_s) }}</b>
           </template>
@@ -144,7 +160,8 @@ const page = ref(1)
 const perPage = ref(50)
 const totalRows = ref(0)
 const totalPages = ref(0)
-
+const sortField = ref('data_date')
+const sortOrder = ref<'asc' | 'desc'>('desc')
 
 const summary = ref({
   total_rows: 0,
@@ -213,6 +230,29 @@ function statusSeverity(value: string) {
   return 'contrast'
 }
 
+async function resetFilter() {
+  selectedGroups.value = []
+  selectedVehicles.value = []
+  status.value = null
+
+  const nowDate = new Date()
+  const yesterdayDate = new Date()
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  yesterdayDate.setHours(0, 0, 0, 0)
+
+  dateFrom.value = yesterdayDate
+  dateTo.value = nowDate
+
+  sortField.value = 'data_date'
+  sortOrder.value = 'desc'
+
+  page.value = 1
+  perPage.value = 50
+
+  await loadOptions()
+  await loadData()
+}
+
 async function loadData() {
   loading.value = true
 
@@ -225,6 +265,8 @@ async function loadData() {
       status: status.value || '',
       page: page.value,
       per_page: perPage.value,
+      sort_by: sortField.value,
+      sort_order: sortOrder.value,
     })
 
     rows.value = res.data ?? []
@@ -256,6 +298,19 @@ async function onPage(event: any) {
   await loadData()
 }
 
+async function onSort(event: any) {
+  sortField.value = event.sortField
+
+  sortOrder.value =
+      event.sortOrder === 1
+          ? 'asc'
+          : 'desc'
+
+  page.value = 1
+
+  await loadData()
+}
+
 async function exportCsv() {
   const res = await getStatusSummary({
     date_from: toDateString(dateFrom.value),
@@ -265,9 +320,10 @@ async function exportCsv() {
     status: status.value || '',
     page: 1,
     per_page: totalRows.value || 100000,
+    sort_by: sortField.value,
+    sort_order: sortOrder.value,
     export: true,
   })
-
   const exportRows = res.data ?? []
 
   const header = [

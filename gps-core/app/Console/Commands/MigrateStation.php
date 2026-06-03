@@ -20,7 +20,7 @@ class MigrateStation extends Command
 
     public function handle(): int
     {
-        $dbConnection = 'gps5';
+        $dbConnection = 'gps20';
         $dryRun = $this->option('dry-run');
         $conn = DB::connection($dbConnection);
 

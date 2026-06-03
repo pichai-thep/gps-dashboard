@@ -59,6 +59,14 @@
           @click="search"
       />
 
+      <Button
+          label="Reset"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          @click="resetFilter"
+      />
+
     </div>
 
     <div class="summary-grid">
@@ -97,19 +105,23 @@
     </div>
 
     <div class="table-card">
+
       <DataTable
           :value="rows"
           :loading="loading"
           stripedRows
           responsiveLayout="scroll"
           class="summary-table"
+          :sortField="sortField"
+          :sortOrder="sortOrder === 'asc' ? 1 : -1"
+          @sort="onSort"
       >
-        <Column field="data_date" header="วันที่" style="width: 150px" />
+        <Column field="data_date" header="วันที่" sortable style="width: 150px" />
 
 <!--        <Column field="imei" header="IMEI" style="width: 180px" />-->
-        <Column field="plate_no" header="Plate" style="width: 180px" />
+        <Column field="plate_no" header="Plate" sortable style="width: 180px" />
 
-        <Column header="Running" style="width: 120px">
+        <Column field="run_time_s" header="Running" sortable  style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatDuration(data.run_time_s)"
@@ -118,7 +130,7 @@
           </template>
         </Column>
 
-        <Column header="Idle" style="width: 120px">
+        <Column field="idle_time_s" header="Idle" sortable  style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatDuration(data.idle_time_s)"
@@ -127,7 +139,7 @@
           </template>
         </Column>
 
-        <Column header="Parking" style="width: 120px">
+        <Column field="park_time_s" header="Parking" sortable  style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatDuration(data.park_time_s)"
@@ -136,7 +148,7 @@
           </template>
         </Column>
 
-        <Column header="Distance" style="width: 150px">
+        <Column field="distance_m" header="Distance" sortable  style="width: 150px">
           <template #body="{ data }">
             <b>{{ formatKm(data.distance_m) }}</b>
           </template>
@@ -151,7 +163,7 @@
           </template>
         </Column>
 
-        <Column header="UR Rate" style="width: 120px">
+        <Column field="ur_rate" header="UR Rate" sortable  style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatPercent(data.ur_rate)"
@@ -160,7 +172,7 @@
           </template>
         </Column>
 
-        <Column field="updated_at" header="Updated" style="width: 200px" />
+        <Column field="updated_at" header="Updated" sortable  style="width: 200px" />
       </DataTable>
 
       <Paginator
@@ -220,6 +232,8 @@ const perPage = ref(50)
 
 const totalRows = ref(0)
 const totalPages = ref(0)
+const sortField = ref('data_date')
+const sortOrder = ref<'asc' | 'desc'>('desc')
 
 const summary = ref({
   total_rows: 0,
@@ -250,6 +264,41 @@ const avgUrRate = computed(() => {
 async function onPage(event: any) {
   perPage.value = event.rows
   page.value = Math.floor(event.first / event.rows) + 1
+  await loadData()
+}
+
+async function onSort(event: any) {
+  sortField.value = event.sortField
+
+  sortOrder.value =
+      event.sortOrder === 1
+          ? 'asc'
+          : 'desc'
+
+  page.value = 1
+
+  await loadData()
+}
+
+async function resetFilter() {
+  selectedGroups.value = []
+  selectedVehicles.value = []
+
+  const nowDate = new Date()
+  const yesterdayDate = new Date()
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  yesterdayDate.setHours(0, 0, 0, 0)
+
+  dateFrom.value = yesterdayDate
+  dateTo.value = nowDate
+
+  page.value = 1
+  perPage.value = 50
+
+  sortField.value = 'data_date'
+  sortOrder.value = 'desc'
+
+  await loadOptions()
   await loadData()
 }
 
@@ -326,6 +375,7 @@ async function loadData() {
   loading.value = true
 
   try {
+
     const res = await getDailySummary({
       date_from: toDateString(dateFrom.value),
       date_to: toDateString(dateTo.value),
@@ -333,6 +383,8 @@ async function loadData() {
       imeis: selectedVehicles.value,
       page: page.value,
       per_page: perPage.value,
+      sort_by: sortField.value,
+      sort_order: sortOrder.value,
     })
 
     rows.value = res.data ?? []
@@ -363,6 +415,7 @@ async function search() {
 }
 
 async function exportCsv() {
+
   const res = await getDailySummary({
     date_from: toDateString(dateFrom.value),
     date_to: toDateString(dateTo.value),
@@ -370,6 +423,8 @@ async function exportCsv() {
     imeis: selectedVehicles.value,
     page: 1,
     per_page: totalRows.value || 100000,
+    sort_by: sortField.value,
+    sort_order: sortOrder.value,
     export: true,
   })
 

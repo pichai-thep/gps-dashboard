@@ -52,6 +52,13 @@
       />
 
       <Button label="Search" icon="pi pi-search" :loading="loading" @click="search" />
+      <Button
+          label="Reset"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          @click="resetFilter"
+      />
     </div>
 
     <div class="summary-grid">
@@ -77,11 +84,21 @@
     </div>
 
     <div class="table-card">
-      <DataTable :value="rows" :loading="loading" stripedRows responsiveLayout="scroll">
-        <Column field="data_date" header="วันที่" style="width: 130px" />
-        <Column field="imei" header="IMEI" style="width: 180px" />
+      <DataTable
+          :value="rows"
+          :loading="loading"
+          stripedRows
+          responsiveLayout="scroll"
+          lazy
+          :sortField="sortField"
+          :sortOrder="sortOrder === 'asc' ? 1 : -1"
+          @sort="onSort"
+      >
 
-        <Column header="Station">
+        <Column field="data_date" header="วันที่" sortable style="width: 130px" />
+        <Column field="imei" header="IMEI" sortable style="width: 180px" />
+
+        <Column field="station_name" header="Station" sortable >
           <template #body="{ data }">
             <div class="station-cell">
               <b>{{ data.station_name || '-' }}</b>
@@ -90,16 +107,16 @@
           </template>
         </Column>
 
-        <Column field="start_time" header="เข้า" style="width: 180px" />
-        <Column field="end_time" header="ออก" style="width: 180px" />
+        <Column field="start_time" header="เข้า" sortable style="width: 180px" />
+        <Column field="end_time" header="ออก" sortable style="width: 180px" />
 
-        <Column header="ระยะเวลา" style="width: 130px">
+        <Column field="duration_s" header="ระยะเวลา" sortable style="width: 130px">
           <template #body="{ data }">
             <Tag :value="formatDuration(data.duration_s)" severity="info" />
           </template>
         </Column>
 
-        <Column field="updated_at" header="Updated" style="width: 180px" />
+        <Column field="updated_at" header="Updated" sortable style="width: 180px" />
       </DataTable>
 
       <Paginator
@@ -158,6 +175,8 @@ const page = ref(1)
 const perPage = ref(50)
 const totalRows = ref(0)
 const totalPages = ref(0)
+const sortField = ref('data_date')
+const sortOrder = ref<'asc' | 'desc'>('desc')
 
 const summary = ref({
   total_rows: 0,
@@ -196,6 +215,8 @@ async function loadData() {
       station_id: stationId.value || 0,
       page: page.value,
       per_page: perPage.value,
+      sort_by: sortField.value,
+      sort_order: sortOrder.value,
     })
 
     rows.value = res.data ?? []
@@ -219,6 +240,43 @@ async function loadData() {
 function search() {
   page.value = 1
   loadData()
+}
+
+async function resetFilter() {
+  selectedGroups.value = []
+  selectedVehicles.value = []
+  stationId.value = null
+
+  const nowDate = new Date()
+  const yesterdayDate = new Date()
+
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  yesterdayDate.setHours(0, 0, 0, 0)
+
+  dateFrom.value = yesterdayDate
+  dateTo.value = nowDate
+
+  sortField.value = 'data_date'
+  sortOrder.value = 'desc'
+
+  page.value = 1
+  perPage.value = 50
+
+  await loadOptions()
+  await loadData()
+}
+
+async function onSort(event: any) {
+  sortField.value = event.sortField
+
+  sortOrder.value =
+      event.sortOrder === 1
+          ? 'asc'
+          : 'desc'
+
+  page.value = 1
+
+  await loadData()
 }
 
 async function onPage(event: any) {
@@ -262,6 +320,8 @@ async function exportCsv() {
     imeis: selectedVehicles.value,
     page: 1,
     per_page: totalRows.value || 100000,
+    sort_by: sortField.value,
+    sort_order: sortOrder.value,
     export: true,
   })
 
