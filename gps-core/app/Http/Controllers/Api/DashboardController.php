@@ -184,4 +184,37 @@ class DashboardController extends Controller
 
         return 'acc_on';
     }
+
+    private function fetchCurrentRows(
+        \PDO $pdo,
+        string $login,
+        int $groupId,
+        string $sortColumn,
+        string $sortDir,
+        ?string $keyword,
+        int $status,
+        int $offset,
+        int $perPage
+    ): array {
+        $stmt = $pdo->prepare("
+            CALL sp_webapi_current_track(?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute([
+            $login,
+            $groupId,
+            $sortColumn,
+            $sortDir,
+            $keyword,
+            null,
+            $status,
+            $offset,
+            $perPage,
+        ]);
+
+        $rows = $stmt->fetchAll(\PDO::FETCH_OBJ);
+        $stmt->closeCursor();
+
+        return $rows;
+    }
 }
