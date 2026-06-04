@@ -62,7 +62,10 @@
           <div class="date-grid">
             <div class="form-group">
               <label>Start Date-time</label>
-              <DatePicker id="datepicker-24h" v-model="datetime1" :hide-on-date-time-select="true" date-format="dd/mm/yy" showTime hourFormat="24" fluid />
+              <DatePicker id="datepicker-24h" v-model="datetime1"
+                          :hide-on-date-time-select="true"
+                          date-format="dd/mm/yy" showTime hourFormat="24" fluid
+              />
             </div>
 
             <div class="form-group">
@@ -722,6 +725,8 @@ async function exportXls() {
     end_date: formatDate(datetime2.value),
     start_time: `${hh1}:${mm1}`,
     end_time: `${hh2}:${mm2}`,
+    page: 1,
+    per_page: 50000,
   })
 
   const url = URL.createObjectURL(blob)
@@ -806,6 +811,15 @@ watch(selectedGroup, async (groupId) => {
   errorMessage.value = ''
 
   await loadVehicles(groupId || -1)
+})
+
+watch(datetime1, (newValue) => {
+  if (!newValue) return
+
+  const endDate = new Date(newValue)
+  endDate.setHours(23, 59, 59, 999)
+
+  datetime2.value = endDate
 })
 
 </script>
