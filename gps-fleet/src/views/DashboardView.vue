@@ -47,21 +47,21 @@
           </template>
         </Card>
 
-        <Card class="summary-card status-card acc-on" @click="goToTracking('acc_on')">
-          <template #content>
-            <div class="status-card-inner">
-              <div class="icon-circle">
-                <i class="pi pi-power-off"></i>
-              </div>
+<!--        <Card class="summary-card status-card acc-on" @click="goToTracking('acc_on')">-->
+<!--          <template #content>-->
+<!--            <div class="status-card-inner">-->
+<!--              <div class="icon-circle">-->
+<!--                <i class="pi pi-power-off"></i>-->
+<!--              </div>-->
 
-              <div class="card-info">
-                <div class="label">Acc-on</div>
-                <div class="value">{{ summary.acc_on }}</div>
-                <div class="percent">{{ percent(summary.acc_on) }}</div>
-              </div>
-            </div>
-          </template>
-        </Card>
+<!--              <div class="card-info">-->
+<!--                <div class="label">Acc-on</div>-->
+<!--                <div class="value">{{ summary.acc_on }}</div>-->
+<!--                <div class="percent">{{ percent(summary.acc_on) }}</div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </template>-->
+<!--        </Card>-->
 
         <Card class="summary-card status-card parking" @click="goToTracking('parking')">
           <template #content>
