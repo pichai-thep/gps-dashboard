@@ -493,9 +493,9 @@ function openManagementMenu() {
 }
 
 .sidebar {
-  width: 240px;
+  width: 210px;
   flex-shrink: 0;
-  padding: 16px;
+  padding: 10px;
   overflow: hidden;
   background: #111827;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -508,7 +508,7 @@ function openManagementMenu() {
 }
 
 .sidebar-header {
-  height: 48px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -582,7 +582,7 @@ function openManagementMenu() {
 }
 
 .topbar {
-  height: 100px;
+  height: 90px;
   display: flex;
   align-items: center;
   justify-content: space-between;
