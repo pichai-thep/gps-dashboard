@@ -7,21 +7,22 @@ use Illuminate\Support\Facades\Redis;
 
 class NotificationService
 {
-
     public function getRecentByLogin(
-        string $serverName,
+        string $redisConnection,
         string $login,
         int $limit = 50
     ): array {
-
         $key = $this->userNotifyKey($login);
+
         try {
-            $redis = Redis::connection($serverName);
+            $redis = Redis::connection($redisConnection);
+
             $items = $redis->lrange($key, 0, $limit - 1);
 
             if (empty($items)) {
                 return [];
             }
+
             return collect($items)
                 ->map(fn ($json) => json_decode($json, true))
                 ->filter()
@@ -29,58 +30,64 @@ class NotificationService
                 ->all();
 
         } catch (\Throwable $e) {
-            Log::error("Redis error [{$serverName}] : " . $e->getMessage());
+            Log::error("Redis error [{$redisConnection}] : " . $e->getMessage());
             return [];
         }
     }
 
     public function pushToUser(
-        string $serverName,
+        string $redisConnection,
         string $login,
         array $data,
         int $keep = 100
     ): void {
-
         $key = $this->userNotifyKey($login);
 
-        Redis::connection($serverName)->lpush(
-            $key,
-            json_encode($data, JSON_UNESCAPED_UNICODE)
-        );
+        try {
+            $redis = Redis::connection($redisConnection);
 
-        Redis::connection($serverName)->ltrim(
-            $key,
-            0,
-            $keep - 1
-        );
+            $redis->lpush(
+                $key,
+                json_encode($data, JSON_UNESCAPED_UNICODE)
+            );
 
-        Redis::connection($serverName)->expire(
-            $key,
-            86400
-        );
-    }
+            $redis->ltrim($key, 0, $keep - 1);
+            $redis->expire($key, 86400);
 
-    private function userNotifyKey(string $login): string{
-        $login = strtolower($login);
-        return "notify:user:$login";
-    }
-
-    public function getUnreadCount(string $serverName, string $login): int {
-        try{
-            return (int) Redis::connection($serverName)
-                ->get("notify:user:$login:unread");
         } catch (\Throwable $e) {
-            Log::error("Redis error [{$serverName}] : " . $e->getMessage());
+            Log::error("Redis error [{$redisConnection}] : " . $e->getMessage());
+        }
+    }
+
+    public function getUnreadCount(string $redisConnection, string $login): int
+    {
+        try {
+            $redis = Redis::connection($redisConnection);
+
+            return (int) $redis->get("notify:user:" . strtolower($login) . ":unread");
+
+        } catch (\Throwable $e) {
+            Log::error("Redis error [{$redisConnection}] : " . $e->getMessage());
             return 0;
         }
     }
 
     public function markRead(
-        string $serverName,
+        string $redisConnection,
         string $login
     ): void {
+        try {
+            $redis = Redis::connection($redisConnection);
 
-        Redis::connection($serverName)
-            ->set("notify:user:$login:unread", 0);
+            $redis->set("notify:user:" . strtolower($login) . ":unread", 0);
+
+        } catch (\Throwable $e) {
+            Log::error("Redis error [{$redisConnection}] : " . $e->getMessage());
+        }
+    }
+
+    private function userNotifyKey(string $login): string
+    {
+        return "notify:user:" . strtolower($login);
     }
 }

@@ -12,8 +12,19 @@ use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\TrackingController;
 use App\Http\Controllers\Api\VehicleManagementController;
 
+// mobile
+use App\Http\Controllers\Api\MobileAuthController;
+use App\Http\Controllers\Api\MobileDeviceController;
+use App\Http\Controllers\Api\MobileAlarmSettingController;
+
 use Illuminate\Support\Facades\Route;
 
+
+/*
+|--------------------------------------------------------------------------
+| Web API - ใช้กับ Vue Dashboard เดิม
+|--------------------------------------------------------------------------
+*/
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -77,7 +88,37 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
         Route::get('/options/vehicles', [ReportController::class, 'vehicleOptions']);
         Route::get('/options/stations', [ReportController::class, 'stationOptions']);
     });
-
 });
 
 
+/*
+|--------------------------------------------------------------------------
+| Mobile API - Android / iOS
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('mobile/v1')->group(function () {
+
+    Route::post('/auth/login', [MobileAuthController::class, 'login']);
+
+    Route::middleware(['mobile.auth'])->group(function () {
+        Route::get('/auth/me', [MobileAuthController::class, 'me']);
+        Route::post('/auth/logout', [MobileAuthController::class, 'logout']);
+
+        Route::post('/devices/register', [MobileDeviceController::class, 'register']);
+        Route::post('/devices/unregister', [MobileDeviceController::class, 'unregister']);
+
+    });
+
+    Route::middleware(['mobile.auth', 'gps'])->group(function () {
+        Route::get('/tracking/current', [TrackingController::class, 'current']);
+        Route::get('/tracking/history', [HistoryController::class, 'index']);
+
+        Route::get('/notifications/recent', [NotificationController::class, 'recent']);
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
+
+        Route::get('/alarm-settings', [MobileAlarmSettingController::class, 'index']);
+        Route::put('/alarm-settings', [MobileAlarmSettingController::class, 'update']);
+    });
+});

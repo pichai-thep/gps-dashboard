@@ -17,6 +17,7 @@ class NotificationController extends Controller
     {
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
+        $redis_connection = $request->attributes->get('redis_connection');
 
         $login = strtolower($user->login);
         $serverName = $user->server_name;
@@ -26,8 +27,7 @@ class NotificationController extends Controller
             'server_name' => $serverName,
         ]);
 
-        $items = $this->notificationService
-            ->getRecentByLogin($connection, $login);
+        $items = $this->notificationService->getRecentByLogin($redis_connection, $login, 100);
 
         return response()->json([
             'success' => true,

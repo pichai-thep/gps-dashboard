@@ -1,0 +1,6 @@
+@host = http://127.0.0.1:8000
+@token = CIUjqpaRWwAzJR2tjjqITQ3JPJjHmucyveg3JIvKwW0see64GI2PQJtoNpRjVoXs7I427g0QytOJWoQS
+
+GET {{host}}/api/mobile/v1/notifications/recent
+Authorization: Bearer {{token}}
+Accept: application/json

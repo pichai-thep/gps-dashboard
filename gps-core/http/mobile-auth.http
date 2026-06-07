@@ -1,0 +1,29 @@
+### Mobile Login
+
+POST http://127.0.0.1:8000/api/mobile/v1/auth/login
+Content-Type: application/json
+
+{
+    "username": "test21",
+    "password": "1234",
+    "device_id": "iphone-001",
+    "platform": "ios",
+    "app_version": "1.0.0"
+}
+
+
+### Mobile Me
+
+GET http://127.0.0.1:8000/api/mobile/v1/auth/me
+Authorization: Bearer CIUjqpaRWwAzJR2tjjqITQ3JPJjHmucyveg3JIvKwW0see64GI2PQJtoNpRjVoXs7I427g0QytOJWoQS
+Accept: application/json
+
+
+### Current Tracking
+
+GET http://127.0.0.1:8000/api/mobile/v1/tracking/current
+Authorization: Bearer CIUjqpaRWwAzJR2tjjqITQ3JPJjHmucyveg3JIvKwW0see64GI2PQJtoNpRjVoXs7I427g0QytOJWoQS
+Accept: application/json
+
+
+GET /api/mobile/v1/tracking/history

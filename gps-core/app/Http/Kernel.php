@@ -66,5 +66,8 @@ class Kernel extends HttpKernel
 
         'dev.auth' => \App\Http\Middleware\DevTokenAuth::class,
         'gps' => \App\Http\Middleware\ResolveGpsConnection::class,
+
+        // mobile api
+        'mobile.auth' => \App\Http\Middleware\MobileAuth::class,
     ];
 }

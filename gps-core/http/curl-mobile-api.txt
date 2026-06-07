@@ -1,0 +1,10 @@
+curl -X POST http://127.0.0.1:8000/api/mobile/v1/auth/login \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "demo",
+    "password": "1234",
+    "device_id": "iphone-001",
+    "platform": "ios",
+    "app_version": "1.0.0"
+  }'
