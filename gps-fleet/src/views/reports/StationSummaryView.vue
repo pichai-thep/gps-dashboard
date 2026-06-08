@@ -96,9 +96,10 @@
       >
 
         <Column field="data_date" header="วันที่" sortable style="width: 130px" />
-        <Column field="imei" header="IMEI" sortable style="width: 180px" />
+        <Column field="plate_no" header="ทะเบียน" sortable style="width: 200px" />
+<!--        <Column field="imei" header="IMEI" sortable style="width: 180px" />-->
 
-        <Column field="station_name" header="Station" sortable >
+        <Column field="station_name" header="Station" sortable style="width: 250px" >
           <template #body="{ data }">
             <div class="station-cell">
               <b>{{ data.station_name || '-' }}</b>
@@ -107,8 +108,8 @@
           </template>
         </Column>
 
-        <Column field="start_time" header="เข้า" sortable style="width: 180px" />
-        <Column field="end_time" header="ออก" sortable style="width: 180px" />
+        <Column field="start_time" header="เข้า" sortable style="width: 200px" />
+        <Column field="end_time" header="ออก" sortable style="width: 200px" />
 
         <Column field="duration_s" header="ระยะเวลา" sortable style="width: 130px">
           <template #body="{ data }">
@@ -116,7 +117,7 @@
           </template>
         </Column>
 
-        <Column field="updated_at" header="Updated" sortable style="width: 180px" />
+        <Column field="updated_at" header="Updated" sortable style="width: 200px" />
       </DataTable>
 
       <Paginator

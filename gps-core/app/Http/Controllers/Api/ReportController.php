@@ -106,6 +106,7 @@ class ReportController extends Controller
 
     public function dailySummary(Request $request)
     {
+        $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
         if (!$connection) {
@@ -145,8 +146,9 @@ class ReportController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_daily_summary(?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_daily_summary(?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
+            $user->login,
             $dateFrom,
             $dateTo,
             $imeiCsv,
@@ -195,6 +197,7 @@ class ReportController extends Controller
 
     public function statusSummary(Request $request)
     {
+        $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
         if (!$connection) {
@@ -235,8 +238,9 @@ class ReportController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_status_summary(?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_status_summary(?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
+            $user->login,
             $dateFrom,
             $dateTo,
             $status,
@@ -280,6 +284,7 @@ class ReportController extends Controller
 
     public function stationSummary(Request $request)
     {
+        $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
         if (!$connection) {
@@ -323,8 +328,9 @@ class ReportController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_station_summary(?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_station_summary(?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
+            $user->login,
             $dateFrom,
             $dateTo,
             $stationId,
