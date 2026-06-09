@@ -113,6 +113,7 @@ Route::prefix('mobile/v1')->group(function () {
     Route::middleware(['mobile.auth', 'gps'])->group(function () {
         Route::get('/tracking/current', [TrackingController::class, 'current']);
         Route::get('/tracking/history', [HistoryController::class, 'index']);
+        Route::get('/tracking/groups', [TrackingController::class, 'groups']);
 
         Route::get('/notifications/recent', [NotificationController::class, 'recent']);
         Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
