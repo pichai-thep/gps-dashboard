@@ -99,18 +99,22 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
 
 Route::prefix('mobile/v1')->group(function () {
 
-    Route::post('/auth/login', [MobileAuthController::class, 'login']);
+    Route::prefix('auth')->group(function () {
+        Route::post('/login', [MobileAuthController::class, 'login']);
 
-    Route::middleware(['mobile.auth'])->group(function () {
-        Route::get('/auth/me', [MobileAuthController::class, 'me']);
-        Route::post('/auth/logout', [MobileAuthController::class, 'logout']);
+        Route::middleware(['mobile.auth','gps'])->group(function () {
+            Route::get('/me', [MobileAuthController::class, 'me']);
+            Route::post('/logout', [MobileAuthController::class, 'logout']);
 
-        Route::post('/devices/register', [MobileDeviceController::class, 'register']);
-        Route::post('/devices/unregister', [MobileDeviceController::class, 'unregister']);
+            Route::post('/devices/register', [MobileDeviceController::class, 'register']);
+            Route::post('/devices/unregister', [MobileDeviceController::class, 'unregister']);
 
+        });
     });
 
+
     Route::middleware(['mobile.auth', 'gps'])->group(function () {
+
         Route::get('/tracking/current', [TrackingController::class, 'current']);
         Route::get('/tracking/history', [HistoryController::class, 'index']);
         Route::get('/tracking/groups', [TrackingController::class, 'groups']);
