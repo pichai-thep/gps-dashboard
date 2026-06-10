@@ -114,6 +114,10 @@ Route::prefix('mobile/v1')->group(function () {
         Route::get('/tracking/current', [TrackingController::class, 'current']);
         Route::get('/tracking/history', [HistoryController::class, 'index']);
 
+        Route::get('/map-layers/pois', [MapLayerController::class, 'pois']);
+        Route::get('/map-layers/stations', [MapLayerController::class, 'stations']);
+        Route::get('/map-layers/forbidden-zones', [MapLayerController::class, 'forbiddenZones']);
+
         Route::get('/notifications/recent', [NotificationController::class, 'recent']);
         Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
