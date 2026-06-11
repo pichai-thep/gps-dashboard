@@ -106,12 +106,13 @@ Route::prefix('mobile/v1')->group(function () {
             Route::get('/me', [MobileAuthController::class, 'me']);
             Route::post('/logout', [MobileAuthController::class, 'logout']);
 
-            Route::post('/devices/register', [MobileDeviceController::class, 'register']);
-            Route::post('/devices/unregister', [MobileDeviceController::class, 'unregister']);
-
         });
     });
 
+    Route::middleware(['mobile.auth','gps'])->group(function () {
+        Route::post('/devices/register', [MobileDeviceController::class, 'register']);
+        Route::post('/devices/unregister', [MobileDeviceController::class, 'unregister']);
+    });
 
     Route::middleware(['mobile.auth', 'gps'])->group(function () {
 
