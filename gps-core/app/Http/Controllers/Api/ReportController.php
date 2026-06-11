@@ -26,10 +26,10 @@ class ReportController extends Controller
         $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-        logger()->info('Report groupOptions', [
-            'connection' => $dbConnection,
-            'customer_id' => $customerId,
-        ]);
+//        logger()->info('Report groupOptions', [
+//            'connection' => $dbConnection,
+//            'customer_id' => $customerId,
+//        ]);
 
         $rows = DB::connection($dbConnection)->select("
             SELECT
