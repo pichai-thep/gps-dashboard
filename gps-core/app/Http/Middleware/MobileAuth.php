@@ -16,7 +16,7 @@ class MobileAuth
 
         if (!$header || !preg_match('/Bearer\s+(.*)$/i', $header, $matches)) {
             $msg = 'Unauthorized';
-            logger()->info($msg);
+//            logger()->info($msg);
             return response()->json([
                 'success' => false,
                 'message' => $msg,
@@ -33,7 +33,7 @@ class MobileAuth
 
         if (!$token) {
             $msg = 'Unauthorized, invalid token';
-            logger()->info($msg);
+//            logger()->info($msg);
             return response()->json([
                 'success' => false,
                 'message' => $msg,
@@ -42,7 +42,7 @@ class MobileAuth
 
         if ($token->expires_at && strtotime($token->expires_at) < time()) {
             $msg = 'Unauthorized, expired token';
-            logger()->info($msg);
+//            logger()->info($msg);
             return response()->json([
                 'success' => false,
                 'message' => $msg,
@@ -57,7 +57,7 @@ class MobileAuth
 
         if (!$user) {
             $msg = 'Unauthorized, user not found';
-            logger()->info($msg);
+//            logger()->info($msg);
             return response()->json([
                 'success' => false,
                 'message' => $msg,

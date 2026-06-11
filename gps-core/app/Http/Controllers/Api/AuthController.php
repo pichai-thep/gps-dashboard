@@ -106,16 +106,23 @@ class AuthController extends Controller
             ->first();
 
         if (!$user) {
+            $msg = 'Unauthorized, user not found';
+            logger()->info($msg);
             return response()->json([
-                'message' => 'User not found',
+                'message' => $msg,
             ], 401);
         }
 
         if (!$this->checkPassword($request->password, $user->pwd)) {
+            $msg = 'Unauthorized, invalid password';
+            logger()->info($msg);
             return response()->json([
-                'message' => 'Invalid password',
+                'message' => $msg,
             ], 401);
         }
+
+        $msg = "Login authorized, user:$request->username";
+        logger()->info($msg);
 
         return response()->json([
             'token' => 'dev-token-' . $user->id,
