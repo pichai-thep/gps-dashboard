@@ -10,6 +10,8 @@ class MobileDeviceController extends Controller
 {
     public function register(Request $request)
     {
+        logger()->info('Registering device');
+
         $user = $request->attributes->get('mobile_user');
 
         if (!$user) {
@@ -56,6 +58,7 @@ class MobileDeviceController extends Controller
                 ]
             );
 
+        logger()->info('Device registered');
         return response()->json([
             'success' => true,
             'message' => 'Device registered',
@@ -64,6 +67,7 @@ class MobileDeviceController extends Controller
 
     public function unregister(Request $request)
     {
+        logger()->info('Unregistering device');
         $user = $request->attributes->get('mobile_user');
 
         if (!$user) {
@@ -85,6 +89,7 @@ class MobileDeviceController extends Controller
             ->where('push_provider', $validated['push_provider'])
             ->delete();
 
+        logger()->info('Device unregistered');
         return response()->json([
             'success' => true,
             'message' => 'Device unregistered',
