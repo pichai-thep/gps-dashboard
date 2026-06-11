@@ -1,17 +1,30 @@
+sudo php artisan key:generate
+
 mkdir -p storage/framework/cache
 mkdir -p storage/framework/sessions
 mkdir -p storage/framework/views
 mkdir -p bootstrap/cache
 
-chmod -R 775 storage bootstrap/cache
+sudo rm -f storage/logs/laravel.log
+sudo touch storage/logs/laravel.log
+sudo chown apache:apache storage/logs/laravel.log
+sudo chmod 664 storage/logs/laravel.log
+
+cd /var/www/gps-core
+
+sudo mkdir -p storage/logs
+sudo touch storage/logs/laravel.log
+
+sudo chown -R apache:apache storage bootstrap/cache
+sudo chmod -R ug+rwX storage bootstrap/cache
+
+sudo chcon -R -t httpd_sys_rw_content_t storage bootstrap/cache
+
+sudo chmod -R 775 storage bootstrap/cache
 
 sudo php artisan config:clear
 sudo php artisan cache:clear
 sudo php artisan config:cache
-
-sudo php artisan key:generate
-
-
 
 sudo -u apache php artisan optimize:clear
 
