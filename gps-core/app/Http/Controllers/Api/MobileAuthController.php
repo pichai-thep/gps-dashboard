@@ -26,16 +26,20 @@ class MobileAuthController extends Controller
             ->first();
 
         if (!$user) {
+            $msg = 'Unauthorized, User not found';
+            logger()->info($msg);
             return response()->json([
                 'success' => false,
-                'message' => 'User not found',
+                'message' => $msg,
             ], 401);
         }
 
         if (!$this->checkPassword($request->password, $user->pwd)) {
+            $msg = 'Unauthorized, Invalid password';
+            logger()->info($msg);
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid password',
+                'message' => $msg,
             ], 401);
         }
 
@@ -56,6 +60,8 @@ class MobileAuthController extends Controller
                 'updated_at' => now(),
             ]);
 
+        $msg = 'Mobile Login authorized, user: ' . $user->login;
+        logger()->info($msg);
         return response()->json([
             'success' => true,
             'token_type' => 'Bearer',

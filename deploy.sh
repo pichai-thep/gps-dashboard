@@ -5,6 +5,11 @@ BASE_DIR=/var/www/gps-dashboard
 
 cd $BASE_DIR
 
+sudo chown -R gpsroot:gpsroot \
+  gps-core/storage \
+  gps-core/bootstrap/cache \
+  || true
+
 git fetch origin
 git reset --hard origin/main
 git clean -fd
@@ -22,7 +27,7 @@ cd $BASE_DIR/gps-fleet
 sudo rm -rf dist
 npm install
 npm run build
-sudo chown -R gpsroot:nginx dist
+sudo chown -R gpsroot:gpsroot dist
 sudo chmod -R 755 dist
 sudo chcon -R -t httpd_sys_content_t dist || true
 
