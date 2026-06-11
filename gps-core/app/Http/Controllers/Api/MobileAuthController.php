@@ -26,7 +26,7 @@ class MobileAuthController extends Controller
             ->first();
 
         if (!$user) {
-            $msg = 'Unauthorized, User not found';
+            $msg = "Mobile Login unauthorized user:$request->username not found";
             logger()->info($msg);
             return response()->json([
                 'success' => false,
@@ -35,7 +35,7 @@ class MobileAuthController extends Controller
         }
 
         if (!$this->checkPassword($request->password, $user->pwd)) {
-            $msg = 'Unauthorized, Invalid password';
+            $msg = "Mobile Login unauthorized user:$request->username, Invalid password";
             logger()->info($msg);
             return response()->json([
                 'success' => false,
@@ -60,8 +60,9 @@ class MobileAuthController extends Controller
                 'updated_at' => now(),
             ]);
 
-        $msg = 'Mobile Login authorized, user: ' . $user->login;
+        $msg = 'Mobile Login success, user: ' . $user->login;
         logger()->info($msg);
+
         return response()->json([
             'success' => true,
             'token_type' => 'Bearer',
@@ -202,9 +203,11 @@ class MobileAuthController extends Controller
         $header = $request->header('Authorization');
 
         if (!$header || !preg_match('/Bearer\s+(.*)$/i', $header, $matches)) {
+            $msg = "Mobile logout unauthorized";
+            logger()->info($msg);
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized',
+                'message' => $msg,
             ], 401);
         }
 
@@ -215,9 +218,12 @@ class MobileAuthController extends Controller
             ->where('token_hash', $tokenHash)
             ->delete();
 
+        $msg = "Mobile logout success";
+        logger()->info($msg);
+
         return response()->json([
             'success' => true,
-            'message' => 'Logged out',
+            'message' => $msg,
         ]);
     }
 
