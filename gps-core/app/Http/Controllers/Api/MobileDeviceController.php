@@ -10,6 +10,11 @@ class MobileDeviceController extends Controller
 {
     public function register(Request $request)
     {
+        $user = $request->attributes->get('mobile_user');
+        $connection = $request->attributes->get('gps_connection');
+
+        logger()->info('Mobile device FCM token register call');
+
         $request->validate([
             'device_id' => 'required|string|max:191',
             'platform' => 'required|in:android,ios',
@@ -18,7 +23,8 @@ class MobileDeviceController extends Controller
             'app_version' => 'nullable|string|max:50',
         ]);
 
-        $user = $request->attributes->get('mobile_user');
+        logger()->info('Mobile device FCM token register pass validation');
+        logger()->info('Mobile device FCM token register get user obj');
 
         DB::connection('auth_db')
             ->table('mobile_devices')
@@ -40,6 +46,8 @@ class MobileDeviceController extends Controller
                     'created_at' => now(),
                 ]
             );
+
+        logger()->info('Mobile device FCM token register get user obj');
 
         return response()->json([
             'success' => true,
