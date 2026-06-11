@@ -10,7 +10,7 @@ class MobileAuth
 {
     public function handle(Request $request, Closure $next)
     {
-        logger()->info('MobileAuth middleware called');
+//        logger()->info('MobileAuth middleware called');
 
         $header = $request->header('Authorization');
 

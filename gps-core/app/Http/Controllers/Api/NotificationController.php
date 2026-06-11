@@ -22,10 +22,10 @@ class NotificationController extends Controller
         $login = strtolower($user->login);
         $serverName = $user->server_name;
 
-        logger()->info("Api NotificationController recent", [
-            'login' => $login,
-            'server_name' => $serverName,
-        ]);
+//        logger()->info("Api NotificationController recent", [
+//            'login' => $login,
+//            'server_name' => $serverName,
+//        ]);
 
         $items = $this->notificationService->getRecentByLogin($redis_connection, $login, 100);
 
