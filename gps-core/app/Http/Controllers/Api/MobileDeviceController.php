@@ -13,8 +13,8 @@ class MobileDeviceController extends Controller
         logger()->info('Registering device');
 
         $user = $request->attributes->get('mobile_user');
-        $gpsConnection = $user->server_name;
-        $serverIp = config("database.connections.{$gpsConnection}.host");
+        $server_name = $user->server_name;
+        $serverIp = config("database.connections.{$server_name}.host");
 
         if (!$user) {
             return response()->json([
@@ -56,7 +56,7 @@ class MobileDeviceController extends Controller
                 ],
                 [
                     'login' => $user->login,
-                    'server_name' => $serverIp ?? null,
+                    'server_name' => $server_name ?? null,
                     'platform' => $validated['platform'],
                     'push_token' => $validated['push_token'],
                     'app_version' => $validated['app_version'] ?? null,
