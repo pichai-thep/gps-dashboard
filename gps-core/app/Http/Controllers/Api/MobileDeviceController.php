@@ -23,6 +23,16 @@ class MobileDeviceController extends Controller
             ], 401);
         }
 
+        logger()->info(" Mobile device register info
+            device_id: $request->device_id
+            platform: $request->platform
+            push_provider: $request->push_provider
+            app_version: $request->app_version
+            device_brand: $request->device_brand
+            device_model: $request->device_model
+            os_version: $request->os_version
+        ");
+
         $validated = $request->validate([
             'device_id' => 'required|string|max:191',
             'platform' => 'required|in:android,ios',

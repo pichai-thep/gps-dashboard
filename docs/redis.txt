@@ -114,6 +114,7 @@ redis-cli --scan --pattern 'notify:user:*'
 redis-cli --scan --pattern 'notify:user:*' | wc -l
 
 
+
 ถ้าต้องการนับ “ทุก notify ของทุก user” เช่น key หลายตัว
 
 notify:user:1
@@ -313,3 +314,6 @@ do
 done
 
 LRANGE geo:tambon:queue 0 -1
+
+
+redis-cli -a 'GpsPushRedis@2026' LRANGE notify:fcm:myfleet:queue 0 -1
