@@ -22,6 +22,7 @@ class TrackingController extends Controller
     {
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
+        $gpsUserCustomer = $request->attributes->get('gpsUserCustomer');
 
         if (!$connection) {
             return response()->json([
@@ -50,17 +51,35 @@ class TrackingController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $rows = $this->fetchCurrentRows(
-            $pdo,
-            $user->login,
-            $groupId,
-            $sortColumn,
-            $sortDir,
-            $keyword,
-            -1,
-            0,
-            100000
-        );
+        if($gpsUserCustomer->enable_passenger){
+            $rows = $this->fetchCurrentRows_passenger(
+                $pdo,
+                $user->login,
+                $groupId,
+                $sortColumn,
+                $sortDir,
+                $keyword,
+                -1,
+                0,
+                100000
+            );
+
+        }else{
+            $rows = $this->fetchCurrentRows(
+                $pdo,
+                $user->login,
+                $groupId,
+                $sortColumn,
+                $sortDir,
+                $keyword,
+                -1,
+                0,
+                100000
+            );
+
+        }
+
+
 
         $allVehicles = collect($rows)
             ->map(fn ($row) => $this->transformVehicle($row))
@@ -179,6 +198,39 @@ class TrackingController extends Controller
     ): array {
         $stmt = $pdo->prepare("
             CALL sp_webapi_current_track(?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute([
+            $login,
+            $groupId,
+            $sortColumn,
+            $sortDir,
+            $keyword,
+            null,
+            $status,
+            $offset,
+            $perPage,
+        ]);
+
+        $rows = $stmt->fetchAll(\PDO::FETCH_OBJ);
+        $stmt->closeCursor();
+
+        return $rows;
+    }
+
+    private function fetchCurrentRows_passenger(
+        \PDO $pdo,
+        string $login,
+        int $groupId,
+        string $sortColumn,
+        string $sortDir,
+        ?string $keyword,
+        int $status,
+        int $offset,
+        int $perPage
+    ): array {
+        $stmt = $pdo->prepare("
+            CALL sp_api_current_track_passenger(?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
