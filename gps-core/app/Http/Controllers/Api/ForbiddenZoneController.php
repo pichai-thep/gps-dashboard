@@ -60,7 +60,7 @@ class ForbiddenZoneController extends Controller
         $wkt = $this->makePolygonWkt($data['polygon']);
 
         DB::connection($dbConnection)->insert("
-            INSERT INTO forbidden_zone
+            INSERT INTO forbidden_zones
                 (zone_name, polygon, customer_id)
             VALUES
                 (?, ST_GeomFromText(?), ?)
@@ -90,7 +90,7 @@ class ForbiddenZoneController extends Controller
         $wkt = $this->makePolygonWkt($data['polygon']);
 
         DB::connection($dbConnection)->update("
-            UPDATE forbidden_zone
+            UPDATE forbidden_zones
             SET
                 zone_name = ?,
                 polygon = ST_GeomFromText(?)
@@ -114,7 +114,7 @@ class ForbiddenZoneController extends Controller
         $customerId = $this->customerId($request);
 
         DB::connection($dbConnection)->delete("
-            DELETE FROM forbidden_zone
+            DELETE FROM forbidden_zones
             WHERE id = ?
               AND customer_id = ?
         ", [
