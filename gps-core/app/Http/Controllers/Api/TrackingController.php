@@ -264,6 +264,7 @@ class TrackingController extends Controller
             'status' => $this->resolveStatus($row),
             'heading' => (int) ($row->heading ?? 0),
             'fuel_left' => $row->fuel_left,
+            'temperature' => $row->temperature,
             'icon_path' => $row->icon_path ?? '',
             'icon' => $row->icon_path ?? 'bus',
             'driver_name' => $row->driver_name ?? null,
