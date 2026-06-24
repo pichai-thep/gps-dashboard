@@ -1,7 +1,6 @@
 export type VehicleStatus =
     | 'run'
     | 'idle'
-    | 'acc_on'
     | 'park'
     | 'no_gps'
     | 'offline'
@@ -36,4 +35,3 @@ export type Vehicle = {
     address?: string
     num_sats?: number | string | null
 }
-

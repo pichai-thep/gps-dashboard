@@ -594,9 +594,6 @@ function getVehicleIcon(
     case 'idle':
       return `/cars/${carType}/start.png`
 
-    case 'acc_on':
-      return `/cars/${carType}/acc-on.png`
-
     case 'park':
     case 'offline':
     case 'no_gps':

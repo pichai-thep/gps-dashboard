@@ -313,7 +313,6 @@ const router = useRouter()
 type StatusCount = {
   run: number
   idle: number
-  acc_on: number
   park: number
   no_gps: number
   offline: number
@@ -327,7 +326,6 @@ const auth = useAuthStore()
 const defaultStatusCount: StatusCount = {
   run: 0,
   idle: 0,
-  acc_on: 0,
   park: 0,
   no_gps: 0,
   offline: 0,
@@ -342,7 +340,6 @@ const refreshOptions = [
 const statusOptions = [
   { label: 'Run', value: 'run' },
   { label: 'Idle', value: 'idle' },
-  { label: 'ACC:on', value: 'acc_on' },
   { label: 'Park', value: 'park' },
   { label: 'No GPS', value: 'no_gps' },
   { label: 'Offline', value: 'offline' },
@@ -351,7 +348,6 @@ const statusOptions = [
 const statusSummaryItems = [
   { label: 'Run', value: 'run' },
   { label: 'Idle', value: 'idle' },
-  { label: 'ACC:on', value: 'acc_on' },
   { label: 'Park', value: 'park' },
   { label: 'No GPS', value: 'no_gps' },
   { label: 'Offline', value: 'offline' },
@@ -629,7 +625,6 @@ function getStatusIcon(status: VehicleStatus) {
   return {
     run: 'pi pi-arrow-circle-up',
     idle: 'pi pi-arrow-circle-up',
-    acc_on: 'pi pi-key',
     park: 'pi pi-stop-circle',
     no_gps: 'pi pi-exclamation-circle',
     offline: 'pi pi-exclamation-triangle',
@@ -930,10 +925,6 @@ onBeforeUnmount(() => {
   background: #eab308;
 }
 
-.summary-item.acc_on {
-  background: #f97316;
-}
-
 .summary-item.park,
 .summary-item.parking {
   background: #ef4444;
@@ -1134,10 +1125,6 @@ onBeforeUnmount(() => {
   color: #facc15;
 }
 
-.status-icon.acc_on {
-  color: #fb923c;
-}
-
 .status-icon.park,
 .status-icon.parking {
   color: #ef4444;
@@ -1170,10 +1157,6 @@ onBeforeUnmount(() => {
 
 .status-text.idle {
   color: #facc15;
-}
-
-.status-text.acc_on {
-  color: #fb923c;
 }
 
 .status-text.park {

@@ -53,7 +53,6 @@ export async function getCurrentTracking(
 export type StatusCount = {
     run: number
     idle: number
-    acc_on: number
     park: number
     no_gps: number
     offline: number

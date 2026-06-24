@@ -12,7 +12,6 @@ class TrackingController extends Controller
     private const DEFAULT_STATUS_COUNTS = [
         'run' => 0,
         'idle' => 0,
-        'acc_on' => 0,
         'park' => 0,
         'no_gps' => 0,
         'offline' => 0,
@@ -377,6 +376,6 @@ class TrackingController extends Controller
             return 'idle';
         }
 
-        return 'acc_on';
+        return 'idle';
     }
 }
