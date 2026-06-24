@@ -988,18 +988,25 @@ watch(datetime1, (newValue) => {
 .table-scroll {
   flex: 1;
   min-height: 0;
+  display: flex;
   overflow: hidden;
 }
 
 :deep(.history-datatable) {
+  flex: 1;
+  min-height: 0;
   height: 100%;
   background: transparent;
   color: #e5e7eb;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.history-datatable .p-datatable-wrapper) {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   background: transparent;
+  overflow-y: auto !important;
 }
 
 :deep(.history-datatable .p-datatable-table) {
@@ -1212,6 +1219,12 @@ watch(datetime1, (newValue) => {
   .left-panel {
     width: 100%;
     min-width: 0;
+    height: auto;
+  }
+
+  .table-card {
+    min-height: 520px;
+    max-height: 70vh;
   }
 
   .map-panel {
@@ -1221,6 +1234,11 @@ watch(datetime1, (newValue) => {
 }
 
 @media (max-width: 640px) {
+  .table-card {
+    min-height: 460px;
+    max-height: 68vh;
+  }
+
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }
