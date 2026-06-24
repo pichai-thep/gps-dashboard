@@ -107,7 +107,7 @@
 <!--      </PanelMenu>-->
 
 
-      <div v-else class="collapsed-menu">
+      <div v-if="sidebarCollapsed || isMobileLayout" class="collapsed-menu">
 
         <button :class="{ active: route.path === '/' }" @click="router.push('/')">
           <i class="pi pi-chart-line"></i>
@@ -822,6 +822,7 @@ function openReportsMenu() {
     flex-direction: row;
     align-items: center;
     gap: 6px;
+    min-height: 0;
     overflow-x: auto;
     padding-bottom: 2px;
     scrollbar-width: none;
