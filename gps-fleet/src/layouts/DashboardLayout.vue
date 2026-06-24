@@ -147,6 +147,35 @@
 
       </div>
 
+      <div
+          v-if="isMobileLayout && mobileReportsOpen"
+          class="mobile-report-menu"
+      >
+        <button
+            :class="{ active: isActive('/reports/daily-summary') }"
+            type="button"
+            @click="goReport('/reports/daily-summary')"
+        >
+          Daily
+        </button>
+
+        <button
+            :class="{ active: isActive('/reports/status-summary') }"
+            type="button"
+            @click="goReport('/reports/status-summary')"
+        >
+          Status
+        </button>
+
+        <button
+            :class="{ active: isActive('/reports/station-summary') }"
+            type="button"
+            @click="goReport('/reports/station-summary')"
+        >
+          Station
+        </button>
+      </div>
+
 
 
     </aside>
@@ -300,10 +329,15 @@ const menuItems = computed(() => [
 
 const sidebarCollapsed = ref(false)
 const isMobileLayout = ref(false)
+const mobileReportsOpen = ref(false)
 let mobileQuery: MediaQueryList | null = null
 
 function handleMobileLayoutChange(event: MediaQueryListEvent) {
   isMobileLayout.value = event.matches
+
+  if (!event.matches) {
+    mobileReportsOpen.value = false
+  }
 }
 
 const router = useRouter()
@@ -397,11 +431,21 @@ function onLogoError(event: Event) {
 }
 
 function openReportsMenu() {
+  if (isMobileLayout.value) {
+    mobileReportsOpen.value = !mobileReportsOpen.value
+    return
+  }
+
   sidebarCollapsed.value = false
   expandedKeys.value = {
     ...expandedKeys.value,
     reports: true,
   }
+}
+
+function goReport(path: string) {
+  mobileReportsOpen.value = false
+  router.push(path)
 }
 
 </script>
@@ -795,6 +839,10 @@ function openReportsMenu() {
   color: #ffffff;
 }
 
+.mobile-report-menu {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .layout {
     flex-direction: column;
@@ -836,6 +884,36 @@ function openReportsMenu() {
     width: 40px;
     height: 40px;
     flex: 0 0 40px;
+  }
+
+  .mobile-report-menu {
+    display: flex;
+    gap: 6px;
+    padding: 8px 2px 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mobile-report-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-report-menu button {
+    flex: 0 0 auto;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 999px;
+    background: #0f172a;
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .mobile-report-menu button.active {
+    background: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
   }
 
   .topbar {
