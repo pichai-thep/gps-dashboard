@@ -159,8 +159,12 @@
             </Column>
 
             <Column header="History">
-              <template #body="{ data }">
+              <template #body="{ data, index }">
                 <div class="history-cell">
+                  <div class="mobile-history-index">
+                    #{{ firstRow + index + 1 }}
+                  </div>
+
                   <div class="main-line">
                     <span
                         class="status-pill"
@@ -179,18 +183,18 @@
                       {{ data.gps_time ?? '-' }}
                     </div>
 
-                    <div class="mini-chip">
+                    <div class="mini-chip speed-chip">
                       <span>SP</span>
                       <strong>{{ data.speed ?? 0 }}</strong>
                     </div>
 
-                    <div class="mini-chip">
+                    <div class="mini-chip direction-chip">
                       <span>DIR</span>
                       <strong>{{ Number(data.heading ?? 0).toFixed(0) }}°</strong>
                     </div>
 
                     <div
-                        class="mini-chip"
+                        class="mini-chip satellite-chip"
                         :class="{ danger: Number(data.num_sats ?? 0) < 4 }"
                     >
                       <span>SAT</span>
@@ -1059,6 +1063,10 @@ watch(datetime1, (newValue) => {
   min-width: 0;
 }
 
+.mobile-history-index {
+  display: none;
+}
+
 .main-line {
   display: grid;
   grid-template-columns: minmax(90px, 1fr) 150px 60px 60px 60px;
@@ -1260,24 +1268,38 @@ watch(datetime1, (newValue) => {
   }
 
   :deep(.history-datatable .p-datatable-tbody > tr) {
-    display: grid;
-    grid-template-columns: 34px minmax(0, 1fr);
+    display: block;
   }
 
   :deep(.history-datatable .p-datatable-tbody > tr > td) {
     display: block;
-    padding: 10px 8px;
+    padding: 0;
     min-width: 0;
   }
 
   :deep(.history-datatable .p-datatable-tbody > tr > td:first-child) {
-    align-self: stretch;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: none;
+  }
+
+  :deep(.history-datatable .p-datatable-tbody > tr > td:nth-child(2)) {
+    padding: 10px;
+  }
+
+  .history-cell {
+    position: relative;
+    gap: 9px;
+    padding: 10px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+  }
+
+  .mobile-history-index {
+    display: block;
     color: #94a3b8;
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
   }
 
   .summary-grid {
@@ -1290,16 +1312,26 @@ watch(datetime1, (newValue) => {
   }
 
   .main-line {
-    grid-template-columns: minmax(0, 1fr) minmax(112px, 0.8fr);
+    grid-template-columns: minmax(0, 1fr) minmax(112px, 0.85fr);
+    grid-template-areas:
+      "status time"
+      "speed direction"
+      "satellite satellite";
     gap: 8px;
   }
 
+  .status-pill {
+    grid-area: status;
+  }
+
   .gps-time {
+    grid-area: time;
     justify-self: end;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 12px;
+    align-self: center;
   }
 
   .status-pill {
@@ -1314,16 +1346,17 @@ watch(datetime1, (newValue) => {
     height: 38px;
   }
 
-  .main-line .mini-chip:nth-of-type(1) {
-    grid-column: 1 / 2;
+  .speed-chip {
+    grid-area: speed;
   }
 
-  .main-line .mini-chip:nth-of-type(2) {
-    grid-column: 2 / 3;
+  .direction-chip {
+    grid-area: direction;
   }
 
-  .main-line .mini-chip:nth-of-type(3) {
-    grid-column: 1 / 3;
+  .satellite-chip {
+    grid-area: satellite;
+    width: 100%;
   }
 
   .optional-line {
