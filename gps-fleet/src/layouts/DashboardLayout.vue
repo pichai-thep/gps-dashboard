@@ -921,6 +921,7 @@ function goReport(path: string) {
     min-height: 64px;
     gap: 10px;
     padding: 8px 12px;
+    flex-wrap: wrap;
   }
 
   .topbar-logo {
@@ -928,6 +929,7 @@ function goReport(path: string) {
   }
 
   .topbar-title {
+    flex: 1 1 100%;
     min-width: 0;
   }
 
@@ -939,20 +941,47 @@ function goReport(path: string) {
   }
 
   .topbar-heading {
-    max-width: 34vw;
+    max-width: 100%;
     font-size: 14px;
   }
 
   .topbar-subtitle {
-    max-width: 38vw;
+    max-width: 100%;
   }
 
   .user-section {
+    width: 100%;
     gap: 8px;
-    margin-left: auto;
+    margin-left: 0;
   }
 
   .user-info {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 12px;
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    font-size: 12px;
+  }
+
+  .user-text {
+    min-width: 0;
+  }
+
+  .user-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-role {
     display: none;
   }
 

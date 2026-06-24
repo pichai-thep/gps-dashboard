@@ -10,6 +10,37 @@ const error = ref('')
 let timer: number | undefined
 let isLoadingNotifications = false
 
+const notificationTypeMeta: Record<string, { icon: string; tone: string }> = {
+  engine_on_alert: { icon: 'pi pi-key', tone: 'success' },
+  engine_off_alert: { icon: 'pi pi-stop-circle', tone: 'neutral' },
+  power_on_alert: { icon: 'pi pi-bolt', tone: 'success' },
+  power_off_alert: { icon: 'pi pi-power-off', tone: 'neutral' },
+
+  speed_over_device_alert: { icon: 'pi pi-gauge', tone: 'danger' },
+  speed_over_cloud_alert: { icon: 'pi pi-gauge', tone: 'danger' },
+
+  hash_accelerate_alert: { icon: 'pi pi-arrow-up', tone: 'danger' },
+  hash_break_alert: { icon: 'pi pi-arrow-down', tone: 'danger' },
+  drive4h_alert: { icon: 'pi pi-clock', tone: 'warning' },
+
+  station_in_alert: { icon: 'pi pi-sign-in', tone: 'warning' },
+  station_out_alert: { icon: 'pi pi-sign-out', tone: 'warning' },
+
+  gps_antenna_connect_alert: { icon: 'pi pi-wifi', tone: 'warning' },
+  abnormal_gps_alert: { icon: 'pi pi-compass', tone: 'danger' },
+  abnormal_fuel_alert: { icon: 'pi pi-sliders-h', tone: 'danger' },
+  input2_on_alert: { icon: 'pi pi-bolt', tone: 'warning' },
+}
+
+function getNotificationTypeMeta(type?: string) {
+  const normalizedType = (type || '').trim().toLowerCase().replace(/-/g, '_')
+
+  return notificationTypeMeta[normalizedType] || {
+    icon: 'pi pi-bell',
+    tone: 'default',
+  }
+}
+
 async function loadNotifications() {
   if (isLoadingNotifications) return
 
@@ -85,8 +116,11 @@ onUnmounted(() => {
           :key="item.id"
           class="notification-card"
       >
-        <div class="icon">
-          <i class="pi pi-bell"></i>
+        <div
+            class="icon"
+            :class="`icon-${getNotificationTypeMeta(item.msg_type).tone}`"
+        >
+          <i :class="getNotificationTypeMeta(item.msg_type).icon"></i>
         </div>
 
         <div class="content">
@@ -172,6 +206,31 @@ onUnmounted(() => {
   justify-content: center;
   color: #f87171;
   font-size: 18px;
+}
+
+.icon-success {
+  background: rgba(34, 197, 94, 0.14);
+  color: #4ade80;
+}
+
+.icon-neutral {
+  background: rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+}
+
+.icon-danger {
+  background: rgba(248, 113, 113, 0.14);
+  color: #f87171;
+}
+
+.icon-warning {
+  background: rgba(251, 191, 36, 0.14);
+  color: #fbbf24;
+}
+
+.icon-default {
+  background: rgba(96, 165, 250, 0.14);
+  color: #60a5fa;
 }
 
 .content {
