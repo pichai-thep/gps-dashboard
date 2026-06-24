@@ -109,8 +109,6 @@
 
       <div v-else class="collapsed-menu">
 
-        <NotificationBell title="Notification Messages" />
-
         <button :class="{ active: route.path === '/' }" @click="router.push('/')">
           <i class="pi pi-chart-line"></i>
         </button>
@@ -146,8 +144,6 @@
         >
           <i class="pi pi-chart-bar"></i>
         </button>
-
-
 
       </div>
 
@@ -194,6 +190,10 @@
             </div>
           </div>
 
+          <div class="topbar-notification">
+            <NotificationBell title="Notification Messages" />
+          </div>
+
           <Button
               label="Logout"
               icon="pi pi-sign-out"
@@ -227,9 +227,6 @@ const expandedKeys = ref<Record<string, boolean>>({
 })
 
 const menuItems = computed(() => [
-  {
-    notification: true,
-  },
   {
     label: 'Dashboard',
     icon: 'pi pi-chart-line',
@@ -364,7 +361,6 @@ const currentPageTitle = computed(() => {
 onMounted(async () => {
   if (auth.token && !auth.user) {
     await auth.fetchMe()
-    console.log('onMount Dashboard layout')
   }
 })
 
@@ -388,14 +384,6 @@ function openReportsMenu() {
   expandedKeys.value = {
     ...expandedKeys.value,
     reports: true,
-  }
-}
-
-function openManagementMenu() {
-  sidebarCollapsed.value = false
-  expandedKeys.value = {
-    ...expandedKeys.value,
-    management: true,
   }
 }
 
@@ -470,6 +458,7 @@ function openManagementMenu() {
   flex-direction: column;
   gap: 8px;
   align-items: center;
+  min-height: calc(100vh - 72px);
 }
 
 .collapsed-menu button {
@@ -636,6 +625,23 @@ function openManagementMenu() {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.topbar-notification {
+  display: flex;
+  align-items: center;
+}
+
+.topbar-notification :deep(.sidebar-bell-btn) {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  font-size: 20px;
+}
+
+.topbar-notification :deep(.sidebar-badge) {
+  top: 4px;
+  right: 4px;
 }
 
 .user-info {

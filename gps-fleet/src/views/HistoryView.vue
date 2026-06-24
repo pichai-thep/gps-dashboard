@@ -607,10 +607,6 @@ async function loadHistory() {
     totalRows.value = response?.pagination?.total_rows ?? 0
     totalPages.value = response?.pagination?.total_pages ?? 0
 
-    console.log('HISTORY RAW FIRST ROW', list[0])
-
-    console.log('NORMALIZED FIRST ROW', normalizeHistoryPoint(list[0]))
-
     rows.value = list.map(normalizeHistoryPoint)
   } catch (error: any) {
     errorMessage.value =

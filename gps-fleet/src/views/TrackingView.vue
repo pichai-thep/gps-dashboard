@@ -392,6 +392,7 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 
 const statusCount = ref<StatusCount>({ ...defaultStatusCount })
+const noDriverCardTotal = ref(0)
 const hiddenVehicleKeys = ref<Set<string>>(new Set())
 
 let pollingTimer: number | null = null
@@ -404,12 +405,11 @@ const mapVehicles = computed(() => {
   })
 })
 
-const noDriverCardCount = computed(() => {
-  return vehicles.value.filter(isNoDriverCard).length
-})
+const noDriverCardCount = computed(() => noDriverCardTotal.value)
 
 onMounted(async () => {
   statusFilter.value = getStatusFromQuery()
+  noDriverCardFilter.value = getNoDriverCardFromQuery()
 })
 
 watch(
@@ -425,6 +425,19 @@ watch(
     }
 )
 
+watch(
+    () => route.query.no_driver_card,
+    () => {
+      const nextNoDriverCard = getNoDriverCardFromQuery()
+
+      if (noDriverCardFilter.value === nextNoDriverCard) return
+
+      noDriverCardFilter.value = nextNoDriverCard
+      resetListState()
+      loadVehicles()
+    }
+)
+
 function getStatusFromQuery(): VehicleStatus | null {
   const status = route.query.status
 
@@ -435,6 +448,14 @@ function getStatusFromQuery(): VehicleStatus | null {
   return allowStatuses.includes(status as VehicleStatus)
       ? status as VehicleStatus
       : null
+}
+
+function getNoDriverCardFromQuery(): boolean {
+  const value = route.query.no_driver_card
+
+  return Array.isArray(value)
+      ? value.includes('1')
+      : value === '1'
 }
 
 async function loadVehicles() {
@@ -457,14 +478,15 @@ async function loadVehicles() {
     })
 
     vehicles.value = response.vehicles
-    console.log("vehicle.value: " + JSON.stringify(vehicles.value))
     totalRecords.value = response.meta.total
     statusCount.value = response.meta.status_counts ?? { ...defaultStatusCount }
+    noDriverCardTotal.value = response.meta.no_driver_card_count ?? 0
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'โหลดข้อมูลไม่ได้'
     vehicles.value = []
     totalRecords.value = 0
     statusCount.value = { ...defaultStatusCount }
+    noDriverCardTotal.value = 0
   } finally {
     isLoading = false
     loading.value = false
@@ -514,6 +536,14 @@ function loadByStatus(status: VehicleStatus) {
 function toggleNoDriverCardFilter() {
   noDriverCardFilter.value = !noDriverCardFilter.value
   resetListState()
+
+  router.replace({
+    query: {
+      ...route.query,
+      no_driver_card: noDriverCardFilter.value ? 1 : undefined,
+    },
+  })
+
   loadVehicles()
 }
 
@@ -590,7 +620,7 @@ function getRowClass(vehicle: Vehicle) {
 function isNoDriverCard(vehicle: any): boolean {
   return (
       Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0) === 1 &&
-      Number(vehicle.speed ?? 0) > 0 &&
+      Number(vehicle.speed ?? 0) > 5 &&
       !String(vehicle.track3 ?? '').trim()
   )
 }
@@ -622,7 +652,7 @@ function getDriverStatus(vehicle: any): DriverStatus {
   const speed = Number(vehicle.speed ?? 0)
   const track3 = String(vehicle.track3 ?? '').trim()
 
-  if (dltSynch !== 1 || speed <= 0) {
+  if (dltSynch !== 1 || speed <= 5) {
     return 'hide'
   }
 

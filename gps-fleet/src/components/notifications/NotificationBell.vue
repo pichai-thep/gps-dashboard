@@ -19,18 +19,15 @@ const latestId = ref(0)
 const initialized = ref(false)
 
 let timer: number | undefined
+let isLoading = false
 
 async function loadNotifications() {
+  if (isLoading) return
+
   try {
-    // console.log('loadNotifications')
+    isLoading = true
     const items = await getRecentNotifications()
-    // console.log(`item=${JSON.stringify(items)}`)
-
     const count = await getNotificationUnreadCount()
-    console.log(`itemCount=${count}`)
-
-
-    // console.log(`item.count=${count}`)
 
     const newestId = Number(items[0]?.id ?? 0)
     const oldLatestId = latestId.value
@@ -61,6 +58,8 @@ async function loadNotifications() {
     initialized.value = true
   } catch (err) {
     console.error('loadNotifications error', err)
+  } finally {
+    isLoading = false
   }
 }
 
@@ -74,7 +73,7 @@ onMounted(async () => {
   await loadNotifications()
 
   timer = window.setInterval(() => {
-    loadNotifications()
+    void loadNotifications()
   }, 5000)
 })
 

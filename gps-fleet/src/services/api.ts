@@ -1,8 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
-let isRedirectingToLogin = false
-
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
     headers: {
@@ -11,10 +9,26 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('gps_fleet_token')
+    const auth = useAuthStore()
+    const token = auth.token || localStorage.getItem('gps_fleet_token')
 
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
+    }
+
+    const customerId =
+        auth.customer?.id ??
+        auth.user?.customer_id ??
+        auth.config?.customer_id ??
+        localStorage.getItem('gps_fleet_customer_id')
+
+    const url = String(config.url || '')
+
+    if (customerId && !url.startsWith('/auth/')) {
+        config.params = {
+            customer_id: customerId,
+            ...(config.params || {}),
+        }
     }
 
     return config
@@ -31,40 +45,19 @@ api.interceptors.response.use(
         if (status === 401 && !isRedirecting && !url.includes('/auth/login')) {
             isRedirecting = true
 
-            localStorage.removeItem('gps_fleet_token')
+            useAuthStore().clearAuth()
 
-            window.location.href = '/login'
+            const redirect = window.location.pathname + window.location.search
+            const loginUrl =
+                redirect && redirect !== '/'
+                    ? `/login?redirect=${encodeURIComponent(redirect)}`
+                    : '/login'
+
+            window.location.href = loginUrl
         }
 
         return Promise.reject(err)
     }
 )
-
-
-
-
-api.interceptors.request.use((config) => {
-
-    const auth = useAuthStore()
-
-    if (auth.token) {
-        config.headers.Authorization =
-            `Bearer ${auth.token}`
-    }
-
-    const customerId =
-        auth.user?.customer_id
-
-    if (customerId) {
-
-        config.params = {
-            ...(config.params || {}),
-            customer_id: customerId,
-        }
-
-    }
-
-    return config
-})
 
 export default api

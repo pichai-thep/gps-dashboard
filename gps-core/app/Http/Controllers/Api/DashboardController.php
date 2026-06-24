@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\DB;
 class DashboardController extends Controller
 {
     private const DEFAULT_STATUS_COUNTS = [
-        'running' => 0,
+        'run' => 0,
         'idle' => 0,
         'acc_on' => 0,
-        'parking' => 0,
+        'park' => 0,
         'no_gps' => 0,
         'offline' => 0,
     ];
@@ -60,6 +60,7 @@ class DashboardController extends Controller
         $outStation = 0;
         $drivingWithoutCard = 0;
         $cardInserted = 0;
+        $dltSynchTotal = 0;
 
         foreach ($rows as $row) {
             $status = $this->resolveStatus($row);
@@ -72,11 +73,18 @@ class DashboardController extends Controller
             $outStation++;
 
             $driverStatus = $this->resolveDriverStatus($row);
+            $isDltSynched = (int) ($row->dlt_synch ?? 0) === 1;
+            $speed = (float) ($row->speed ?? 0);
+            $hasDriverCard = trim((string) ($row->track3 ?? '')) !== '';
+
+            if ($isDltSynched) {
+                $dltSynchTotal++;
+            }
 
             if (
-                (int) ($row->dlt_synch ?? 0) === 1 &&
-                (float) ($row->speed ?? 0) > 0 &&
-                $driverStatus === 'missing'
+                $isDltSynched &&
+                $speed > 5 &&
+                !$hasDriverCard
             ) {
                 $drivingWithoutCard++;
             }
@@ -91,10 +99,10 @@ class DashboardController extends Controller
             'data' => [
                 'total' => count($rows),
 
-                'running' => $statusCounts['running'],
+                'run' => $statusCounts['run'],
                 'idle' => $statusCounts['idle'],
                 'acc_on' => $statusCounts['acc_on'],
-                'parking' => $statusCounts['parking'],
+                'park' => $statusCounts['park'],
                 'no_gps' => $statusCounts['no_gps'],
                 'offline' => $statusCounts['offline'],
 
@@ -103,6 +111,7 @@ class DashboardController extends Controller
 
                 'driving_without_card' => $drivingWithoutCard,
                 'card_inserted' => $cardInserted,
+                'dlt_synch_total' => $dltSynchTotal,
 
                 'updated_at' => now('Asia/Bangkok')->toDateTimeString(),
             ],
@@ -171,11 +180,11 @@ class DashboardController extends Controller
         }
 
         if (!$isAccOn) {
-            return 'parking';
+            return 'park';
         }
 
         if ($speed > 0) {
-            return 'running';
+            return 'run';
         }
 
         if ($extPower > $engineVolt) {

@@ -65,5 +65,6 @@ export type TrackingResponse = {
     meta: {
         total: number
         status_counts?: StatusCount | null
+        no_driver_card_count?: number
     }
 }

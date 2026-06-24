@@ -5,23 +5,39 @@ import {getRecentNotifications, type NotificationItem,} from '../services/notifi
 const notifications = ref<NotificationItem[]>([])
 const loading = ref(false)
 const auto_loading = ref(false)
+const error = ref('')
 
 let timer: number | undefined
+let isLoadingNotifications = false
 
 async function loadNotifications() {
+  if (isLoadingNotifications) return
+
   try {
+    isLoadingNotifications = true
     loading.value = true
+    error.value = ''
     notifications.value = await getRecentNotifications()
+  } catch (err) {
+    error.value = 'โหลดรายการแจ้งเตือนไม่สำเร็จ'
   } finally {
     loading.value = false
+    isLoadingNotifications = false
   }
 }
 async function autoLoadNotifications() {
+  if (isLoadingNotifications) return
+
   try {
+    isLoadingNotifications = true
     auto_loading.value = true
+    error.value = ''
     notifications.value = await getRecentNotifications()
+  } catch (err) {
+    error.value = 'โหลดรายการแจ้งเตือนไม่สำเร็จ'
   } finally {
     auto_loading.value = false
+    isLoadingNotifications = false
   }
 }
 
@@ -29,7 +45,7 @@ onMounted(async () => {
   await loadNotifications()
 
   timer = window.setInterval(() => {
-    autoLoadNotifications()
+    void autoLoadNotifications()
   }, 5000)
 })
 
@@ -53,6 +69,10 @@ onUnmounted(() => {
 
     <div v-if="loading && notifications.length === 0" class="loading">
       Loading notifications...
+    </div>
+
+    <div v-else-if="error" class="empty">
+      {{ error }}
     </div>
 
     <div v-else-if="notifications.length === 0" class="empty">

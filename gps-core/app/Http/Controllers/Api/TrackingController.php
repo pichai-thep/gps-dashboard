@@ -95,6 +95,10 @@ class TrackingController extends Controller
             }
         }
 
+        $noDriverCardCount = $allVehicles
+            ->filter(fn ($vehicle) => $this->isNoDriverCard($vehicle))
+            ->count();
+
         $filteredVehicles = $allVehicles;
 
         if ($statusQuery !== null && $statusQuery !== '') {
@@ -103,19 +107,15 @@ class TrackingController extends Controller
                 ->values();
         }
 
-        $total = $filteredVehicles->count();
-
         $noDriverCard = (int) $request->query('no_driver_card', 0);
 
         if ($noDriverCard === 1) {
             $filteredVehicles = $filteredVehicles
-                ->filter(fn ($vehicle) =>
-                    (int) ($vehicle['dlt_synch'] ?? 0) === 1 &&
-                    (float) ($vehicle['speed'] ?? 0) > 0 &&
-                    ($vehicle['driver_status'] ?? '') === 'missing'
-                )
+                ->filter(fn ($vehicle) => $this->isNoDriverCard($vehicle))
                 ->values();
         }
+
+        $total = $filteredVehicles->count();
 
         $vehicles = $filteredVehicles
             ->slice($offset, $perPage)
@@ -135,6 +135,7 @@ class TrackingController extends Controller
                 'status' => $statusQuery,
                 'search' => $keyword,
                 'status_counts' => $statusCounts,
+                'no_driver_card_count' => $noDriverCardCount,
             ],
         ]);
     }
@@ -330,6 +331,13 @@ class TrackingController extends Controller
         }
 
         return 'missing';
+    }
+
+    private function isNoDriverCard(array $vehicle): bool
+    {
+        return (int) ($vehicle['dlt_synch'] ?? 0) === 1
+            && (float) ($vehicle['speed'] ?? 0) > 5
+            && trim((string) ($vehicle['track3'] ?? '')) === '';
     }
 
     private function resolveStatus($row): string

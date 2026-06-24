@@ -179,8 +179,6 @@ async function openEdit(row: ForbiddenZone) {
   form.zone_name = row.zone_name
   form.polygon = parsePolygonWkt(row.polygon_wkt)
 
-  console.log('polygon=', form.polygon)
-
   dialogVisible.value = true
 }
 

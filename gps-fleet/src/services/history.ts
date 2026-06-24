@@ -50,7 +50,6 @@ export interface HistoryPoint {
 
 export async function getHistoryTracking(params: HistoryTrackingParams): Promise<HistoryResponse> {
     const response = await api.get('/tracking/history', { params })
-    console.log(`response.data: ${JSON.stringify(response.data)}`)
     return response.data
 }
 

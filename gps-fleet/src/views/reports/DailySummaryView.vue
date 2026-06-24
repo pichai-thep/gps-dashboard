@@ -328,9 +328,6 @@ async function loadOptions() {
 
   groupOptions.value = normalizeOptions(groupsRes)
   vehicleOptions.value = normalizeOptions(vehiclesRes)
-
-  console.log('groups', groupOptions.value)
-  console.log('vehicles', vehicleOptions.value)
 }
 
 async function onGroupChange() {
@@ -341,8 +338,6 @@ async function onGroupChange() {
   })
 
   vehicleOptions.value = normalizeOptions(vehiclesRes)
-
-  console.log('vehicles by group', vehicleOptions.value)
 }
 
 function toDateString(date: Date | null) {

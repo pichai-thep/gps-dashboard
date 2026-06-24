@@ -67,10 +67,7 @@ const error = ref('')
 
 const hostname = window.location.hostname
 
-const logoUrl = computed(() => {
-  console.log(`hostname:${hostname}`)
-  return `/logos/${hostname}.png`
-})
+const logoUrl = computed(() => `/logos/${hostname}.png`)
 
 const brandName = computed(() => {
   return hostname.split('.')[0].toUpperCase()

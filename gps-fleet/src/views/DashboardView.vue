@@ -15,7 +15,23 @@
       <h2>Vehicle Status</h2>
 
       <div class="status-grid">
-        <Card class="summary-card status-card running" @click="goToTracking('running')">
+        <Card class="summary-card status-card total" @click="goToTracking()">
+          <template #content>
+            <div class="status-card-inner">
+              <div class="icon-circle">
+                <i class="pi pi-car"></i>
+              </div>
+
+              <div class="card-info">
+                <div class="label">Total Vehicles</div>
+                <div class="value">{{ vehicleTotal }}</div>
+                <div class="percent">100%</div>
+              </div>
+            </div>
+          </template>
+        </Card>
+
+        <Card class="summary-card status-card running" @click="goToTracking('run')">
           <template #content>
             <div class="status-card-inner">
               <div class="icon-circle">
@@ -23,9 +39,9 @@
               </div>
 
               <div class="card-info">
-                <div class="label">Running</div>
-                <div class="value">{{ summary.running }}</div>
-                <div class="percent">{{ percent(summary.running) }}</div>
+                <div class="label">Run</div>
+                <div class="value">{{ summary.run }}</div>
+                <div class="percent">{{ percent(summary.run) }}</div>
               </div>
             </div>
           </template>
@@ -63,7 +79,7 @@
 <!--          </template>-->
 <!--        </Card>-->
 
-        <Card class="summary-card status-card parking" @click="goToTracking('parking')">
+        <Card class="summary-card status-card parking" @click="goToTracking('park')">
           <template #content>
             <div class="status-card-inner">
               <div class="icon-circle">
@@ -71,9 +87,9 @@
               </div>
 
               <div class="card-info">
-                <div class="label">Parking</div>
-                <div class="value">{{ summary.parking }}</div>
-                <div class="percent">{{ percent(summary.parking) }}</div>
+                <div class="label">Park</div>
+                <div class="value">{{ summary.park }}</div>
+                <div class="percent">{{ percent(summary.park) }}</div>
               </div>
             </div>
           </template>
@@ -117,7 +133,7 @@
       <h2>Station</h2>
 
       <div class="wide-grid">
-        <Card class="summary-card wide-card in-station">
+        <Card class="summary-card wide-card readonly-card in-station">
           <template #content>
             <div class="wide-card-inner">
               <div class="large-icon-circle">
@@ -133,7 +149,7 @@
           </template>
         </Card>
 
-        <Card class="summary-card wide-card out-station">
+        <Card class="summary-card wide-card readonly-card out-station">
           <template #content>
             <div class="wide-card-inner">
               <div class="large-icon-circle">
@@ -152,9 +168,25 @@
     </section>
 
     <section class="dashboard-section">
-      <h2>Driver Card</h2>
+      <h2>DLT Driver Card</h2>
 
       <div class="wide-grid">
+        <Card class="summary-card wide-card dlt-synched">
+          <template #content>
+            <div class="wide-card-inner">
+              <div class="large-icon-circle">
+                <i class="pi pi-link"></i>
+              </div>
+
+              <div>
+                <div class="label">DLT Connected</div>
+                <div class="wide-value">{{ summary.dlt_synch_total }}</div>
+                <div class="percent">{{ percent(summary.dlt_synch_total) }}</div>
+              </div>
+            </div>
+          </template>
+        </Card>
+
         <Card
             class="summary-card wide-card no-card"
             @click="goToTracking(undefined, { no_driver_card: 1 })"
@@ -166,25 +198,9 @@
               </div>
 
               <div>
-                <div class="label">Driving Without Card</div>
+                <div class="label">DLT Driving Without Card</div>
                 <div class="wide-value">{{ summary.driving_without_card }}</div>
-                <div class="percent">{{ percent(summary.driving_without_card) }}</div>
-              </div>
-            </div>
-          </template>
-        </Card>
-
-        <Card class="summary-card wide-card card-inserted">
-          <template #content>
-            <div class="wide-card-inner">
-              <div class="large-icon-circle">
-                <i class="pi pi-user"></i>
-              </div>
-
-              <div>
-                <div class="label">Card Inserted</div>
-                <div class="wide-value">{{ summary.card_inserted }}</div>
-                <div class="percent">{{ percent(summary.card_inserted) }}</div>
+                <div class="percent">{{ dltNoCardPercent }}</div>
               </div>
             </div>
           </template>
@@ -209,29 +225,33 @@ import api from "@/services/api";
 import {useRouter} from "vue-router";
 
 type DashboardSummary = {
-  running: number
+  total: number
+  run: number
   idle: number
   acc_on: number
-  parking: number
+  park: number
   no_gps: number
   offline: number
   in_station: number
   out_station: number
   driving_without_card: number
   card_inserted: number
+  dlt_synch_total: number
 }
 
 const summary = ref<DashboardSummary>({
-  running: 0,
+  total: 0,
+  run: 0,
   idle: 0,
   acc_on: 0,
-  parking: 0,
+  park: 0,
   no_gps: 0,
   offline: 0,
   in_station: 0,
   out_station: 0,
   driving_without_card: 0,
   card_inserted: 0,
+  dlt_synch_total: 0,
 })
 
 const loading = ref(false)
@@ -241,14 +261,20 @@ const router = useRouter();
 let timer: number | undefined
 
 const vehicleTotal = computed(() => {
-  return (
-      summary.value.running +
-      summary.value.idle +
-      summary.value.acc_on +
-      summary.value.parking +
-      summary.value.no_gps +
-      summary.value.offline
+  return summary.value.total || (
+    summary.value.run +
+    summary.value.idle +
+    summary.value.acc_on +
+    summary.value.park +
+    summary.value.no_gps +
+    summary.value.offline
   )
+})
+
+const dltNoCardPercent = computed(() => {
+  if (!summary.value.dlt_synch_total) return '0%'
+
+  return `${((summary.value.driving_without_card / summary.value.dlt_synch_total) * 100).toFixed(1)}%`
 })
 
 function goToTracking(status?: string, extraQuery: Record<string, string | number> = {}) {
@@ -283,7 +309,7 @@ async function loadDashboard() {
   try {
 
     const res = await api.get('/dashboard/summary')
-    summary.value = res.data.data
+    summary.value = normalizeSummary(res.data.data)
 
     // summary.value = {
     //   running: 15,
@@ -301,6 +327,26 @@ async function loadDashboard() {
     lastUpdated.value = formatDateTime()
   } finally {
     loading.value = false
+  }
+}
+
+function normalizeSummary(data: Partial<DashboardSummary> & {
+  running?: number
+  parking?: number
+} = {}): DashboardSummary {
+  return {
+    total: Number(data.total ?? 0),
+    run: Number(data.run ?? data.running ?? 0),
+    idle: Number(data.idle ?? 0),
+    acc_on: Number(data.acc_on ?? 0),
+    park: Number(data.park ?? data.parking ?? 0),
+    no_gps: Number(data.no_gps ?? 0),
+    offline: Number(data.offline ?? 0),
+    in_station: Number(data.in_station ?? 0),
+    out_station: Number(data.out_station ?? 0),
+    driving_without_card: Number(data.driving_without_card ?? 0),
+    card_inserted: Number(data.card_inserted ?? 0),
+    dlt_synch_total: Number(data.dlt_synch_total ?? 0),
   }
 }
 
@@ -427,6 +473,16 @@ onUnmounted(() => {
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.32);
 }
 
+.readonly-card {
+  cursor: default;
+}
+
+.readonly-card:hover {
+  transform: none;
+  filter: none;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+}
+
 .summary-card::after {
   content: '';
   position: absolute;
@@ -547,6 +603,10 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #16a34a, #15803d);
 }
 
+.total {
+  background: linear-gradient(135deg, #475569, #1e293b);
+}
+
 .idle {
   background: linear-gradient(135deg, #facc15, #ca8a04);
 }
@@ -581,6 +641,10 @@ onUnmounted(() => {
 
 .card-inserted {
   background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.dlt-synched {
+  background: linear-gradient(135deg, #0f766e, #115e59);
 }
 
 @keyframes spin {
