@@ -1434,8 +1434,15 @@ onBeforeUnmount(() => {
   }
 
   .map-area {
+    flex: 0 0 auto;
+    height: 58vh;
     min-height: 58vh;
     border-radius: 14px;
+  }
+
+  .map-area :deep(.base-map-shell) {
+    height: 100%;
+    min-height: 58vh;
   }
 }
 
