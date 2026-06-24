@@ -29,7 +29,12 @@ const notificationTypeMeta: Record<string, { icon: string; tone: string }> = {
   gps_antenna_connect_alert: { icon: 'pi pi-wifi', tone: 'warning' },
   abnormal_gps_alert: { icon: 'pi pi-compass', tone: 'danger' },
   abnormal_fuel_alert: { icon: 'pi pi-sliders-h', tone: 'danger' },
+  input1_on_alert: { icon: 'pi pi-bolt', tone: 'warning' },
   input2_on_alert: { icon: 'pi pi-bolt', tone: 'warning' },
+
+  swipe_login_card: { icon: 'pi pi-key', tone: 'success' },
+  swipe_unauthorized_card: { icon: 'pi pi-lock', tone: 'danger' },
+  swipe_logout_card: { icon: 'pi pi-sign-out', tone: 'warning' },
 }
 
 function getNotificationTypeMeta(type?: string) {
