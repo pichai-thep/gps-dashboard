@@ -1232,9 +1232,9 @@ watch(datetime1, (newValue) => {
   }
 
   .table-card {
-    height: 70vh;
-    min-height: 520px;
-    max-height: 720px;
+    height: 78vh;
+    min-height: 600px;
+    max-height: 820px;
   }
 
   .map-panel {
@@ -1245,9 +1245,9 @@ watch(datetime1, (newValue) => {
 
 @media (max-width: 640px) {
   .table-card {
-    height: 68vh;
-    min-height: 460px;
-    max-height: 620px;
+    height: 74vh;
+    min-height: 540px;
+    max-height: 720px;
   }
 
   .summary-grid {
