@@ -111,8 +111,8 @@ onUnmounted(() => {
 <style scoped>
 .notification-page {
   width: 100%;
-  min-height: 100vh;
-  padding: 32px;
+  min-height: 100%;
+  padding: 24px;
   color: #e5e7eb;
 }
 
@@ -125,7 +125,7 @@ onUnmounted(() => {
 
 .page-header h1 {
   margin: 0;
-  font-size: 36px;
+  font-size: 30px;
   font-weight: 800;
 }
 
@@ -145,41 +145,38 @@ onUnmounted(() => {
 
 .notification-list {
   display: grid;
-
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(420px, 1fr)
-  );
-
-  gap: 20px;
-
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: 14px;
   width: 100%;
 }
 
 .notification-card {
   display: flex;
-  gap: 16px;
-  padding: 18px;
+  gap: 12px;
+  padding: 14px;
   border: 0px solid #1f2937;
-  border-radius: 20px;
+  border-radius: 14px;
   background: #2d3748;
   width: 100%;
+  min-width: 0;
 }
 
 .icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 12px;
   background: #1f2937;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #f87171;
-  font-size: 22px;
+  font-size: 18px;
 }
 
 .content {
   flex: 1;
+  min-width: 0;
 }
 
 .row {
@@ -190,25 +187,79 @@ onUnmounted(() => {
 
 .row h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
 .row span {
   color: #9ca3af;
-  font-size: 13px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .content p {
-  margin: 8px 0;
+  margin: 6px 0;
   color: #f9fafb;
-  font-size: 16px;
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .meta {
   display: flex;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 6px 12px;
   color: #9ca3af;
-  font-size: 13px;
+  font-size: 12px;
+}
+
+@media (max-width: 560px) {
+  .notification-page {
+    padding: 10px;
+  }
+
+  .page-header {
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .page-header h1 {
+    font-size: 22px;
+  }
+
+  .page-header p {
+    font-size: 13px;
+  }
+
+  .page-header button {
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  .notification-list {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .notification-card {
+    gap: 10px;
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    font-size: 15px;
+  }
+
+  .row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
 }
 
 .empty,

@@ -1009,6 +1009,15 @@ watch(datetime1, (newValue) => {
   overflow-y: auto !important;
 }
 
+:deep(.history-datatable .p-datatable-table-container) {
+  flex: 1;
+  min-height: 0;
+  max-height: none !important;
+  background: transparent;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 :deep(.history-datatable .p-datatable-table) {
   background: transparent;
 }
@@ -1223,8 +1232,9 @@ watch(datetime1, (newValue) => {
   }
 
   .table-card {
+    height: 70vh;
     min-height: 520px;
-    max-height: 70vh;
+    max-height: 720px;
   }
 
   .map-panel {
@@ -1235,8 +1245,9 @@ watch(datetime1, (newValue) => {
 
 @media (max-width: 640px) {
   .table-card {
+    height: 68vh;
     min-height: 460px;
-    max-height: 68vh;
+    max-height: 620px;
   }
 
   .summary-grid {
