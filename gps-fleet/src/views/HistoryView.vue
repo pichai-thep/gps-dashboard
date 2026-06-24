@@ -200,14 +200,18 @@
                       <span>SAT</span>
                       <strong>{{ data.num_sats ?? 0 }}</strong>
                     </div>
+
+                    <div class="mini-chip di-chip">
+                      <span>DI</span>
+                      <strong>{{ data.di_input ?? '-' }}</strong>
+                    </div>
                   </div>
 
                   <div
                       v-if="
                           data.track3 ||
                           data.fuel_left !== null ||
-                          data.temperature !== null ||
-                          data.di_input !== null
+                          data.temperature !== null
                         "
                       class="optional-line"
                   >
@@ -232,13 +236,6 @@
                       <strong>{{ data.temperature }}</strong>
                     </div>
 
-                    <div
-                        v-if="data.di_input !== null && data.di_input !== undefined"
-                        class="sensor-chip di"
-                    >
-                      <span>DI</span>
-                      <strong>{{ data.di_input }}</strong>
-                    </div>
                   </div>
 
                   <div v-if="data.address" class="address-text">
@@ -1312,11 +1309,10 @@ watch(datetime1, (newValue) => {
   }
 
   .main-line {
-    grid-template-columns: minmax(0, 1fr) minmax(112px, 0.85fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-areas:
-      "status time"
-      "speed direction"
-      "satellite satellite";
+      "status status time time"
+      "speed direction satellite di";
     gap: 8px;
   }
 
@@ -1359,9 +1355,13 @@ watch(datetime1, (newValue) => {
     width: 100%;
   }
 
+  .di-chip {
+    grid-area: di;
+  }
+
   .optional-line {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     align-items: stretch;
   }
 
