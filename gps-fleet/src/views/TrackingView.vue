@@ -1364,5 +1364,80 @@ onBeforeUnmount(() => {
 
 }
 
+@media (max-width: 768px) {
+  .tracking-page {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100dvh - 150px);
+    overflow: visible;
+  }
+
+  .vehicle-panel {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    border-radius: 14px;
+  }
+
+  .panel-header {
+    padding: 14px 14px 8px;
+  }
+
+  .header-title-row {
+    align-items: center;
+  }
+
+  .panel-header h2 {
+    font-size: 20px;
+  }
+
+  .subtitle {
+    margin-top: 8px;
+  }
+
+  .filter-toggle {
+    padding: 4px 14px 10px;
+  }
+
+  .tracking-filters {
+    padding: 0 8px 10px;
+  }
+
+  .summary-row {
+    padding: 0 4px 10px;
+  }
+
+  .control-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .group-filter,
+  .search-input,
+  .status-filter,
+  .sort-filter,
+  .sort-dir-filter {
+    grid-column: auto;
+  }
+
+  .vehicle-table {
+    max-height: 460px;
+    min-height: 320px;
+  }
+
+  .vehicle-table :deep(.p-datatable-table-container) {
+    overflow-x: auto !important;
+  }
+
+  .vehicle-table :deep(.p-datatable-table) {
+    min-width: 520px;
+  }
+
+  .map-area {
+    min-height: 58vh;
+    border-radius: 14px;
+  }
+}
+
 
 </style>

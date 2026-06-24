@@ -66,7 +66,7 @@
 <!--      </nav>-->
 
       <PanelMenu
-          v-if="!sidebarCollapsed"
+          v-if="!sidebarCollapsed && !isMobileLayout"
           v-model:expandedKeys="expandedKeys"
           :model="menuItems"
           class="sidebar-panel-menu"
@@ -162,7 +162,7 @@
           />
 
           <div>
-            <div v-if="sidebarCollapsed" class="topbar-heading">{{ brandName }}</div>
+            <div v-if="sidebarCollapsed || isMobileLayout" class="topbar-heading">{{ brandName }}</div>
 
             <div class="topbar-subtitle">{{ currentPageTitle }}</div>
           </div>
@@ -211,7 +211,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onBeforeUnmount, onMounted } from 'vue'
 import Button from 'primevue/button'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -299,6 +299,12 @@ const menuItems = computed(() => [
 ])
 
 const sidebarCollapsed = ref(false)
+const isMobileLayout = ref(false)
+let mobileQuery: MediaQueryList | null = null
+
+function handleMobileLayoutChange(event: MediaQueryListEvent) {
+  isMobileLayout.value = event.matches
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -359,9 +365,20 @@ const currentPageTitle = computed(() => {
 })
 
 onMounted(async () => {
+  mobileQuery = window.matchMedia('(max-width: 768px)')
+  isMobileLayout.value = mobileQuery.matches
+
+  mobileQuery.addEventListener('change', handleMobileLayoutChange)
+
   if (auth.token && !auth.user) {
     await auth.fetchMe()
   }
+})
+
+onBeforeUnmount(() => {
+  if (!mobileQuery) return
+
+  mobileQuery.removeEventListener('change', handleMobileLayoutChange)
 })
 
 
@@ -776,6 +793,103 @@ function openReportsMenu() {
 .collapsed-menu button.active {
   background: #2563eb;
   color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  .sidebar,
+  .sidebar.collapsed {
+    width: 100%;
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar-header {
+    height: 34px;
+    margin-bottom: 8px;
+  }
+
+  .logo {
+    font-size: 16px;
+  }
+
+  .collapsed-menu {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .collapsed-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .collapsed-menu button {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+  }
+
+  .topbar {
+    height: auto;
+    min-height: 64px;
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .topbar-logo {
+    display: none;
+  }
+
+  .topbar-title {
+    min-width: 0;
+  }
+
+  .topbar-heading,
+  .topbar-subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar-heading {
+    max-width: 34vw;
+    font-size: 14px;
+  }
+
+  .topbar-subtitle {
+    max-width: 38vw;
+  }
+
+  .user-section {
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .topbar-notification :deep(.sidebar-bell-btn) {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .user-section :deep(.p-button-label) {
+    display: none;
+  }
+
+  .content {
+    padding: 10px;
+  }
 }
 
 
