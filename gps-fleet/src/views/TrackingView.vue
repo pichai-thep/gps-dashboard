@@ -921,6 +921,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
+.summary-item.run,
 .summary-item.running {
   background: #16a34a;
 }
@@ -933,17 +934,21 @@ onBeforeUnmount(() => {
   background: #f97316;
 }
 
+.summary-item.park,
 .summary-item.parking {
-  background: #2563eb;
+  background: #ef4444;
 }
 
 .summary-item.no_gps {
+  background: #2563eb;
+}
+
+.summary-item.offline {
   background: #64748b;
 }
 
-.summary-item.offline,
 .summary-item.no-driver-card {
-  background: #ef4444;
+  background: #b91c1c;
 }
 
 .summary-item.active {
@@ -1135,7 +1140,7 @@ onBeforeUnmount(() => {
 
 .status-icon.park,
 .status-icon.parking {
-  color: #60a5fa;
+  color: #ef4444;
 }
 
 .status-icon.no_gps {
@@ -1143,7 +1148,7 @@ onBeforeUnmount(() => {
 }
 
 .status-icon.offline {
-  color: #ef4444;
+  color: #9ca3af;
 }
 
 .status-text {
@@ -1172,12 +1177,15 @@ onBeforeUnmount(() => {
 }
 
 .status-text.park {
-  color: #60a5fa;
+  color: #ef4444;
 }
 
-.status-text.no_gps,
+.status-text.no_gps {
+  color: #3b82f6;
+}
+
 .status-text.offline {
-  color: #ef4444;
+  color: #9ca3af;
 }
 
 .speed-text {

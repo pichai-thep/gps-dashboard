@@ -616,7 +616,7 @@ onUnmounted(() => {
 }
 
 .parking {
-  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
 }
 
 .no-gps {
@@ -624,7 +624,7 @@ onUnmounted(() => {
 }
 
 .offline {
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
 }
 
 .in-station {
