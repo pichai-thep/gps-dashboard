@@ -577,10 +577,16 @@ const selectedRows = ref<VehicleListItem[]>([])
 const selectedVehicle = ref<VehicleListItem | null>(null)
 
 const vehicleIcons = [
-  'default',
+  'sedan',
+  'van',
+  'pickup',
+  'bus',
+  'truck',
+  'trailer',
+  'motorcycle',
+  'tuktuk',
   'backhole',
   'boat',
-  'bus',
   'cement',
   'crane',
   'crane_truck',
@@ -588,19 +594,12 @@ const vehicleIcons = [
   'dump',
   'excavator',
   'grader',
-  'sedan',
-  'trailer',
-  'truck1',
-  'truck2',
-  'truck3',
-  'truck_danger',
-  'van',
   'water_spray',
   'water_truck',
 ].map((name) => ({
   label: name,
   value: name,
-  image: `/cars/${name}/run.png`,
+  image: `/vehicle-markers/${name}/run.png`,
 }))
 
 const form = reactive<VehicleDetail>({
