@@ -1,7 +1,36 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.node.json" },
-    { "path": "./tsconfig.app.json" }
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+
+    "types": ["node"],
+
+    "strict": true,
+
+    "jsx": "preserve",
+
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+
+    "allowJs": false,
+    "noImplicitAny": true,
+
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": true,
+
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue"
   ]
 }
