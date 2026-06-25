@@ -26,6 +26,7 @@ export type TrackingParams = {
     sort_by?: string
     sort_dir?: 'asc' | 'desc'
     no_driver_card: number | null
+    dlt_synch?: number | null
 }
 
 export async function getVehicleGroups(
@@ -65,5 +66,6 @@ export type TrackingResponse = {
         total: number
         status_counts?: StatusCount | null
         no_driver_card_count?: number
+        dlt_synch_count?: number
     }
 }

@@ -171,7 +171,10 @@
       <h2>DLT Driver Card</h2>
 
       <div class="wide-grid">
-        <Card class="summary-card wide-card dlt-synched">
+        <Card
+            class="summary-card wide-card dlt-synched"
+            @click="goToTracking(undefined, { dlt_synch: 1 })"
+        >
           <template #content>
             <div class="wide-card-inner">
               <div class="large-icon-circle">

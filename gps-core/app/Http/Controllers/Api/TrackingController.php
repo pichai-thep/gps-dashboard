@@ -98,6 +98,10 @@ class TrackingController extends Controller
             ->filter(fn ($vehicle) => $this->isNoDriverCard($vehicle))
             ->count();
 
+        $dltSynchCount = $allVehicles
+            ->filter(fn ($vehicle) => $this->isDltSynched($vehicle))
+            ->count();
+
         $filteredVehicles = $allVehicles;
 
         if ($statusQuery !== null && $statusQuery !== '') {
@@ -111,6 +115,14 @@ class TrackingController extends Controller
         if ($noDriverCard === 1) {
             $filteredVehicles = $filteredVehicles
                 ->filter(fn ($vehicle) => $this->isNoDriverCard($vehicle))
+                ->values();
+        }
+
+        $dltSynch = (int) $request->query('dlt_synch', 0);
+
+        if ($dltSynch === 1) {
+            $filteredVehicles = $filteredVehicles
+                ->filter(fn ($vehicle) => $this->isDltSynched($vehicle))
                 ->values();
         }
 
@@ -135,6 +147,7 @@ class TrackingController extends Controller
                 'search' => $keyword,
                 'status_counts' => $statusCounts,
                 'no_driver_card_count' => $noDriverCardCount,
+                'dlt_synch_count' => $dltSynchCount,
             ],
         ]);
     }
@@ -337,6 +350,11 @@ class TrackingController extends Controller
         return (int) ($vehicle['dlt_synch'] ?? 0) === 1
             && (float) ($vehicle['speed'] ?? 0) > 5
             && trim((string) ($vehicle['track3'] ?? '')) === '';
+    }
+
+    private function isDltSynched(array $vehicle): bool
+    {
+        return (int) ($vehicle['dlt_synch'] ?? 0) === 1;
     }
 
     private function resolveStatus($row): string

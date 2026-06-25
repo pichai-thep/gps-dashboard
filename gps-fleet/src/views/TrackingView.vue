@@ -64,6 +64,15 @@
           >
             no-license {{ noDriverCardCount }}
           </button>
+
+          <button
+              type="button"
+              class="summary-item dlt-synched"
+              :class="{ active: dltSynchFilter }"
+              @click="toggleDltSynchFilter"
+          >
+            DLT {{ dltSynchCount }}
+          </button>
         </div>
 
         <div class="control-bar">
@@ -373,6 +382,7 @@ const selectedVehicleId = ref<string | null>(null)
 const selectedGroupId = ref<number | string>(-1)
 const statusFilter = ref<VehicleStatus | null>(null)
 const noDriverCardFilter = ref(false)
+const dltSynchFilter = ref(false)
 
 const refreshInterval = ref(30_000)
 const search = ref('')
@@ -389,6 +399,7 @@ const error = ref<string | null>(null)
 
 const statusCount = ref<StatusCount>({ ...defaultStatusCount })
 const noDriverCardTotal = ref(0)
+const dltSynchTotal = ref(0)
 const hiddenVehicleKeys = ref<Set<string>>(new Set())
 
 let pollingTimer: number | null = null
@@ -402,10 +413,12 @@ const mapVehicles = computed(() => {
 })
 
 const noDriverCardCount = computed(() => noDriverCardTotal.value)
+const dltSynchCount = computed(() => dltSynchTotal.value)
 
 onMounted(async () => {
   statusFilter.value = getStatusFromQuery()
   noDriverCardFilter.value = getNoDriverCardFromQuery()
+  dltSynchFilter.value = getDltSynchFromQuery()
 })
 
 watch(
@@ -434,6 +447,19 @@ watch(
     }
 )
 
+watch(
+    () => route.query.dlt_synch,
+    () => {
+      const nextDltSynch = getDltSynchFromQuery()
+
+      if (dltSynchFilter.value === nextDltSynch) return
+
+      dltSynchFilter.value = nextDltSynch
+      resetListState()
+      loadVehicles()
+    }
+)
+
 function getStatusFromQuery(): VehicleStatus | null {
   const status = route.query.status
 
@@ -454,6 +480,14 @@ function getNoDriverCardFromQuery(): boolean {
       : value === '1'
 }
 
+function getDltSynchFromQuery(): boolean {
+  const value = route.query.dlt_synch
+
+  return Array.isArray(value)
+      ? value.includes('1')
+      : value === '1'
+}
+
 async function loadVehicles() {
   if (isLoading) return
 
@@ -468,6 +502,7 @@ async function loadVehicles() {
       group_id: selectedGroupId.value,
       status: statusFilter.value,
       no_driver_card: noDriverCardFilter.value ? 1 : null,
+      dlt_synch: dltSynchFilter.value ? 1 : null,
       search: search.value,
       sort_by: sortBy.value,
       sort_dir: sortDir.value,
@@ -477,12 +512,14 @@ async function loadVehicles() {
     totalRecords.value = response.meta.total
     statusCount.value = response.meta.status_counts ?? { ...defaultStatusCount }
     noDriverCardTotal.value = response.meta.no_driver_card_count ?? 0
+    dltSynchTotal.value = response.meta.dlt_synch_count ?? 0
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'โหลดข้อมูลไม่ได้'
     vehicles.value = []
     totalRecords.value = 0
     statusCount.value = { ...defaultStatusCount }
     noDriverCardTotal.value = 0
+    dltSynchTotal.value = 0
   } finally {
     isLoading = false
     loading.value = false
@@ -537,6 +574,20 @@ function toggleNoDriverCardFilter() {
     query: {
       ...route.query,
       no_driver_card: noDriverCardFilter.value ? 1 : undefined,
+    },
+  })
+
+  loadVehicles()
+}
+
+function toggleDltSynchFilter() {
+  dltSynchFilter.value = !dltSynchFilter.value
+  resetListState()
+
+  router.replace({
+    query: {
+      ...route.query,
+      dlt_synch: dltSynchFilter.value ? 1 : undefined,
     },
   })
 
@@ -940,6 +991,10 @@ onBeforeUnmount(() => {
 
 .summary-item.no-driver-card {
   background: #b91c1c;
+}
+
+.summary-item.dlt-synched {
+  background: #0ea5e9;
 }
 
 .summary-item.active {
