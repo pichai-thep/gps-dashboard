@@ -51,6 +51,8 @@ export type FeatureFlags = {
     attendance?: boolean
     fare?: boolean
     temperature?: boolean
+    input1?: boolean
+    input2?: boolean
 }
 
 export type AppConfig = {

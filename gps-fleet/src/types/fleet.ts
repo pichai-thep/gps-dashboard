@@ -12,6 +12,8 @@ export type Vehicle = {
     vehicle_id: string
     plate_no: string
     acc_state: boolean
+    input1?: string | number | boolean | null
+    input2?: string | number | boolean | null
     status: VehicleStatus
     lat: number | null
     lng: number | null

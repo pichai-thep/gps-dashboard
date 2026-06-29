@@ -43,6 +43,16 @@
           <strong>{{ popupData.speed }} km/h</strong>
         </div>
 
+        <div class="popup-row" v-if="showInput1">
+          <span>Input 1</span>
+          <strong>{{ getInputText(popupData.input1) }}</strong>
+        </div>
+
+        <div class="popup-row" v-if="showInput2">
+          <span>Input 2</span>
+          <strong>{{ getInputText(popupData.input2) }}</strong>
+        </div>
+
         <div class="popup-row">
           <span>Lat/Lon</span>
           <strong>{{ popupData.lat }}, {{ popupData.lng }}</strong>
@@ -99,6 +109,7 @@
 
 <script setup lang="ts">
 import {
+  computed,
   nextTick,
   ref,
   watch,
@@ -159,6 +170,8 @@ type HistoryPoint = {
 
   track1?: string
   track3?: string
+  input1?: string | number | boolean | null
+  input2?: string | number | boolean | null
 }
 
 const props = defineProps<{
@@ -173,6 +186,8 @@ const auth = useAuthStore()
 const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
 const addressCache = ref<Record<string, string>>({})
+const showInput1 = computed(() => Boolean(auth.features?.input1))
+const showInput2 = computed(() => Boolean(auth.features?.input2))
 
 const historySource =
     new VectorSource()
@@ -637,6 +652,8 @@ function showPopup(
         '-',
     track1: point.track1,
     track3: point.track3,
+    input1: point.input1 ?? null,
+    input2: point.input2 ?? null,
   }
 
   popupOverlay?.setPosition(coordinate)
@@ -701,6 +718,22 @@ function formatLongdoAddress(data: any): string {
   ]
       .filter(Boolean)
       .join(' ')
+}
+
+function isInputOn(value?: string | number | boolean | null): boolean {
+  if (value === true) return true
+
+  const normalized = String(value ?? '').trim().toLowerCase()
+
+  return ['1', 'true', 'on'].includes(normalized)
+}
+
+function getInputText(value?: string | number | boolean | null): string {
+  if (value === null || value === undefined || value === '') {
+    return '-'
+  }
+
+  return isInputOn(value) ? 'on' : 'off'
 }
 
 function cleanDriverText(value?: string | null): string {

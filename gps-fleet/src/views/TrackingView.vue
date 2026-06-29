@@ -260,6 +260,28 @@
                     </span>
               </div>
 
+              <div v-if="showInputColumn" class="input-line">
+                <span
+                    v-if="showInput1"
+                    class="input-state"
+                    :class="getInputClass(slotProps.data.input1)"
+                    :title="`IN1: ${getInputText(slotProps.data.input1)}`"
+                >
+                  IN1:
+                  <i class="input-dot"></i>
+                </span>
+
+                <span
+                    v-if="showInput2"
+                    class="input-state"
+                    :class="getInputClass(slotProps.data.input2)"
+                    :title="`IN2: ${getInputText(slotProps.data.input2)}`"
+                >
+                  IN2:
+                  <i class="input-dot"></i>
+                </span>
+              </div>
+
             </div>
           </template>
         </Column>
@@ -414,6 +436,9 @@ const mapVehicles = computed(() => {
 
 const noDriverCardCount = computed(() => noDriverCardTotal.value)
 const dltSynchCount = computed(() => dltSynchTotal.value)
+const showInput1 = computed(() => Boolean(auth.features?.input1))
+const showInput2 = computed(() => Boolean(auth.features?.input2))
+const showInputColumn = computed(() => showInput1.value || showInput2.value)
 
 onMounted(async () => {
   statusFilter.value = getStatusFromQuery()
@@ -753,6 +778,30 @@ function formatFuel(value?: number | string | null): string {
   }
 
   return `${value}%`
+}
+
+function isInputOn(value?: string | number | boolean | null): boolean {
+  if (value === true) return true
+
+  const normalized = String(value ?? '').trim().toLowerCase()
+
+  return ['1', 'true', 'on'].includes(normalized)
+}
+
+function getInputText(value?: string | number | boolean | null): string {
+  if (value === null || value === undefined || value === '') {
+    return 'unknown'
+  }
+
+  return isInputOn(value) ? 'on' : 'off'
+}
+
+function getInputClass(value?: string | number | boolean | null) {
+  return {
+    on: isInputOn(value),
+    off: value !== null && value !== undefined && value !== '' && !isInputOn(value),
+    empty: value === null || value === undefined || value === '',
+  }
 }
 
 watch([selectedGroupId, sortBy, sortDir], () => {
@@ -1305,7 +1354,8 @@ onBeforeUnmount(() => {
 }
 
 .gps-line,
-.temp-line {
+.temp-line,
+.input-line {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1319,6 +1369,43 @@ onBeforeUnmount(() => {
 .temp-line .pi {
   color: #60a5fa;
   font-size: 16px;
+}
+
+.input-line {
+  gap: 10px;
+}
+
+.input-state {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.input-dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 999px;
+  background: #64748b;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2);
+}
+
+.input-state.on .input-dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.22);
+}
+
+.input-state.off .input-dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.22);
+}
+
+.input-state.empty {
+  color: #64748b;
 }
 
 .eye-box {

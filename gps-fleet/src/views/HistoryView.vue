@@ -201,20 +201,39 @@
                       <strong>{{ data.num_sats ?? 0 }}</strong>
                     </div>
 
-                    <div class="mini-chip di-chip">
-                      <span>DI</span>
-                      <strong>{{ data.di_input ?? '-' }}</strong>
-                    </div>
                   </div>
 
                   <div
                       v-if="
                           data.track3 ||
                           data.fuel_left !== null ||
-                          data.temperature !== null
+                          data.temperature !== null ||
+                          showInputColumn
                         "
                       class="optional-line"
                   >
+                    <div v-if="showInputColumn" class="history-input-line">
+                      <span
+                          v-if="showInput1"
+                          class="history-input-state"
+                          :class="getInputClass(data.input1)"
+                          :title="`IN1: ${getInputText(data.input1)}`"
+                      >
+                        IN1:
+                        <i class="history-input-dot"></i>
+                      </span>
+
+                      <span
+                          v-if="showInput2"
+                          class="history-input-state"
+                          :class="getInputClass(data.input2)"
+                          :title="`IN2: ${getInputText(data.input2)}`"
+                      >
+                        IN2:
+                        <i class="history-input-dot"></i>
+                      </span>
+                    </div>
+
                     <div v-if="data.track3" class="track3-text">
                       <i class="pi pi-id-card" />
                       {{ data.track3 }}
@@ -353,6 +372,10 @@ const filteredVehicles = ref<VehicleItem[]>([])
 const firstRow = computed(() => {
   return (currentPage.value - 1) * perPage.value
 })
+
+const showInput1 = computed(() => Boolean(auth.features?.input1))
+const showInput2 = computed(() => Boolean(auth.features?.input2))
+const showInputColumn = computed(() => showInput1.value || showInput2.value)
 
 async function onPageChange(event: any) {
   currentPage.value = Math.floor(event.first / event.rows) + 1
@@ -690,6 +713,8 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
 
     track1: item.track1 ?? null,
     track3: item.track3 ?? null,
+    input1: item.input1 ?? null,
+    input2: item.input2 ?? null,
 
     di_input:
         item.input2 ??
@@ -795,6 +820,30 @@ function normalizeList<T>(response: any, keys: string[] = []): T[] {
   }
 
   return []
+}
+
+function isInputOn(value?: string | number | boolean | null): boolean {
+  if (value === true) return true
+
+  const normalized = String(value ?? '').trim().toLowerCase()
+
+  return ['1', 'true', 'on'].includes(normalized)
+}
+
+function getInputText(value?: string | number | boolean | null): string {
+  if (value === null || value === undefined || value === '') {
+    return 'unknown'
+  }
+
+  return isInputOn(value) ? 'on' : 'off'
+}
+
+function getInputClass(value?: string | number | boolean | null) {
+  return {
+    on: isInputOn(value),
+    off: value !== null && value !== undefined && value !== '' && !isInputOn(value),
+    empty: value === null || value === undefined || value === '',
+  }
 }
 
 watch(selectedGroup, async (groupId) => {
@@ -1155,8 +1204,53 @@ watch(datetime1, (newValue) => {
 .optional-line {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   min-width: 0;
+}
+
+.history-input-line {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.history-input-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.history-input-dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 999px;
+  background: #64748b;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.2);
+}
+
+.history-input-state.on .history-input-dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.22);
+}
+
+.history-input-state.off .history-input-dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.22);
+}
+
+.history-input-state.empty {
+  color: #64748b;
 }
 
 .track3-text {
@@ -1312,7 +1406,7 @@ watch(datetime1, (newValue) => {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-areas:
       "status status time time"
-      "speed direction satellite di";
+      "speed direction satellite satellite";
     gap: 8px;
   }
 
@@ -1353,10 +1447,6 @@ watch(datetime1, (newValue) => {
   .satellite-chip {
     grid-area: satellite;
     width: 100%;
-  }
-
-  .di-chip {
-    grid-area: di;
   }
 
   .optional-line {

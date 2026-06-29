@@ -46,6 +46,8 @@ export interface HistoryPoint {
     address?: string
     track1?: string
     track3?: string
+    input1?: string | number | boolean | null
+    input2?: string | number | boolean | null
 }
 
 export async function getHistoryTracking(params: HistoryTrackingParams): Promise<HistoryResponse> {

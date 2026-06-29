@@ -65,6 +65,16 @@
           <strong>{{ popupVehicle.fuel_left ?? '' }} %</strong>
         </div>
 
+        <div class="popup-row" v-if="showInput1">
+          <span>Input 1</span>
+          <strong>{{ formatInputState(popupVehicle.input1) }}</strong>
+        </div>
+
+        <div class="popup-row" v-if="showInput2">
+          <span>Input 2</span>
+          <strong>{{ formatInputState(popupVehicle.input2) }}</strong>
+        </div>
+
         <div class="popup-row">
           <span>GPS Time</span>
           <strong>
@@ -133,6 +143,7 @@
 
 <script setup lang="ts">
 import {
+  computed,
   nextTick,
   ref,
   watch,
@@ -197,7 +208,25 @@ const selectedAddress = ref<string | null>(null)
 const addressCache = ref<Record<string, string>>({})
 const clickedFromMap = ref(false)
 const vehicleFeatureMap = new globalThis.Map<string, Feature<Point>>()
+const showInput1 = computed(() => Boolean(auth.features?.input1))
+const showInput2 = computed(() => Boolean(auth.features?.input2))
 let selectedFeatureKey: string | null = null
+
+function isInputOn(value?: string | number | boolean | null): boolean {
+  if (value === true) return true
+
+  const normalized = String(value ?? '').trim().toLowerCase()
+
+  return ['1', 'true', 'on'].includes(normalized)
+}
+
+function formatInputState(value?: string | number | boolean | null): string {
+  if (value === null || value === undefined || value === '') {
+    return '-'
+  }
+
+  return isInputOn(value) ? 'ON' : 'OFF'
+}
 
 async function loadSelectedAddress() {
   if (!popupVehicle.value) return

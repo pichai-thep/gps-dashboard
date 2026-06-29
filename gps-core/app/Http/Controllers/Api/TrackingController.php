@@ -287,6 +287,8 @@ class TrackingController extends Controller
             'driver_phone' => $row->driver_phone ?? null,
             'driver_status' => $this->resolveDriverStatus($row),
             'acc_state' => $this->resolveAcc($row),
+            'input1' => $row->input1 ?? null,
+            'input2' => $row->input2 ?? null,
             'sequen_no' => isset($row->sequen_no) ? (int) $row->sequen_no : null,
             'dlt_synch' => $row->dlt_synch,
             'track1' => $row->track1 ?? null,
