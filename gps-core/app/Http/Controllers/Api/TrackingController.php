@@ -219,7 +219,7 @@ class TrackingController extends Controller
             $sortColumn,
             $sortDir,
             $keyword,
-            null,
+            0,
             $status,
             $offset,
             $perPage,
