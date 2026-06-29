@@ -24,6 +24,8 @@ BEGIN
 	Declare data_count int;
     DECLARE v_tracker_model VARCHAR(50);
     DECLARE v_event_codes VARCHAR(100);
+    DECLARE v_sortby VARCHAR(80);
+    DECLARE v_direction VARCHAR(4);
     
 
 	DECLARE tCursor CURSOR FOR             
@@ -174,6 +176,19 @@ BEGIN
     -- select * from tmp_Current_Track;
 
 
+    SET v_sortby = CASE
+        WHEN lower(substring_index(_sortby, '.', -1)) IN ('data_date', 'gps_time', 'time') THEN 'date_sort'
+        WHEN lower(substring_index(_sortby, '.', -1)) IN ('speed', 'fuel_left', 'ic_status', 'plate_no') THEN lower(substring_index(_sortby, '.', -1))
+        WHEN lower(substring_index(_sortby, '.', -1)) = 'fuel' THEN 'fuel_left'
+        WHEN lower(substring_index(_sortby, '.', -1)) = 'status' THEN 'ic_status'
+        ELSE 'plate_no'
+    END;
+
+    SET v_direction = CASE
+        WHEN lower(_direction) = 'desc' THEN 'desc'
+        ELSE 'asc'
+    END;
+
 	SET @SQLStatement = CONCAT('
 		select gpsdata_id, ifnull(sequen_no,id) as sequen_no, data_date as date_sort,
 				DATE_FORMAT(data_date, ''%d-%m-%y %H:%i:%s'') as data_date, received_date, event_code, engine_volt, ext_power, power_status, state,
@@ -185,7 +200,7 @@ BEGIN
 				,num_sats
 			from tmp_Current_Track tmp left join gps_address_cache gac on tmp.imei=gac.box_imei
 		where ic_status=', if(_status=-1,'ic_status',_status), 
-		' ORDER BY ',_sortby, ' ' ,_direction
+		' ORDER BY ', v_sortby, ' ' , v_direction
 	);
 
 	PREPARE stmt FROM @SQLStatement;

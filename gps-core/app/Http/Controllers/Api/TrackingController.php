@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 
 class TrackingController extends Controller
 {
+    private const PROCEDURE_CHUNK_SIZE = 100;
+
     private const DEFAULT_STATUS_COUNTS = [
         'run' => 0,
         'idle' => 0,
@@ -36,6 +38,7 @@ class TrackingController extends Controller
 
         $groupId = (int) $request->query('group_id', -1);
         $keyword = $request->query('search');
+        $dltSynch = $this->resolveDltSynchFilter($request);
         $statusQuery = $request->query('status');
 
         $sortBy = (string) $request->query('sort_by', 'plate_no');
@@ -51,34 +54,30 @@ class TrackingController extends Controller
         $pdo = DB::connection($connection)->getPdo();
 
         if($gpsUserCustomer->enable_passenger){
-            $rows = $this->fetchCurrentRows_passenger(
+            $rows = $this->fetchAllCurrentRows_passenger(
                 $pdo,
                 $user->login,
                 $groupId,
                 $sortColumn,
                 $sortDir,
                 $keyword,
-                -1,
-                0,
-                100000
+                $dltSynch,
+                -1
             );
 
         }else{
-            $rows = $this->fetchCurrentRows(
+            $rows = $this->fetchAllCurrentRows(
                 $pdo,
                 $user->login,
                 $groupId,
                 $sortColumn,
                 $sortDir,
                 $keyword,
-                -1,
-                0,
-                100000
+                $dltSynch,
+                -1
             );
 
         }
-
-
 
         $allVehicles = collect($rows)
             ->map(fn ($row) => $this->transformVehicle($row))
@@ -205,28 +204,55 @@ class TrackingController extends Controller
         string $sortColumn,
         string $sortDir,
         ?string $keyword,
+        ?int $dltSynch,
         int $status,
         int $offset,
         int $perPage
     ): array {
-        $stmt = $pdo->prepare("
-            CALL sp_webapi_current_track(?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-
-        $stmt->execute([
+        return $this->fetchProcedureRows($pdo, 'sp_webapi_current_track', [
             $login,
             $groupId,
             $sortColumn,
             $sortDir,
             $keyword,
-            0,
+            $dltSynch,
             $status,
             $offset,
             $perPage,
         ]);
+    }
 
-        $rows = $stmt->fetchAll(\PDO::FETCH_OBJ);
-        $stmt->closeCursor();
+    private function fetchAllCurrentRows(
+        \PDO $pdo,
+        string $login,
+        int $groupId,
+        string $sortColumn,
+        string $sortDir,
+        ?string $keyword,
+        ?int $dltSynch,
+        int $status
+    ): array {
+        $rows = [];
+        $offset = 0;
+
+        do {
+            $result = $this->fetchCurrentRowsChunked(
+                $pdo,
+                $login,
+                $groupId,
+                $sortColumn,
+                $sortDir,
+                $keyword,
+                $dltSynch,
+                $status,
+                $offset,
+                self::PROCEDURE_CHUNK_SIZE
+            );
+            $chunk = $result['rows'];
+
+            $rows = array_merge($rows, $chunk);
+            $offset += self::PROCEDURE_CHUNK_SIZE;
+        } while (count($chunk) === self::PROCEDURE_CHUNK_SIZE || $result['failed']);
 
         return $rows;
     }
@@ -238,30 +264,248 @@ class TrackingController extends Controller
         string $sortColumn,
         string $sortDir,
         ?string $keyword,
+        ?int $dltSynch,
         int $status,
         int $offset,
         int $perPage
     ): array {
-        $stmt = $pdo->prepare("
-            CALL sp_api_current_track_passenger(?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-
-        $stmt->execute([
+        return $this->fetchProcedureRows($pdo, 'sp_api_current_track_passenger', [
             $login,
             $groupId,
             $sortColumn,
             $sortDir,
             $keyword,
-            null,
+            $dltSynch,
             $status,
             $offset,
             $perPage,
         ]);
+    }
+
+    private function fetchAllCurrentRows_passenger(
+        \PDO $pdo,
+        string $login,
+        int $groupId,
+        string $sortColumn,
+        string $sortDir,
+        ?string $keyword,
+        ?int $dltSynch,
+        int $status
+    ): array {
+        $rows = [];
+        $offset = 0;
+
+        do {
+            $result = $this->fetchCurrentRowsPassengerChunked(
+                $pdo,
+                $login,
+                $groupId,
+                $sortColumn,
+                $sortDir,
+                $keyword,
+                $dltSynch,
+                $status,
+                $offset,
+                self::PROCEDURE_CHUNK_SIZE
+            );
+            $chunk = $result['rows'];
+
+            $rows = array_merge($rows, $chunk);
+            $offset += self::PROCEDURE_CHUNK_SIZE;
+        } while (count($chunk) === self::PROCEDURE_CHUNK_SIZE || $result['failed']);
+
+        return $rows;
+    }
+
+    private function fetchCurrentRowsChunked(
+        \PDO $pdo,
+        string $login,
+        int $groupId,
+        string $sortColumn,
+        string $sortDir,
+        ?string $keyword,
+        ?int $dltSynch,
+        int $status,
+        int $offset,
+        int $perPage
+    ): array {
+        try {
+            return [
+                'rows' => $this->fetchCurrentRows(
+                    $pdo,
+                    $login,
+                    $groupId,
+                    $sortColumn,
+                    $sortDir,
+                    $keyword,
+                    $dltSynch,
+                    $status,
+                    $offset,
+                    $perPage
+                ),
+                'failed' => false,
+            ];
+        } catch (\PDOException $exception) {
+            return $this->splitCurrentRowsChunk(
+                $exception,
+                fn (int $nextOffset, int $nextSize) => $this->fetchCurrentRowsChunked(
+                    $pdo,
+                    $login,
+                    $groupId,
+                    $sortColumn,
+                    $sortDir,
+                    $keyword,
+                    $dltSynch,
+                    $status,
+                    $nextOffset,
+                    $nextSize
+                ),
+                'sp_webapi_current_track',
+                $offset,
+                $perPage
+            );
+        }
+    }
+
+    private function fetchCurrentRowsPassengerChunked(
+        \PDO $pdo,
+        string $login,
+        int $groupId,
+        string $sortColumn,
+        string $sortDir,
+        ?string $keyword,
+        ?int $dltSynch,
+        int $status,
+        int $offset,
+        int $perPage
+    ): array {
+        try {
+            return [
+                'rows' => $this->fetchCurrentRows_passenger(
+                    $pdo,
+                    $login,
+                    $groupId,
+                    $sortColumn,
+                    $sortDir,
+                    $keyword,
+                    $dltSynch,
+                    $status,
+                    $offset,
+                    $perPage
+                ),
+                'failed' => false,
+            ];
+        } catch (\PDOException $exception) {
+            return $this->splitCurrentRowsChunk(
+                $exception,
+                fn (int $nextOffset, int $nextSize) => $this->fetchCurrentRowsPassengerChunked(
+                    $pdo,
+                    $login,
+                    $groupId,
+                    $sortColumn,
+                    $sortDir,
+                    $keyword,
+                    $dltSynch,
+                    $status,
+                    $nextOffset,
+                    $nextSize
+                ),
+                'sp_api_current_track_passenger',
+                $offset,
+                $perPage
+            );
+        }
+    }
+
+    private function splitCurrentRowsChunk(
+        \PDOException $exception,
+        callable $fetchChunk,
+        string $procedure,
+        int $offset,
+        int $perPage
+    ): array {
+        if (!$this->isUnknownTableAliasError($exception, 'g')) {
+            throw $exception;
+        }
+
+        if ($perPage <= 1) {
+            logger()->warning('Tracking stored procedure skipped bad row', [
+                'procedure' => $procedure,
+                'failed_offset' => $offset,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return [
+                'rows' => [],
+                'failed' => true,
+            ];
+        }
+
+        $leftSize = intdiv($perPage, 2);
+        $rightSize = $perPage - $leftSize;
+        $left = $fetchChunk($offset, $leftSize);
+        $right = $fetchChunk($offset + $leftSize, $rightSize);
+
+        return [
+            'rows' => array_merge($left['rows'], $right['rows']),
+            'failed' => $left['failed'] || $right['failed'],
+        ];
+    }
+
+    private function fetchProcedureRows(\PDO $pdo, string $procedure, array $params): array
+    {
+        $stmt = $pdo->prepare("
+            CALL {$procedure}(?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $this->logProcedureParams($procedure, $params);
+
+        try {
+            $stmt->execute($params);
+        } catch (\PDOException $exception) {
+            $stmt->closeCursor();
+
+            if (!$this->isUnknownTableAliasError($exception, 'g') || ($params[2] ?? null) === 'plate_no') {
+                throw $exception;
+            }
+
+            $params[2] = 'plate_no';
+            $this->logProcedureParams($procedure, $params, 'retry');
+
+            $stmt = $pdo->prepare("
+                CALL {$procedure}(?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute($params);
+        }
 
         $rows = $stmt->fetchAll(\PDO::FETCH_OBJ);
         $stmt->closeCursor();
 
         return $rows;
+    }
+
+    private function logProcedureParams(string $procedure, array $params, string $attempt = 'initial'): void
+    {
+        logger()->info('Tracking stored procedure params', [
+            'procedure' => $procedure,
+            'attempt' => $attempt,
+            'params' => [
+                '_login' => $params[0] ?? null,
+                '_customer_group_id' => $params[1] ?? null,
+                '_sortby' => $params[2] ?? null,
+                '_direction' => $params[3] ?? null,
+                '_keyword' => $params[4] ?? null,
+                '_is_dltSynch' => $params[5] ?? null,
+                '_status' => $params[6] ?? null,
+                '_offSet' => $params[7] ?? null,
+                '_size' => $params[8] ?? null,
+            ],
+        ]);
+    }
+
+    private function isUnknownTableAliasError(\PDOException $exception, string $alias): bool
+    {
+        return str_contains($exception->getMessage(), "Unknown table '{$alias}'");
     }
 
     private function transformVehicle($row): array
@@ -296,17 +540,31 @@ class TrackingController extends Controller
 
     private function resolveSortColumn(string $sortBy): string
     {
+        $sortBy = strtolower(trim($sortBy));
+        $sortBy = str_contains($sortBy, '.')
+            ? substr($sortBy, strrpos($sortBy, '.') + 1)
+            : $sortBy;
+
         $allowedSort = [
             'plate_no' => 'plate_no',
+            'data_date' => 'date_sort',
             'gps_time' => 'date_sort',
             'time' => 'date_sort',
             'speed' => 'speed',
             'fuel_left' => 'fuel_left',
             'fuel' => 'fuel_left',
-            'status' => 'status',
+            'status' => 'ic_status',
+            'ic_status' => 'ic_status',
         ];
 
         return $allowedSort[$sortBy] ?? 'plate_no';
+    }
+
+    private function resolveDltSynchFilter(Request $request): ?int
+    {
+        $value = $request->query('dlt_synch', $request->query('dltSynch'));
+
+        return (int) $value === 1 ? 1 : null;
     }
 
     private function resolveAcc($row): bool
