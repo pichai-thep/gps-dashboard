@@ -2,8 +2,8 @@
   <div class="dashboard-page">
     <div class="page-header">
       <div>
-        <h1>Dashboard</h1>
-        <p>Fleet overview and vehicle summary</p>
+        <h1>{{ t('dashboard') }}</h1>
+        <p>{{ t('dashboardSubtitle') }}</p>
       </div>
 
       <button class="refresh-button" type="button" @click="loadDashboard">
@@ -12,7 +12,7 @@
     </div>
 
     <section class="dashboard-section">
-      <h2>Vehicle Status</h2>
+      <h2>{{ t('vehicleStatus') }}</h2>
 
       <div class="status-grid">
         <Card class="summary-card status-card total" @click="goToTracking()">
@@ -23,7 +23,7 @@
               </div>
 
               <div class="card-info">
-                <div class="label">Total Vehicles</div>
+                <div class="label">{{ t('totalVehicles') }}</div>
                 <div class="value">{{ vehicleTotal }}</div>
                 <div class="percent">100%</div>
               </div>
@@ -39,7 +39,7 @@
               </div>
 
               <div class="card-info">
-                <div class="label">Run</div>
+                <div class="label">{{ t('run') }}</div>
                 <div class="value">{{ summary.run }}</div>
                 <div class="percent">{{ percent(summary.run) }}</div>
               </div>
@@ -55,7 +55,7 @@
               </div>
 
               <div class="card-info">
-                <div class="label">Idle</div>
+                <div class="label">{{ t('idle') }}</div>
                 <div class="value">{{ summary.idle }}</div>
                 <div class="percent">{{ percent(summary.idle) }}</div>
               </div>
@@ -87,7 +87,7 @@
               </div>
 
               <div class="card-info">
-                <div class="label">Park</div>
+                <div class="label">{{ t('park') }}</div>
                 <div class="value">{{ summary.park }}</div>
                 <div class="percent">{{ percent(summary.park) }}</div>
               </div>
@@ -103,7 +103,7 @@
               </div>
 
               <div class="card-info">
-                <div class="label">No GPS</div>
+                <div class="label">{{ t('noGps') }}</div>
                 <div class="value">{{ summary.no_gps }}</div>
                 <div class="percent">{{ percent(summary.no_gps) }}</div>
               </div>
@@ -119,7 +119,7 @@
               </div>
 
               <div class="card-info">
-                <div class="label">Offline</div>
+                <div class="label">{{ t('offline') }}</div>
                 <div class="value">{{ summary.offline }}</div>
                 <div class="percent">{{ percent(summary.offline) }}</div>
               </div>
@@ -130,7 +130,7 @@
     </section>
 
     <section class="dashboard-section">
-      <h2>Station</h2>
+      <h2>{{ t('station') }}</h2>
 
       <div class="wide-grid">
         <Card class="summary-card wide-card readonly-card in-station">
@@ -141,7 +141,7 @@
               </div>
 
               <div>
-                <div class="label">In Station</div>
+                <div class="label">{{ t('inStation') }}</div>
                 <div class="wide-value">{{ summary.in_station }}</div>
                 <div class="percent">{{ percent(summary.in_station) }}</div>
               </div>
@@ -157,7 +157,7 @@
               </div>
 
               <div>
-                <div class="label">Out Station</div>
+                <div class="label">{{ t('outStation') }}</div>
                 <div class="wide-value">{{ summary.out_station }}</div>
                 <div class="percent">{{ percent(summary.out_station) }}</div>
               </div>
@@ -168,7 +168,7 @@
     </section>
 
     <section class="dashboard-section">
-      <h2>DLT Driver Card</h2>
+      <h2>{{ t('dltDriverCard') }}</h2>
 
       <div class="wide-grid">
         <Card
@@ -182,7 +182,7 @@
               </div>
 
               <div>
-                <div class="label">DLT Connected</div>
+                <div class="label">{{ t('dltConnected') }}</div>
                 <div class="wide-value">{{ summary.dlt_synch_total }}</div>
                 <div class="percent">{{ percent(summary.dlt_synch_total) }}</div>
               </div>
@@ -201,7 +201,7 @@
               </div>
 
               <div>
-                <div class="label">DLT Driving Without Card</div>
+                <div class="label">{{ t('dltDrivingWithoutCard') }}</div>
                 <div class="wide-value">{{ summary.driving_without_card }}</div>
                 <div class="percent">{{ dltNoCardPercent }}</div>
               </div>
@@ -212,10 +212,10 @@
     </section>
 
     <div class="dashboard-footer">
-      <span>Last updated: {{ lastUpdated || '-' }}</span>
+      <span>{{ t('lastUpdated') }}: {{ lastUpdated || '-' }}</span>
       <span>
         <i class="pi pi-sync"></i>
-        Auto refresh every 30 seconds
+        {{ t('autoRefresh30') }}
       </span>
     </div>
   </div>
@@ -226,6 +226,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import Card from 'primevue/card'
 import api from "@/services/api";
 import {useRouter} from "vue-router";
+import { useI18n } from '@/i18n'
 
 type DashboardSummary = {
   total: number
@@ -260,6 +261,7 @@ const summary = ref<DashboardSummary>({
 const loading = ref(false)
 const lastUpdated = ref('')
 const router = useRouter();
+const { locale, t } = useI18n()
 
 let timer: number | undefined
 
@@ -296,7 +298,7 @@ function percent(value: number) {
 }
 
 function formatDateTime() {
-  return new Date().toLocaleString('en-GB', {
+  return new Date().toLocaleString(locale.value === 'th' ? 'th-TH' : 'en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

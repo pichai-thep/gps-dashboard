@@ -2,12 +2,12 @@
   <div class="report-page">
     <div class="page-header">
       <div>
-        <h1>Daily Summary Report</h1>
-        <p>รายงานสรุปการวิ่ง / จอด / Idle รายวัน</p>
+        <h1>{{ t('dailySummaryReport') }}</h1>
+        <p>{{ t('dailySummarySubtitle') }}</p>
       </div>
 
       <Button
-          label="Export CSV"
+          :label="t('exportCsv')"
           icon="pi pi-download"
           severity="secondary"
           :disabled="totalRows === 0"
@@ -35,7 +35,7 @@
           :options="groupOptions"
           optionLabel="group_name"
           optionValue="group_id"
-          placeholder="Select Group"
+          :placeholder="t('selectGroup')"
           display="chip"
           filter
           @change="onGroupChange"
@@ -46,21 +46,21 @@
           :options="vehicleOptions"
           optionLabel="plate_no"
           optionValue="imei"
-          placeholder="Select Vehicle"
+          :placeholder="t('selectVehicle')"
           display="chip"
           filter
           aria-multiline="true"
       />
 
       <Button
-          label="Search"
+          :label="t('search')"
           icon="pi pi-search"
           :loading="loading"
           @click="search"
       />
 
       <Button
-          label="Reset"
+          :label="t('reset')"
           icon="pi pi-refresh"
           severity="secondary"
           outlined
@@ -71,17 +71,17 @@
 
     <div class="summary-grid">
       <div class="summary-card">
-        <span>Total Vehicles</span>
+        <span>{{ t('totalVehicles') }}</span>
         <strong>{{ summary.total_vehicle }}</strong>
       </div>
 
       <div class="summary-card">
-        <span>Total Distance</span>
+        <span>{{ t('totalDistance') }}</span>
         <strong>{{ formatKm(summary.distance_m) }}</strong>
       </div>
 
       <div class="summary-card ur-rate">
-        <span>UR Rate Avg</span>
+        <span>{{ t('urRateAvg') }}</span>
 
         <strong>
           {{ formatPercent(avgUrRate) }}
@@ -89,17 +89,17 @@
       </div>
 
       <div class="summary-card running">
-        <span>Running</span>
+        <span>{{ t('running') }}</span>
         <strong>{{ formatDuration(summary.run_time_s) }}</strong>
       </div>
 
       <div class="summary-card idle">
-        <span>Idle</span>
+        <span>{{ t('idle') }}</span>
         <strong>{{ formatDuration(summary.idle_time_s) }}</strong>
       </div>
 
       <div class="summary-card parking">
-        <span>Parking</span>
+        <span>{{ t('parking') }}</span>
         <strong>{{ formatDuration(summary.park_time_s) }}</strong>
       </div>
     </div>
@@ -116,12 +116,12 @@
           :sortOrder="sortOrder === 'asc' ? 1 : -1"
           @sort="onSort"
       >
-        <Column field="data_date" header="วันที่" sortable style="width: 150px" />
+        <Column field="data_date" :header="t('date')" sortable style="width: 150px" />
 
 <!--        <Column field="imei" header="IMEI" style="width: 180px" />-->
-        <Column field="plate_no" header="Plate" sortable style="width: 180px" />
+        <Column field="plate_no" :header="t('plate')" sortable style="width: 180px" />
 
-        <Column field="run_time_s" header="Running" sortable  style="width: 120px">
+        <Column field="run_time_s" :header="t('running')" sortable  style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatDuration(data.run_time_s)"
@@ -130,7 +130,7 @@
           </template>
         </Column>
 
-        <Column field="idle_time_s" header="Idle" sortable  style="width: 120px">
+        <Column field="idle_time_s" :header="t('idle')" sortable  style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatDuration(data.idle_time_s)"
@@ -139,7 +139,7 @@
           </template>
         </Column>
 
-        <Column field="park_time_s" header="Parking" sortable  style="width: 120px">
+        <Column field="park_time_s" :header="t('parking')" sortable  style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatDuration(data.park_time_s)"
@@ -148,13 +148,13 @@
           </template>
         </Column>
 
-        <Column field="distance_m" header="Distance" sortable  style="width: 150px">
+        <Column field="distance_m" :header="t('distance')" sortable  style="width: 150px">
           <template #body="{ data }">
             <b>{{ formatKm(data.distance_m) }}</b>
           </template>
         </Column>
 
-        <Column field="ur_formula" header="Formula" style="width: 170px">
+        <Column field="ur_formula" :header="t('formula')" style="width: 170px">
           <template #body="{ data }">
             <Tag
                 :value="data.ur_formula"
@@ -163,7 +163,7 @@
           </template>
         </Column>
 
-        <Column field="ur_rate" header="UR Rate" sortable  style="width: 120px">
+        <Column field="ur_rate" :header="t('urRate')" sortable  style="width: 120px">
           <template #body="{ data }">
             <Tag
                 :value="formatPercent(data.ur_rate)"
@@ -172,7 +172,7 @@
           </template>
         </Column>
 
-        <Column field="updated_at" header="Updated" sortable  style="width: 200px" />
+        <Column field="updated_at" :header="t('updated')" sortable  style="width: 200px" />
       </DataTable>
 
       <Paginator
@@ -204,7 +204,9 @@ import {
   getReportVehicles,
   type DailySummaryRow,
 } from '@/services/report'
+import { useI18n } from '@/i18n'
 
+const { t } = useI18n()
 
 const selectedGroups = ref<number[]>([])
 const selectedVehicles = ref<string[]>([])

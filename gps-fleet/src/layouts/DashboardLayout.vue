@@ -139,7 +139,7 @@
 
         <button
             :class="{ active: isActive('/reports') }"
-            title="Reports"
+            :title="t('reports')"
             @click="openReportsMenu"
         >
           <i class="pi pi-chart-bar"></i>
@@ -156,7 +156,7 @@
             type="button"
             @click="goReport('/reports/daily-summary')"
         >
-          Daily
+          {{ t('daily') }}
         </button>
 
         <button
@@ -164,7 +164,7 @@
             type="button"
             @click="goReport('/reports/status-summary')"
         >
-          Status
+          {{ t('status') }}
         </button>
 
         <button
@@ -172,7 +172,7 @@
             type="button"
             @click="goReport('/reports/station-summary')"
         >
-          Station
+          {{ t('station') }}
         </button>
       </div>
 
@@ -220,11 +220,31 @@
           </div>
 
           <div class="topbar-notification">
-            <NotificationBell title="Notification Messages" />
+            <NotificationBell :title="t('notificationsTitle')" />
+          </div>
+
+          <div class="language-switch" :title="t('language')">
+            <button
+                type="button"
+                :class="{ active: locale === 'th' }"
+                @click="setLocale('th')"
+            >
+              <span class="flag-icon flag-th"></span>
+              <span>Thai</span>
+            </button>
+
+            <button
+                type="button"
+                :class="{ active: locale === 'en' }"
+                @click="setLocale('en')"
+            >
+              <span class="flag-icon flag-en"></span>
+              <span>US</span>
+            </button>
           </div>
 
           <Button
-              label="Logout"
+              :label="t('logout')"
               icon="pi pi-sign-out"
               severity="secondary"
               @click="logout"
@@ -246,6 +266,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import PanelMenu from 'primevue/panelmenu'
 import NotificationBell from "@/components/notifications/NotificationBell.vue";
+import { useI18n } from '@/i18n'
 
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
@@ -255,68 +276,70 @@ const expandedKeys = ref<Record<string, boolean>>({
   reports: true,
 })
 
+const { locale, setLocale, t } = useI18n()
+
 const menuItems = computed(() => [
   {
-    label: 'Dashboard',
+    label: t('dashboard'),
     icon: 'pi pi-chart-line',
     styleClass: route.path === '/' ? 'active-menu' : '',
     command: () => router.push('/'),
   },
   {
-    label: 'Tracking',
+    label: t('tracking'),
     icon: 'pi pi-map',
     styleClass: isActive('/tracking') ? 'active-menu' : '',
     command: () => router.push('/tracking'),
   },
   {
-    label: 'History',
+    label: t('history'),
     icon: 'pi pi-history',
     styleClass: isActive('/history') ? 'active-menu' : '',
     command: () => router.push('/history'),
   },
   {
-    label: 'My Vehicles',
+    label: t('myVehicles'),
     icon: 'pi pi-car',
     styleClass: isActive('/vehicles') ? 'active-menu' : '',
     command: () => router.push('/vehicles'),
   },
   {
-    label: 'My Stations',
+    label: t('myStations'),
     icon: 'pi pi-warehouse',
     styleClass: isActive('/stations') ? 'active-menu' : '',
     command: () => router.push('/stations'),
   },
   {
-    label: 'My POIs',
+    label: t('myPois'),
     icon: 'pi pi-map-marker',
     styleClass: isActive('/pois') ? 'active-menu' : '',
     command: () => router.push('/pois'),
   },
   {
-    label: 'Forbidden Zones',
+    label: t('forbiddenZones'),
     icon: 'pi pi-ban',
     styleClass: isActive('/forbidden-zones') ? 'active-menu' : '',
     command: () => router.push('/forbidden-zones'),
   },
   {
     key: 'reports',
-    label: 'Reports',
+    label: t('reports'),
     icon: 'pi pi-chart-bar',
     items: [
       {
-        label: 'Daily Summary',
+        label: t('dailySummary'),
         icon: 'pi pi-calendar',
         styleClass: isActive('/reports/daily-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/daily-summary'),
       },
       {
-        label: 'Status Timeline',
+        label: t('statusTimeline'),
         icon: 'pi pi-clock',
         styleClass: isActive('/reports/status-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/status-summary'),
       },
       {
-        label: 'Station Visit',
+        label: t('stationVisit'),
         icon: 'pi pi-warehouse',
         styleClass: isActive('/reports/station-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/station-summary'),
@@ -386,16 +409,20 @@ const userInitial = computed(() => {
 
 const currentPageTitle = computed(() => {
   const map: Record<string, string> = {
-    '/': 'Dashboard',
-    '/tracking': 'Live Tracking',
-    '/history': 'History Tracking',
-    '/vehicles': 'Vehicle Management',
-    '/notifications': 'Notifications',
-    '/stations': 'Stations',
-    '/pois': 'POI',
+    '/': t('dashboard'),
+    '/tracking': t('liveTracking'),
+    '/history': t('historyTracking'),
+    '/vehicles': t('vehicleManagement'),
+    '/notifications': t('notifications'),
+    '/stations': t('stationManagement'),
+    '/pois': t('pois'),
+    '/forbidden-zones': t('forbiddenZoneManagement'),
+    '/reports/daily-summary': t('dailySummaryReport'),
+    '/reports/status-summary': t('statusTimelineReport'),
+    '/reports/station-summary': t('stationVisitReport'),
   }
 
-  return map[route.path] || 'Fleet Command Center'
+  return map[route.path] || t('fleetCommandCenter')
 })
 
 onMounted(async () => {
@@ -703,6 +730,78 @@ function goReport(path: string) {
 .topbar-notification :deep(.sidebar-badge) {
   top: 4px;
   right: 4px;
+}
+
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.language-switch button {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.95);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.language-switch button.active {
+  border-color: rgba(34, 197, 94, 0.58);
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+}
+
+.flag-icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.45);
+}
+
+.flag-th {
+  background: linear-gradient(
+      to bottom,
+      #da291c 0 16.66%,
+      #ffffff 16.66% 33.33%,
+      #2d2a4a 33.33% 66.66%,
+      #ffffff 66.66% 83.33%,
+      #da291c 83.33% 100%
+  );
+}
+
+.flag-en {
+  background:
+      radial-gradient(circle at 18% 18%, #ffffff 0 1px, transparent 1.3px),
+      radial-gradient(circle at 36% 18%, #ffffff 0 1px, transparent 1.3px),
+      radial-gradient(circle at 54% 18%, #ffffff 0 1px, transparent 1.3px),
+      radial-gradient(circle at 27% 34%, #ffffff 0 1px, transparent 1.3px),
+      radial-gradient(circle at 45% 34%, #ffffff 0 1px, transparent 1.3px),
+      linear-gradient(#3c3b6e 0 54%, transparent 54%),
+      repeating-linear-gradient(
+          to bottom,
+          #b22234 0 7.69%,
+          #ffffff 7.69% 15.38%
+      );
+  background-size:
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      56% 54%,
+      100% 100%;
+  background-repeat: no-repeat;
+  background-position: left top;
 }
 
 .user-info {

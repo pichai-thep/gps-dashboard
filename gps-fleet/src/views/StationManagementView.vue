@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, reactive, nextTick } from 'vue'
+import { computed, onMounted, ref, reactive, nextTick } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
@@ -10,6 +10,7 @@ import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { useI18n } from '@/i18n'
 
 import BaseMap from '@/components/maps/BaseMap.vue'
 import Map from 'ol/Map'
@@ -36,6 +37,7 @@ import {
 
 const confirm = useConfirm()
 const toast = useToast()
+const { t } = useI18n()
 
 const stations = ref<Station[]>([])
 const loading = ref(false)
@@ -90,10 +92,10 @@ const previewLayer = new VectorLayer({
   }),
 })
 
-const typeOptions = [
-  { label: 'Circle / รัศมี', value: 'circle' },
-  { label: 'Polygon / วาดพื้นที่', value: 'polygon' },
-]
+const typeOptions = computed(() => [
+  { label: t('circleRadius'), value: 'circle' },
+  { label: t('polygonArea'), value: 'polygon' },
+])
 
 const form = reactive<{
   station_name: string
@@ -418,7 +420,7 @@ async function saveStation() {
   if (!form.station_name.trim()) {
     toast.add({
       severity: 'warn',
-      summary: 'กรุณากรอกชื่อ Station',
+      summary: t('stationNameRequired'),
       life: 2500,
     })
     return
@@ -427,7 +429,7 @@ async function saveStation() {
   if (form.station_type === 'circle' && (!form.lat || !form.lng || !form.radius)) {
     toast.add({
       severity: 'warn',
-      summary: 'กรุณาเลือกจุดและกำหนดรัศมี',
+      summary: t('stationShapeRequired'),
       life: 2500,
     })
     return
@@ -436,7 +438,7 @@ async function saveStation() {
   if (form.station_type === 'polygon' && form.polygon.length < 3) {
     toast.add({
       severity: 'warn',
-      summary: 'กรุณาวาด Polygon อย่างน้อย 3 จุด',
+      summary: t('stationPolygonRequired'),
       life: 2500,
     })
     return
@@ -466,7 +468,7 @@ async function saveStation() {
 
     toast.add({
       severity: 'success',
-      summary: 'บันทึก Station สำเร็จ',
+      summary: t('saveStationSuccess'),
       life: 2500,
     })
 
@@ -479,18 +481,18 @@ async function saveStation() {
 
 function confirmDelete(row: Station) {
   confirm.require({
-    message: `ต้องการลบ "${row.station_name}" ใช่หรือไม่?`,
-    header: 'ยืนยันการลบ',
+    message: t('deleteConfirmMessage', { name: row.station_name }),
+    header: t('confirmDelete'),
     icon: 'pi pi-exclamation-triangle',
-    acceptLabel: 'ลบ',
-    rejectLabel: 'ยกเลิก',
+    acceptLabel: t('delete'),
+    rejectLabel: t('cancel'),
     acceptClass: 'p-button-danger',
     accept: async () => {
       await deleteStation(row.station_id)
 
       toast.add({
         severity: 'success',
-        summary: 'ลบ Station แล้ว',
+        summary: t('deleteStationSuccess'),
         life: 2500,
       })
 
@@ -542,16 +544,16 @@ function onTypeChange() {
 <!--        </div>-->
 
         <div>
-          <h1 class="page-title">Station Management</h1>
+          <h1 class="page-title">{{ t('stationManagement') }}</h1>
           <div class="page-subtitle">
-            จัดการสถานี / Geofence / Polygon Area
+            {{ t('stationManagementSubtitle') }}
           </div>
         </div>
       </div>
 
       <div class="header-actions">
         <Button
-            label="Add Station"
+            :label="t('addStation')"
             icon="pi pi-plus"
             @click="openCreate"
         />
@@ -567,20 +569,20 @@ function onTypeChange() {
         stripedRows
         class="station-table p-datatable-sm"
     >
-      <Column field="station_name" header="Station Name" />
-      <Column field="station_type" header="Type">
+      <Column field="station_name" :header="t('stationName')" />
+      <Column field="station_type" :header="t('type')">
         <template #body="{ data }">
           <span class="type-badge" :class="data.station_type">
             {{ data.station_type }}
           </span>
         </template>
       </Column>
-      <Column field="radius" header="Radius">
+      <Column field="radius" :header="t('radius')">
         <template #body="{ data }">
           {{ data.radius ? `${data.radius} m` : '-' }}
         </template>
       </Column>
-      <Column header="Location">
+      <Column :header="t('location')">
         <template #body="{ data }">
           <span v-if="data.lat && data.lng">
             {{ Number(data.lat).toFixed(6) }},
@@ -589,7 +591,7 @@ function onTypeChange() {
           <span v-else>-</span>
         </template>
       </Column>
-      <Column header="Actions" style="width: 160px">
+      <Column :header="t('actions')" style="width: 160px">
         <template #body="{ data }">
           <div class="action-buttons">
             <Button
@@ -613,7 +615,7 @@ function onTypeChange() {
     <Dialog
         v-model:visible="dialogVisible"
         modal
-        :header="editingId ? 'Edit Station' : 'Add Station'"
+        :header="editingId ? t('editStation') : t('addStation')"
         class="station-dialog"
         :style="{ width: '960px', maxWidth: '96vw' }"
         @show="onDialogShow"
@@ -621,14 +623,14 @@ function onTypeChange() {
     >
       <div class="form-grid">
         <div class="form-panel">
-          <label>Station Name</label>
+          <label>{{ t('stationName') }}</label>
           <InputText
               v-model="form.station_name"
-              placeholder="ชื่อ Station"
+              :placeholder="t('stationName')"
               class="w-full"
           />
 
-          <label>Type</label>
+          <label>{{ t('type') }}</label>
           <Dropdown
               v-model="form.station_type"
               :options="typeOptions"
@@ -639,7 +641,7 @@ function onTypeChange() {
           />
 
           <template v-if="form.station_type === 'circle'">
-            <label>Radius / เมตร</label>
+            <label>{{ t('radiusMeters') }}</label>
             <InputNumber
                 v-model="form.radius"
                 class="w-full"
@@ -649,7 +651,7 @@ function onTypeChange() {
             />
 
             <div class="hint">
-              คลิกบนแผนที่เพื่อเลือกจุดศูนย์กลาง
+              {{ t('clickMapForCenter') }}
             </div>
 
             <div class="coords">
@@ -660,11 +662,11 @@ function onTypeChange() {
 
           <template v-else>
             <div class="hint">
-              กดปุ่มวาด Polygon แล้วคลิกบนแผนที่หลายจุด ดับเบิลคลิกเพื่อจบ
+              {{ t('drawPolygonHint') }}
             </div>
 
             <div class="coords">
-              จำนวนจุด: {{ form.polygon.length }}
+              {{ t('pointsCount') }}: {{ form.polygon.length }}
             </div>
           </template>
 
@@ -678,7 +680,7 @@ function onTypeChange() {
             />
 
             <Button
-                label="วาด Polygon"
+                :label="t('drawPolygon')"
                 icon="pi pi-pencil"
                 severity="secondary"
                 outlined
@@ -686,7 +688,7 @@ function onTypeChange() {
             />
 
             <Button
-                label="ล้าง"
+                :label="t('clear')"
                 icon="pi pi-times"
                 severity="danger"
                 outlined
@@ -709,7 +711,7 @@ function onTypeChange() {
             <template #map-controls>
               <button
                   type="button"
-                  title="Clear shape"
+                  :title="t('clearShape')"
                   @click.stop="clearShape"
               >
                 <i class="pi pi-times"></i>
@@ -722,13 +724,13 @@ function onTypeChange() {
 
       <template #footer>
         <Button
-            label="Cancel"
+            :label="t('cancel')"
             severity="secondary"
             outlined
             @click="dialogVisible = false"
         />
         <Button
-            label="Save"
+            :label="t('save')"
             icon="pi pi-save"
             :loading="saving"
             @click="saveStation"

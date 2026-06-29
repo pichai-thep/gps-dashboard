@@ -10,6 +10,7 @@ import Dropdown from 'primevue/dropdown'
 
 import {useConfirm} from 'primevue/useconfirm'
 import {useToast} from 'primevue/usetoast'
+import { useI18n } from '@/i18n'
 import BaseMap from '@/components/maps/BaseMap.vue'
 import Map from 'ol/Map'
 import VectorLayer from 'ol/layer/Vector'
@@ -32,6 +33,7 @@ import {
 
 const confirm = useConfirm()
 const toast = useToast()
+const { t } = useI18n()
 
 const pois = ref<Poi[]>([])
 const loading = ref(false)
@@ -233,7 +235,7 @@ async function savePoi() {
   if (!form.poi_name.trim()) {
     toast.add({
       severity: 'warn',
-      summary: 'กรุณากรอกชื่อ POI',
+      summary: t('poiNameRequired'),
       life: 2500,
     })
     return
@@ -242,7 +244,7 @@ async function savePoi() {
   if (!form.lat || !form.lng) {
     toast.add({
       severity: 'warn',
-      summary: 'กรุณาคลิกเลือกตำแหน่งบนแผนที่',
+      summary: t('poiLocationRequired'),
       life: 2500,
     })
     return
@@ -266,7 +268,7 @@ async function savePoi() {
 
     toast.add({
       severity: 'success',
-      summary: 'บันทึก POI สำเร็จ',
+      summary: t('savePoiSuccess'),
       life: 2500,
     })
 
@@ -279,18 +281,18 @@ async function savePoi() {
 
 function confirmDelete(row: Poi) {
   confirm.require({
-    message: `ต้องการลบ "${row.poi_name}" ใช่หรือไม่?`,
-    header: 'ยืนยันการลบ',
+    message: t('deleteConfirmMessage', { name: row.poi_name }),
+    header: t('confirmDelete'),
     icon: 'pi pi-exclamation-triangle',
-    acceptLabel: 'ลบ',
-    rejectLabel: 'ยกเลิก',
+    acceptLabel: t('delete'),
+    rejectLabel: t('cancel'),
     acceptClass: 'p-button-danger',
     accept: async () => {
       await deletePoi(row.poi_id)
 
       toast.add({
         severity: 'success',
-        summary: 'ลบ POI แล้ว',
+        summary: t('deletePoiSuccess'),
         life: 2500,
       })
 
@@ -320,16 +322,16 @@ function findPoiLabel(value?: string | null) {
         <!--        </div>-->
 
         <div>
-          <h1 class="page-title">POI Management</h1>
+          <h1 class="page-title">{{ t('poiManagement') }}</h1>
           <div class="page-subtitle">
-            จัดการจุดสนใจบนแผนที่
+            {{ t('poiManagementSubtitle') }}
           </div>
         </div>
       </div>
 
       <div class="header-actions">
         <Button
-            label="Add POI"
+            :label="t('addPoi')"
             icon="pi pi-plus"
             @click="openCreate"
         />
@@ -345,9 +347,9 @@ function findPoiLabel(value?: string | null) {
         stripedRows
         class="station-table p-datatable-sm"
     >
-      <Column field="poi_name" header="POI Name"/>
+      <Column field="poi_name" :header="t('poiName')"/>
 
-      <Column header="Icon">
+      <Column :header="t('poiIcon')">
         <template #body="{ data }">
           <div class="poi-icon-cell">
             <img
@@ -362,7 +364,7 @@ function findPoiLabel(value?: string | null) {
         </template>
       </Column>
 
-      <Column header="Location">
+      <Column :header="t('location')">
         <template #body="{ data }">
           <span v-if="data.lat && data.lng">
             {{ Number(data.lat).toFixed(6) }},
@@ -372,7 +374,7 @@ function findPoiLabel(value?: string | null) {
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 160px">
+      <Column :header="t('actions')" style="width: 160px">
         <template #body="{ data }">
           <div class="action-buttons">
             <Button
@@ -396,28 +398,28 @@ function findPoiLabel(value?: string | null) {
     <Dialog
         v-model:visible="dialogVisible"
         modal
-        :header="editingId ? 'Edit POI' : 'Add POI'"
+        :header="editingId ? t('editPoi') : t('addPoi')"
         class="station-dialog"
         :style="{ width: '900px', maxWidth: '96vw' }"
         @show="focusCurrentPoi"
     >
       <div class="form-grid">
         <div class="form-panel">
-          <label>POI Name</label>
+          <label>{{ t('poiName') }}</label>
           <InputText
               v-model="form.poi_name"
-              placeholder="ชื่อ POI"
+              :placeholder="t('poiName')"
               class="w-full"
           />
 
-          <label>POI Icon</label>
+          <label>{{ t('poiIcon') }}</label>
 
           <Dropdown
               v-model="form.icon"
               :options="poiIconOptions"
               optionLabel="label"
               optionValue="value"
-              placeholder="เลือก Icon"
+              :placeholder="t('selectIcon')"
               class="w-full"
               @change="renderPreview"
           >
@@ -438,7 +440,7 @@ function findPoiLabel(value?: string | null) {
               </div>
 
               <span v-else>
-      เลือก Icon
+      {{ t('selectIcon') }}
     </span>
             </template>
 
@@ -457,7 +459,7 @@ function findPoiLabel(value?: string | null) {
           </Dropdown>
 
           <div class="hint">
-            คลิกบนแผนที่เพื่อเลือกตำแหน่ง POI
+            {{ t('clickMapForPoi') }}
           </div>
 
           <div class="coords">
@@ -467,7 +469,7 @@ function findPoiLabel(value?: string | null) {
 
           <div class="tool-buttons">
             <Button
-                label="ล้างตำแหน่ง"
+                :label="t('clearLocation')"
                 icon="pi pi-times"
                 severity="danger"
                 outlined
@@ -490,7 +492,7 @@ function findPoiLabel(value?: string | null) {
             <template #map-controls>
               <button
                   type="button"
-                  title="Clear POI"
+                  :title="t('clearPoi')"
                   @click.stop="clearPoint"
               >
                 <i class="pi pi-times"></i>
@@ -503,13 +505,13 @@ function findPoiLabel(value?: string | null) {
 
       <template #footer>
         <Button
-            label="Cancel"
+            :label="t('cancel')"
             severity="secondary"
             outlined
             @click="dialogVisible = false"
         />
         <Button
-            label="Save"
+            :label="t('save')"
             icon="pi pi-save"
             :loading="saving"
             @click="savePoi"

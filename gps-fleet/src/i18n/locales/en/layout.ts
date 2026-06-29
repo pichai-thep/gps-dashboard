@@ -1,0 +1,18 @@
+export default {
+    dashboard: 'Dashboard',
+    daily: 'Daily',
+    dailySummary: 'Daily Summary',
+    forbiddenZones: 'Forbidden Zones',
+    fleetCommandCenter: 'Fleet Command Center',
+    history: 'History',
+    historyQuery: 'History Query',
+    historyTracking: 'History Tracking',
+    liveTracking: 'Live Tracking',
+    myPois: 'My POIs',
+    myStations: 'My Stations',
+    myVehicles: 'My Vehicles',
+    stationVisit: 'Station Visit',
+    statusTimeline: 'Status Timeline',
+    tracking: 'Tracking',
+    vehicleManagement: 'Vehicle Management',
+}

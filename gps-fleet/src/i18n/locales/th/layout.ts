@@ -1,0 +1,18 @@
+export default {
+    dashboard: 'แดชบอร์ด',
+    daily: 'รายวัน',
+    dailySummary: 'สรุปรายวัน',
+    forbiddenZones: 'พื้นที่ห้ามเข้า',
+    fleetCommandCenter: 'ศูนย์ควบคุมรถ',
+    history: 'ประวัติ',
+    historyQuery: 'ค้นหาประวัติ',
+    historyTracking: 'ประวัติการเดินรถ',
+    liveTracking: 'ติดตามรถสด',
+    myPois: 'จุดสนใจ',
+    myStations: 'สถานี',
+    myVehicles: 'รถของฉัน',
+    stationVisit: 'เข้าออกสถานี',
+    statusTimeline: 'ไทม์ไลน์สถานะ',
+    tracking: 'ติดตามรถ',
+    vehicleManagement: 'จัดการรถ',
+}

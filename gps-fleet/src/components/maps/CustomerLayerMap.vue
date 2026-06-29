@@ -29,8 +29,11 @@ import {
   getCustomerStations,
   getCustomerForbiddenZones,
 } from '@/services/mapLayer'
+import { useI18n } from '@/i18n'
 
 import {poiIconRegistry} from '@/constants/poiIcons'
+const { t } = useI18n()
+
 type OlMapLike = Pick<
     OlMap,
     'getLayers' | 'addLayer' | 'removeLayer'
@@ -512,7 +515,7 @@ function parsePolygonWkt(
         type="button"
         class="layer-toggle-button"
         :class="{ active: panelVisible }"
-        title="Pois, Stations, ForbiddenZones Layers"
+        :title="t('customerLayerTitle')"
         @click.stop="panelVisible = !panelVisible"
     >
       <i class="pi pi-clone"></i>
@@ -524,17 +527,17 @@ function parsePolygonWkt(
     >
       <label>
         <input v-model="poiVisible" type="checkbox"/>
-        <span>POIs</span>
+        <span>{{ t('poisLayer') }}</span>
       </label>
 
       <label>
         <input v-model="stationVisible" type="checkbox"/>
-        <span>Stations</span>
+        <span>{{ t('stationsLayer') }}</span>
       </label>
 
       <label>
         <input v-model="forbiddenVisible" type="checkbox"/>
-        <span>Forbidden Zones</span>
+        <span>{{ t('forbiddenZonesLayer') }}</span>
       </label>
     </div>
   </div>

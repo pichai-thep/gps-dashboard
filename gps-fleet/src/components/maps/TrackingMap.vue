@@ -11,7 +11,7 @@
     <template #map-controls>
       <button
           type="button"
-          title="Follow Vehicle"
+          :title="t('followVehicle')"
           :class="{ active: followVehicle }"
           @click.stop="toggleFollowVehicle"
       >
@@ -20,7 +20,7 @@
 
       <button
           type="button"
-          title="Show Popup"
+          :title="t('showPopup')"
           :class="{ active: showPopup }"
           @click.stop="toggleShowPopup"
       >
@@ -43,17 +43,17 @@
         <div class="popup-title">{{ popupVehicle.plate_no }}</div>
 
         <div class="popup-row">
-          <span>IMEI</span>
+          <span>{{ t('imei') }}</span>
           <strong>{{ popupVehicle.imei }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>Status</span>
+          <span>{{ t('status') }}</span>
           <strong>{{ popupVehicle.status }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>Speed</span>
+          <span>{{ t('speed') }}</span>
           <strong>
             {{ popupVehicle.speed ?? 0 }}
             km/h
@@ -61,64 +61,64 @@
         </div>
 
         <div class="popup-row" v-if="popupVehicle.fuel_left">
-          <span>Fuel left</span>
+          <span>{{ t('fuelLeft') }}</span>
           <strong>{{ popupVehicle.fuel_left ?? '' }} %</strong>
         </div>
 
         <div class="popup-row" v-if="showInput1">
-          <span>Input 1</span>
+          <span>{{ t('input1') }}</span>
           <strong>{{ formatInputState(popupVehicle.input1) }}</strong>
         </div>
 
         <div class="popup-row" v-if="showInput2">
-          <span>Input 2</span>
+          <span>{{ t('input2') }}</span>
           <strong>{{ formatInputState(popupVehicle.input2) }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>GPS Time</span>
+          <span>{{ t('gpsTime') }}</span>
           <strong>
             {{ popupVehicle.gps_time ?? '-' }}
           </strong>
         </div>
         <div class="popup-row">
-          <span>Updated Time</span>
+          <span>{{ t('updatedTime') }}</span>
           <strong>
             {{ popupVehicle.received_time ?? '-' }}
           </strong>
         </div>
 
         <div class="popup-row">
-          <span>Lat/Lon</span>
+          <span>{{ t('latLon') }}</span>
           <strong>{{ popupVehicle.lat }}, {{ popupVehicle.lng }}</strong>
         </div>
 
         <div class="popup-row" v-if="popupVehicle.driver_name">
-          <span>Driver name</span>
+          <span>{{ t('driverName') }}</span>
           <strong>
             {{ popupVehicle.driver_name }}
           </strong>
         </div>
 
         <div class="popup-row" v-if="popupVehicle.driver_phone">
-          <span>Driver phone</span>
+          <span>{{ t('driverPhone') }}</span>
           <strong>
             {{ popupVehicle.driver_phone }}
           </strong>
         </div>
 
         <div class="popup-row" v-if="popupVehicle.track3">
-          <span>License-no</span>
+          <span>{{ t('licenseNo') }}</span>
           <strong>{{popupVehicle.track3 ?? '-' }}</strong>
         </div>
 
         <div class="popup-row" v-if="popupVehicle.track1">
-          <span>License-name</span>
+          <span>{{ t('licenseName') }}</span>
           <strong>{{ formatDriverName(popupVehicle?.track1) }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>Address</span>
+          <span>{{ t('address') }}</span>
 
           <button
               v-if="!selectedAddress"
@@ -127,7 +127,7 @@
               :disabled="addressLoading"
               @click.stop="loadSelectedAddress"
           >
-            {{ addressLoading ? 'Loading...' : 'Show address' }}
+            {{ addressLoading ? t('loading') : t('showAddress') }}
           </button>
         </div>
 
@@ -176,8 +176,10 @@ import type {
   VehicleStatus,
 } from '@/types/fleet'
 import {useAuthStore} from "@/stores/auth";
+import { useI18n } from '@/i18n'
 
 const auth = useAuthStore()
+const { t } = useI18n()
 
 const props = defineProps<{
   vehicles?: Vehicle[]
@@ -235,7 +237,7 @@ async function loadSelectedAddress() {
   const lon = Number(popupVehicle.value.lng)
 
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    selectedAddress.value = 'ไม่พบพิกัด'
+    selectedAddress.value = t('noAddressCoordinates')
     return
   }
 
@@ -251,7 +253,7 @@ async function loadSelectedAddress() {
       import.meta.env.VITE_LONGDOMAP_API_KEY
 
   if (!key) {
-    selectedAddress.value = 'ไม่ได้ตั้งค่า Longdo API Key'
+    selectedAddress.value = t('mapApiKeyMissing')
     return
   }
 
@@ -268,7 +270,7 @@ async function loadSelectedAddress() {
     addressCache.value[cacheKey] = address
     selectedAddress.value = address
   } catch (e) {
-    selectedAddress.value = 'โหลดที่อยู่ไม่สำเร็จ'
+    selectedAddress.value = t('loadingAddressFailed')
   } finally {
     addressLoading.value = false
   }

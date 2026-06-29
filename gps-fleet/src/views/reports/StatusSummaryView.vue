@@ -2,11 +2,11 @@
   <div class="report-page">
     <div class="page-header">
       <div>
-        <h1>Status Timeline Report</h1>
-        <p>รายงานช่วงเวลาสถานะรถ</p>
+        <h1>{{ t('statusTimelineReport') }}</h1>
+        <p>{{ t('statusTimelineSubtitle') }}</p>
       </div>
       <Button
-          label="Export CSV"
+          :label="t('exportCsv')"
           icon="pi pi-download"
           severity="secondary"
           :disabled="totalRows === 0"
@@ -23,7 +23,7 @@
           :options="groupOptions"
           optionLabel="group_name"
           optionValue="group_id"
-          placeholder="Select Group"
+          :placeholder="t('selectGroup')"
           display="chip"
           filter
           @change="onGroupChange"
@@ -34,7 +34,7 @@
           :options="vehicleOptions"
           optionLabel="plate_no"
           optionValue="imei"
-          placeholder="Select Vehicle"
+          :placeholder="t('selectVehicle')"
           display="chip"
           filter
       />
@@ -44,13 +44,13 @@
           :options="statusOptions"
           optionLabel="label"
           optionValue="value"
-          placeholder="Status"
+          :placeholder="t('status')"
           showClear
       />
 
-      <Button label="Search" icon="pi pi-search" :loading="loading" @click="search" />
+      <Button :label="t('search')" icon="pi pi-search" :loading="loading" @click="search" />
       <Button
-          label="Reset"
+          :label="t('reset')"
           icon="pi pi-refresh"
           severity="secondary"
           outlined
@@ -61,17 +61,17 @@
 
     <div class="summary-grid">
       <div class="summary-card">
-        <span>Total Rows</span>
+        <span>{{ t('totalRows') }}</span>
         <strong>{{ summary.total_rows }}</strong>
       </div>
 
       <div class="summary-card">
-        <span>Total Vehicles</span>
+        <span>{{ t('totalVehicles') }}</span>
         <strong>{{ summary.total_vehicle }}</strong>
       </div>
 
       <div class="summary-card">
-        <span>Total Duration</span>
+        <span>{{ t('totalDuration') }}</span>
         <strong>{{ formatDuration(summary.duration_s) }}</strong>
       </div>
     </div>
@@ -88,19 +88,19 @@
           :sortOrder="sortOrder === 'asc' ? 1 : -1"
           @sort="onSort"
       >
-        <Column field="data_date" header="วันที่" sortable />
-        <Column field="plate_no" header="Plate" sortable style="width: 180px" />
+        <Column field="data_date" :header="t('date')" sortable />
+        <Column field="plate_no" :header="t('plate')" sortable style="width: 180px" />
 
-        <Column field="gps_status" header="Status" sortable>
+        <Column field="gps_status" :header="t('status')" sortable>
           <template #body="{ data }">
             <Tag :value="data.gps_status" :severity="statusSeverity(data.gps_status)"/>
           </template>
         </Column>
 
-        <Column field="start_time" header="เริ่ม" sortable />
-        <Column field="end_time" header="สิ้นสุด" sortable />
+        <Column field="start_time" :header="t('start')" sortable />
+        <Column field="end_time" :header="t('end')" sortable />
 
-        <Column field="duration_s" header="ระยะเวลา" sortable >
+        <Column field="duration_s" :header="t('duration')" sortable >
           <template #body="{ data }">
             <b>{{ formatDuration(data.duration_s) }}</b>
           </template>
@@ -121,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import Button from 'primevue/button'
 import Calendar from 'primevue/calendar'
@@ -138,6 +138,9 @@ import {
   getReportVehicles,
   type StatusSummaryRow,
 } from '@/services/report'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 
@@ -169,13 +172,13 @@ const summary = ref({
   duration_s: 0,
 })
 
-const statusOptions = [
-  { label: 'Running', value: 'running' },
-  { label: 'Idle', value: 'idle' },
-  { label: 'Parking', value: 'parking' },
-  { label: 'Offline', value: 'offline' },
-  { label: 'No GPS', value: 'no_gps' },
-]
+const statusOptions = computed(() => [
+  { label: t('running'), value: 'running' },
+  { label: t('idle'), value: 'idle' },
+  { label: t('parking'), value: 'parking' },
+  { label: t('offline'), value: 'offline' },
+  { label: t('noGps'), value: 'no_gps' },
+])
 
 function normalizeOptions(res: any) {
   if (Array.isArray(res)) return res

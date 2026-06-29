@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref} from 'vue'
 import {getRecentNotifications, type NotificationItem,} from '../services/notification'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const notifications = ref<NotificationItem[]>([])
 const loading = ref(false)
@@ -55,7 +58,7 @@ async function loadNotifications() {
     error.value = ''
     notifications.value = await getRecentNotifications()
   } catch (err) {
-    error.value = 'โหลดรายการแจ้งเตือนไม่สำเร็จ'
+    error.value = t('notificationLoadFailed')
   } finally {
     loading.value = false
     isLoadingNotifications = false
@@ -70,7 +73,7 @@ async function autoLoadNotifications() {
     error.value = ''
     notifications.value = await getRecentNotifications()
   } catch (err) {
-    error.value = 'โหลดรายการแจ้งเตือนไม่สำเร็จ'
+    error.value = t('notificationLoadFailed')
   } finally {
     auto_loading.value = false
     isLoadingNotifications = false
@@ -94,17 +97,17 @@ onUnmounted(() => {
   <section class="notification-page">
     <div class="page-header">
       <div>
-        <h1>Notifications</h1>
-        <p>รายการแจ้งเตือนล่าสุด</p>
+        <h1>{{ t('notifications') }}</h1>
+        <p>{{ t('notificationsSubtitle') }}</p>
       </div>
 
       <button @click="loadNotifications">
-        {{ loading ? 'Refreshing...' : 'Refresh' }}
+        {{ loading ? t('refreshing') : t('refresh') }}
       </button>
     </div>
 
     <div v-if="loading && notifications.length === 0" class="loading">
-      Loading notifications...
+      {{ t('loadingNotifications') }}
     </div>
 
     <div v-else-if="error" class="empty">
@@ -112,7 +115,7 @@ onUnmounted(() => {
     </div>
 
     <div v-else-if="notifications.length === 0" class="empty">
-      ไม่มีรายการแจ้งเตือน
+      {{ t('noNotifications') }}
     </div>
 
     <div v-else class="notification-list">
@@ -130,7 +133,7 @@ onUnmounted(() => {
 
         <div class="content">
           <div class="row">
-            <h3>{{ item.msg_type || 'Notification' }}</h3>
+            <h3>{{ item.msg_type || t('notification') }}</h3>
             <span>{{ item.gps_time || item.created_at || '-' }}</span>
           </div>
 
@@ -138,7 +141,7 @@ onUnmounted(() => {
 
           <div class="meta">
             <span>IMEI: {{ item.imei || '-' }}</span>
-            <span>Plate: {{ item.plate || '-' }}</span>
+            <span>{{ t('plate') }}: {{ item.plate || '-' }}</span>
           </div>
 
         </div>

@@ -24,42 +24,42 @@
         </div>
 
         <div class="popup-row">
-          <span>IMEI</span>
+          <span>{{ t('imei') }}</span>
           <strong>{{ popupData.imei ?? '-' }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>GPS Time</span>
+          <span>{{ t('gpsTime') }}</span>
           <strong>{{ popupData.gps_time }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>Status</span>
+          <span>{{ t('status') }}</span>
           <strong>{{ popupData.status }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>Speed</span>
+          <span>{{ t('speed') }}</span>
           <strong>{{ popupData.speed }} km/h</strong>
         </div>
 
         <div class="popup-row" v-if="showInput1">
-          <span>Input 1</span>
+          <span>{{ t('input1') }}</span>
           <strong>{{ getInputText(popupData.input1) }}</strong>
         </div>
 
         <div class="popup-row" v-if="showInput2">
-          <span>Input 2</span>
+          <span>{{ t('input2') }}</span>
           <strong>{{ getInputText(popupData.input2) }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>Lat/Lon</span>
+          <span>{{ t('latLon') }}</span>
           <strong>{{ popupData.lat }}, {{ popupData.lng }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>Direction</span>
+          <span>{{ t('direction') }}</span>
           <strong>{{ popupData.heading }}</strong>
         </div>
 
@@ -74,17 +74,17 @@
 <!--        </div>-->
 
         <div class="popup-row" v-if="popupData.track3">
-          <span>License-no</span>
+          <span>{{ t('licenseNo') }}</span>
           <strong>{{popupData.track3 ?? '-' }}</strong>
         </div>
 
         <div class="popup-row" v-if="popupData.track1">
-          <span>License-name</span>
+          <span>{{ t('licenseName') }}</span>
           <strong>{{ formatDriverName(popupData?.track1) }}</strong>
         </div>
 
         <div class="popup-row">
-          <span>Address</span>
+          <span>{{ t('address') }}</span>
 
           <button
               v-if="!selectedAddress"
@@ -93,7 +93,7 @@
               :disabled="addressLoading"
               @click.stop="loadSelectedAddress"
           >
-            {{ addressLoading ? 'Loading...' : 'Show address' }}
+            {{ addressLoading ? t('loading') : t('showAddress') }}
           </button>
         </div>
 
@@ -138,6 +138,7 @@ import {
   Text,
 } from 'ol/style'
 import CustomerLayerMap from "@/components/maps/CustomerLayerMap.vue";
+import { useI18n } from '@/i18n'
 
 type HistoryPoint = {
   lat?: number | string
@@ -183,6 +184,7 @@ const baseMapRef = ref()
 
 const map = ref<Map | null>(null)
 const auth = useAuthStore()
+const { t } = useI18n()
 const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
 const addressCache = ref<Record<string, string>>({})
@@ -607,7 +609,7 @@ function showPopup(
   popupData.value = {
     plate_no:
         point.plate_no ??
-        'History',
+        t('historyFallback'),
 
     imei:
         point.imei ??
@@ -666,7 +668,7 @@ async function loadSelectedAddress() {
   const lon = Number(popupData.value.lng)
 
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    selectedAddress.value = 'ไม่พบพิกัด'
+    selectedAddress.value = t('noAddressCoordinates')
     return
   }
 
@@ -682,7 +684,7 @@ async function loadSelectedAddress() {
       import.meta.env.VITE_LONGDOMAP_API_KEY
 
   if (!key) {
-    selectedAddress.value = 'ไม่ได้ตั้งค่า Longdo API Key'
+    selectedAddress.value = t('mapApiKeyMissing')
     return
   }
 
@@ -700,7 +702,7 @@ async function loadSelectedAddress() {
     addressCache.value[cacheKey] = address
     selectedAddress.value = address
   } catch (e) {
-    selectedAddress.value = 'โหลดที่อยู่ไม่สำเร็จ'
+    selectedAddress.value = t('loadingAddressFailed')
   } finally {
     addressLoading.value = false
   }

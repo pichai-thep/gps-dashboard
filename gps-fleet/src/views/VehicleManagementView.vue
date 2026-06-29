@@ -23,13 +23,13 @@
           :options="groups"
           option-label="customer_group_name"
           option-value="customer_group_id"
-          placeholder="Change / move to group"
+          :placeholder="t('changeMoveToGroup')"
           show-clear
           class="group-dropdown"
       />
 
       <Button
-          label="Move to Group"
+          :label="t('moveToGroup')"
           icon="pi pi-arrow-right"
           size="small"
           :disabled="selectedRows.length === 0 || !targetGroup"
@@ -37,7 +37,7 @@
       />
 
       <Button v-if="targetGroup"
-              label="Delete Group"
+              :label="t('deleteGroup')"
               icon="pi pi-trash"
               severity="danger"
               outlined
@@ -52,11 +52,11 @@
           @click="showCreateGroupPanel = !showCreateGroupPanel"
       >
         <i class="pi pi-plus"/>
-        Create Group
+        {{ t('createGroup') }}
       </button>
 
       <span class="selected-label">
-        Selected: {{ selectedRows.length }}
+        {{ t('selected') }}: {{ selectedRows.length }}
       </span>
 
     </div>
@@ -67,13 +67,13 @@
     >
       <InputText
           v-model="newGroupName"
-          placeholder="New Group"
+          :placeholder="t('newGroup')"
           class="group-input"
           @keyup.enter="createGroup"
       />
 
       <Button
-          label="Create"
+          :label="t('create')"
           icon="pi pi-plus"
           severity="success"
           size="small"
@@ -103,7 +103,7 @@
                 :options="groups"
                 option-label="customer_group_name"
                 option-value="customer_group_id"
-                placeholder="Filter group"
+                :placeholder="t('filterGroup')"
                 show-clear
                 class="table-group-filter"
                 @change="loadVehicles"
@@ -111,7 +111,7 @@
 
             <InputText
                 v-model="keyword"
-                placeholder="Search IMEI / Plate / Driver"
+                :placeholder="t('searchVehicleManagement')"
                 class="table-search-input"
                 @keyup.enter="loadVehicles"
             />
@@ -124,7 +124,7 @@
 
             <Button
                 v-if="filterGroup"
-                label="Remove from Group"
+                :label="t('removeFromGroup')"
                 icon="pi pi-times"
                 severity="danger"
                 outlined
@@ -150,7 +150,7 @@
               header-style="width: 3rem"
           />
 
-          <Column header="Vehicle name">
+          <Column :header="t('vehicle')">
             <template #body="{ data }">
               <button
                   type="button"
@@ -189,7 +189,7 @@
                 v-if="!form.imei"
                 class="empty-state"
             >
-              Select vehicle from list
+              {{ t('selectVehicleFromList') }}
             </div>
 
             <div
@@ -202,7 +202,7 @@
                     :class="{ active: activeTab === 'info' }"
                     @click="activeTab = 'info'"
                 >
-                  Vehicle Info
+                  {{ t('vehicleInfo') }}
                 </button>
 
                 <button
@@ -210,7 +210,7 @@
                     :class="{ active: activeTab === 'icon' }"
                     @click="activeTab = 'icon'"
                 >
-                  Vehicle Icon
+                  {{ t('vehicleIcon') }}
                 </button>
 
                 <button
@@ -218,7 +218,7 @@
                     :class="{ active: activeTab === 'fuel' }"
                     @click="activeTab = 'fuel'"
                 >
-                  Fuel Setting
+                  {{ t('fuelSetting') }}
                 </button>
 
                 <button
@@ -226,7 +226,7 @@
                     :class="{ active: activeTab === 'mileage' }"
                     @click="activeTab = 'mileage'"
                 >
-                  Mileage
+                  {{ t('mileage') }}
                 </button>
 
                 <button
@@ -234,7 +234,7 @@
                     :class="{ active: activeTab === 'config' }"
                     @click="activeTab = 'config'"
                 >
-                  Vehicle Config
+                  {{ t('vehicleConfig') }}
                 </button>
               </div>
 
@@ -249,32 +249,32 @@
                   </div>
 
                   <div class="field">
-                    <label>Plate</label>
+                    <label>{{ t('plate') }}</label>
                     <InputText v-model="form.plate_no"/>
                   </div>
 
                   <div class="field">
-                    <label>Sequence No</label>
+                    <label>{{ t('sequenceNo') }}</label>
                     <InputNumber v-model="form.sequen_no"/>
                   </div>
 
                   <div class="field">
-                    <label>Driver License</label>
+                    <label>{{ t('driverLicense') }}</label>
                     <InputText v-model="form.driver_id"/>
                   </div>
 
                   <div class="field">
-                    <label>Driver Name</label>
+                    <label>{{ t('driverName') }}</label>
                     <InputText v-model="form.driver_name"/>
                   </div>
 
                   <div class="field">
-                    <label>Driver Phone</label>
+                    <label>{{ t('driverPhone') }}</label>
                     <InputText v-model="form.driver_phone"/>
                   </div>
 
                   <div class="field full">
-                    <label>Remark</label>
+                    <label>{{ t('remark') }}</label>
                     <Textarea
                         v-model="form.remark"
                         rows="4"
@@ -283,7 +283,7 @@
 
                   <div class="actions full">
                     <Button
-                        label="Save Info"
+                        :label="t('saveInfo')"
                         icon="pi pi-save"
                         :loading="saving"
                         @click="saveVehicle"
@@ -312,7 +312,7 @@
 
                   <div class="actions full icon-actions">
                     <Button
-                        label="Save Vehicle Icon"
+                        :label="t('saveIcon')"
                         icon="pi pi-save"
                         :loading="saving"
                         @click="saveVehicle"
@@ -325,7 +325,7 @@
                     class="form-grid"
                 >
                   <div class="field">
-                    <label>Fuel Min Voltage</label>
+                    <label>{{ t('fuelMinVoltage') }}</label>
                     <InputNumber
                         v-model="form.fuel_min_vol"
                         mode="decimal"
@@ -334,7 +334,7 @@
                   </div>
 
                   <div class="field">
-                    <label>Fuel Max Voltage</label>
+                    <label>{{ t('fuelMaxVoltage') }}</label>
                     <InputNumber
                         v-model="form.fuel_max_vol"
                         mode="decimal"
@@ -350,12 +350,12 @@
                     />
 
                     <label for="reverse">
-                      Inverse Calculation
+                      {{ t('inverseCalculation') }}
                     </label>
                   </div>
 
                   <div class="field">
-                    <label>Km / Litre</label>
+                    <label>{{ t('kmPerLitre') }}</label>
                     <InputNumber
                         v-model="form.fuel_kmpl"
                         mode="decimal"
@@ -363,7 +363,7 @@
                   </div>
 
                   <div class="field">
-                    <label>Litre / Hr</label>
+                    <label>{{ t('litrePerHour') }}</label>
                     <InputNumber
                         v-model="form.fuel_lph"
                         mode="decimal"
@@ -371,7 +371,7 @@
                   </div>
 
                   <div class="field">
-                    <label>Fuel Tank Size</label>
+                    <label>{{ t('fuelTankSize') }}</label>
                     <InputNumber
                         v-model="form.fuel_tank_size"
                         suffix=" L"
@@ -379,7 +379,7 @@
                   </div>
 
                   <div class="field">
-                    <label>Fuel Price</label>
+                    <label>{{ t('fuelPrice') }}</label>
                     <InputNumber
                         v-model="form.fuel_price"
                         mode="currency"
@@ -396,13 +396,13 @@
                     />
 
                     <label for="fuelmont">
-                      Fuel Monitor
+                      {{ t('fuelMonitor') }}
                     </label>
                   </div>
 
                   <div class="actions full">
                     <Button
-                        label="Save Fuel Setting"
+                        :label="t('saveFuelSetting')"
                         icon="pi pi-save"
                         :loading="saving"
                         @click="saveVehicle"
@@ -415,7 +415,7 @@
                     class="form-grid"
                 >
                   <div class="field">
-                    <label>Current Mileage</label>
+                    <label>{{ t('currentMileage') }}</label>
                     <InputNumber
                         v-model="form.current_mileage"
                         suffix=" km"
@@ -424,7 +424,7 @@
 
                   <div class="actions full">
                     <Button
-                        label="Save Mileage"
+                        :label="t('saveMileage')"
                         icon="pi pi-save"
                         severity="success"
                         @click="saveMileage"
@@ -437,7 +437,7 @@
                     class="form-grid"
                 >
                   <div class="field">
-                    <label>Speed Limit</label>
+                    <label>{{ t('speedLimit') }}</label>
                     <InputNumber
                         v-model="form.speed_limited"
                         suffix=" km/h"
@@ -445,24 +445,19 @@
                   </div>
 
                   <div class="field">
-                    <label>UR Rate Type</label>
+                    <label>{{ t('urRateType') }}</label>
 
                     <Dropdown
                         v-model="form.ur_rate_type"
-                        :options="[
-                                    { label: 'None', value: ''},
-                                    { label: 'Time-Base', value: 'A' },
-                                    { label: 'Engine-Base', value: 'B' },
-                                    { label: 'Distance-Base', value: 'C' },
-                                  ]"
+                        :options="urRateOptions"
                         option-label="label"
                         option-value="value"
-                        placeholder="Select UR Rate Type"
+                        :placeholder="t('selectUrRateType')"
                     />
                   </div>
 
                   <div class="field">
-                    <label>Target distance (km)</label>
+                    <label>{{ t('targetDistanceKm') }}</label>
                     <InputNumber
                         v-model="form.ur_rate_target_km"
                         :min="0"
@@ -479,12 +474,12 @@
                     />
 
                     <label for="ur-rate-satsun">
-                      Include Saturday / Sunday
+                      {{ t('includeWeekend') }}
                     </label>
                   </div>
 
                   <div class="field">
-                    <label>Working Hour / Day</label>
+                    <label>{{ t('workingHourDay') }}</label>
 
                     <InputNumber
                         v-model="form.ur_rate_work_hour"
@@ -504,13 +499,13 @@
                     />
 
                     <label for="export-to-active">
-                      Synch/Export External API
+                      {{ t('synchExportExternalApi') }}
                     </label>
                   </div>
 
                   <div class="actions full">
                     <Button
-                        label="Save Config"
+                        :label="t('saveConfig')"
                         icon="pi pi-save"
                         :loading="saving"
                         @click="saveVehicleConfig"
@@ -527,7 +522,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, reactive, ref} from 'vue'
+import {computed, onMounted, reactive, ref} from 'vue'
 import {useToast} from 'primevue/usetoast'
 import {useConfirm} from 'primevue/useconfirm'
 
@@ -541,6 +536,7 @@ import Dropdown from 'primevue/dropdown'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
+import { useI18n } from '@/i18n'
 
 import {
   createVehicleGroup,
@@ -560,6 +556,7 @@ type ActiveTab = 'info' | 'icon' | 'fuel' | 'mileage' | 'config'
 
 const toast = useToast()
 const confirm = useConfirm()
+const { t } = useI18n()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -570,6 +567,13 @@ const targetGroup = ref<number | null>(null)
 const showCreateGroupPanel = ref(false)
 const newGroupName = ref('')
 const activeTab = ref<ActiveTab>('info')
+
+const urRateOptions = computed(() => [
+  { label: t('none'), value: '' },
+  { label: t('timeBase'), value: 'A' },
+  { label: t('engineBase'), value: 'B' },
+  { label: t('distanceBase'), value: 'C' },
+])
 
 const vehicles = ref<VehicleListItem[]>([])
 const groups = ref<VehicleGroup[]>([])
@@ -723,8 +727,8 @@ async function saveVehicle() {
 
     toast.add({
       severity: 'success',
-      summary: 'Saved',
-      detail: 'Vehicle updated',
+      summary: t('saveInfo'),
+      detail: t('vehicleUpdated'),
       life: 2500,
     })
 
@@ -744,8 +748,8 @@ async function saveMileage() {
 
   toast.add({
     severity: 'success',
-    summary: 'Saved',
-    detail: 'Mileage updated',
+    summary: t('saveMileage'),
+    detail: t('mileageUpdated'),
     life: 2500,
   })
 }
@@ -769,8 +773,8 @@ async function saveVehicleConfig() {
 
     toast.add({
       severity: 'success',
-      summary: 'Saved',
-      detail: 'Vehicle config updated',
+      summary: t('saveConfig'),
+      detail: t('vehicleConfigUpdated'),
       life: 2500,
     })
 
@@ -794,8 +798,8 @@ async function createGroup() {
 
   toast.add({
     severity: 'success',
-    summary: 'Created',
-    detail: 'Group created',
+    summary: t('createGroup'),
+    detail: t('groupCreated'),
     life: 2500,
   })
 }
@@ -805,11 +809,11 @@ function confirmDeleteGroup(event: Event) {
 
   confirm.require({
     target: event.currentTarget as HTMLElement,
-    message: 'Delete this vehicle group ?',
-    header: 'Confirm Delete',
+    message: t('deleteVehicleGroupMessage'),
+    header: t('confirmDelete'),
     icon: 'pi pi-exclamation-triangle',
-    rejectLabel: 'Cancel',
-    acceptLabel: 'Delete',
+    rejectLabel: t('cancel'),
+    acceptLabel: t('delete'),
     acceptClass: 'p-button-danger',
     accept: async () => {
       await removeGroup()
@@ -830,8 +834,8 @@ async function removeGroup() {
 
   toast.add({
     severity: 'success',
-    summary: 'Deleted',
-    detail: 'Group deleted',
+    summary: t('deleteGroup'),
+    detail: t('groupDeleted'),
     life: 2500,
   })
 }
@@ -851,8 +855,8 @@ async function moveGroup() {
 
   toast.add({
     severity: 'success',
-    summary: 'Moved',
-    detail: 'Vehicles moved to group',
+    summary: t('moveToGroup'),
+    detail: t('vehiclesMovedToGroup'),
     life: 2500,
   })
 }
@@ -863,11 +867,11 @@ function confirmRemoveFromGroup(event: Event) {
 
   confirm.require({
     target: event.currentTarget as HTMLElement,
-    message: 'Remove this vehicle from group ?',
-    header: 'Confirm Remove',
+    message: t('removeVehicleFromGroupMessage'),
+    header: t('confirmRemove'),
     icon: 'pi pi-exclamation-triangle',
-    rejectLabel: 'Cancel',
-    acceptLabel: 'Remove',
+    rejectLabel: t('cancel'),
+    acceptLabel: t('remove'),
     acceptClass: 'p-button-danger',
     accept: async () => {
       await removeVehiclesFromCurrentGroup()
@@ -890,8 +894,8 @@ async function removeVehiclesFromCurrentGroup() {
 
   toast.add({
     severity: 'success',
-    summary: 'Removed',
-    detail: 'Vehicles removed from current group',
+    summary: t('removeFromGroup'),
+    detail: t('vehiclesRemovedFromGroup'),
     life: 2500,
   })
 }

@@ -2,12 +2,12 @@
   <div class="report-page">
     <div class="page-header">
       <div>
-        <h1>Station Visit Report</h1>
-        <p>รายงานรถเข้า-ออกสถานี / จุดจอด</p>
+        <h1>{{ t('stationVisitReport') }}</h1>
+        <p>{{ t('stationVisitSubtitle') }}</p>
       </div>
 
       <Button
-          label="Export CSV"
+          :label="t('exportCsv')"
           icon="pi pi-download"
           severity="secondary"
           :disabled="totalRows === 0"
@@ -25,7 +25,7 @@
           :options="groupOptions"
           optionLabel="group_name"
           optionValue="group_id"
-          placeholder="Select Group"
+          :placeholder="t('selectGroup')"
           display="chip"
           filter
           @change="onGroupChange"
@@ -36,7 +36,7 @@
           :options="vehicleOptions"
           optionLabel="plate_no"
           optionValue="imei"
-          placeholder="Select Vehicle"
+          :placeholder="t('selectVehicle')"
           display="chip"
           filter
       />
@@ -46,14 +46,14 @@
           :options="stationOptions"
           optionLabel="station_name"
           optionValue="station_id"
-          placeholder="Select Station"
+          :placeholder="t('selectStation')"
           showClear
           filter
       />
 
-      <Button label="Search" icon="pi pi-search" :loading="loading" @click="search" />
+      <Button :label="t('search')" icon="pi pi-search" :loading="loading" @click="search" />
       <Button
-          label="Reset"
+          :label="t('reset')"
           icon="pi pi-refresh"
           severity="secondary"
           outlined
@@ -63,22 +63,22 @@
 
     <div class="summary-grid">
       <div class="summary-card">
-        <span>Total Rows</span>
+        <span>{{ t('totalRows') }}</span>
         <strong>{{ summary.total_rows }}</strong>
       </div>
 
       <div class="summary-card">
-        <span>Total Vehicles</span>
+        <span>{{ t('totalVehicles') }}</span>
         <strong>{{ summary.total_vehicle }}</strong>
       </div>
 
       <div class="summary-card">
-        <span>Total Stations</span>
+        <span>{{ t('totalStations') }}</span>
         <strong>{{ summary.total_station }}</strong>
       </div>
 
       <div class="summary-card">
-        <span>Total Duration</span>
+        <span>{{ t('totalDuration') }}</span>
         <strong>{{ formatDuration(summary.duration_s) }}</strong>
       </div>
     </div>
@@ -95,11 +95,11 @@
           @sort="onSort"
       >
 
-        <Column field="data_date" header="วันที่" sortable style="width: 130px" />
-        <Column field="plate_no" header="ทะเบียน" sortable style="width: 200px" />
+        <Column field="data_date" :header="t('date')" sortable style="width: 130px" />
+        <Column field="plate_no" :header="t('plate')" sortable style="width: 200px" />
 <!--        <Column field="imei" header="IMEI" sortable style="width: 180px" />-->
 
-        <Column field="station_name" header="Station" sortable style="width: 250px" >
+        <Column field="station_name" :header="t('station')" sortable style="width: 250px" >
           <template #body="{ data }">
             <div class="station-cell">
               <b>{{ data.station_name || '-' }}</b>
@@ -108,16 +108,16 @@
           </template>
         </Column>
 
-        <Column field="start_time" header="เข้า" sortable style="width: 200px" />
-        <Column field="end_time" header="ออก" sortable style="width: 200px" />
+        <Column field="start_time" :header="t('start')" sortable style="width: 200px" />
+        <Column field="end_time" :header="t('end')" sortable style="width: 200px" />
 
-        <Column field="duration_s" header="ระยะเวลา" sortable style="width: 130px">
+        <Column field="duration_s" :header="t('duration')" sortable style="width: 130px">
           <template #body="{ data }">
             <Tag :value="formatDuration(data.duration_s)" severity="info" />
           </template>
         </Column>
 
-        <Column field="updated_at" header="Updated" sortable style="width: 200px" />
+        <Column field="updated_at" :header="t('updated')" sortable style="width: 200px" />
       </DataTable>
 
       <Paginator
@@ -152,6 +152,9 @@ import {
   getReportStations,
   type StationSummaryRow,
 } from '@/services/report'
+import { useI18n } from '@/i18n'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 

@@ -8,6 +8,7 @@ import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { useI18n } from '@/i18n'
 
 import BaseMap from '@/components/maps/BaseMap.vue'
 import Map from 'ol/Map'
@@ -30,6 +31,7 @@ import {
 
 const confirm = useConfirm()
 const toast = useToast()
+const { t } = useI18n()
 
 const zones = ref<ForbiddenZone[]>([])
 const loading = ref(false)
@@ -275,7 +277,7 @@ async function saveForbiddenZone() {
   if (!form.zone_name.trim()) {
     toast.add({
       severity: 'warn',
-      summary: 'กรุณากรอกชื่อเขตห้ามเข้า',
+      summary: t('zoneNameRequired'),
       life: 2500,
     })
     return
@@ -284,7 +286,7 @@ async function saveForbiddenZone() {
   if (form.polygon.length < 3) {
     toast.add({
       severity: 'warn',
-      summary: 'กรุณาวาด Polygon อย่างน้อย 3 จุด',
+      summary: t('forbiddenPolygonRequired'),
       life: 2500,
     })
     return
@@ -306,7 +308,7 @@ async function saveForbiddenZone() {
 
     toast.add({
       severity: 'success',
-      summary: 'บันทึกเขตห้ามเข้าสำเร็จ',
+      summary: t('saveForbiddenZoneSuccess'),
       life: 2500,
     })
 
@@ -320,18 +322,18 @@ async function saveForbiddenZone() {
 
 function confirmDelete(row: ForbiddenZone) {
   confirm.require({
-    message: `ต้องการลบ "${row.zone_name}" ใช่หรือไม่?`,
-    header: 'ยืนยันการลบ',
+    message: t('deleteConfirmMessage', { name: row.zone_name }),
+    header: t('confirmDelete'),
     icon: 'pi pi-exclamation-triangle',
-    acceptLabel: 'ลบ',
-    rejectLabel: 'ยกเลิก',
+    acceptLabel: t('delete'),
+    rejectLabel: t('cancel'),
     acceptClass: 'p-button-danger',
     accept: async () => {
       await deleteForbiddenZone(row.id)
 
       toast.add({
         severity: 'success',
-        summary: 'ลบเขตห้ามเข้าแล้ว',
+        summary: t('deleteForbiddenZoneSuccess'),
         life: 2500,
       })
 
@@ -392,16 +394,16 @@ function closeRing(coords: number[][]) {
     <div class="fleet-page-header">
       <div class="title-section">
         <div>
-          <h1 class="page-title">Forbidden Zone Management</h1>
+          <h1 class="page-title">{{ t('forbiddenZoneManagement') }}</h1>
           <div class="page-subtitle">
-            จัดการเขตห้ามเข้า
+            {{ t('forbiddenZoneManagementSubtitle') }}
           </div>
         </div>
       </div>
 
       <div class="header-actions">
         <Button
-          label="Add Forbidden Zone"
+          :label="t('addForbiddenZone')"
           icon="pi pi-plus"
           @click="openCreate"
         />
@@ -417,7 +419,7 @@ function closeRing(coords: number[][]) {
       stripedRows
       class="station-table p-datatable-sm"
     >
-      <Column field="zone_name" header="Zone Name" />
+      <Column field="zone_name" :header="t('zoneName')" />
 
 <!--      <Column header="Type">-->
 <!--        <template #body>-->
@@ -431,7 +433,7 @@ function closeRing(coords: number[][]) {
 <!--        </template>-->
 <!--      </Column>-->
 
-      <Column header="Actions" style="width: 160px">
+      <Column :header="t('actions')" style="width: 160px">
         <template #body="{ data }">
           <div class="action-buttons">
             <Button
@@ -455,7 +457,7 @@ function closeRing(coords: number[][]) {
     <Dialog
         v-model:visible="dialogVisible"
         modal
-        :header="editingId ? 'Edit Forbidden Zone' : 'Add Forbidden Zone'"
+        :header="editingId ? t('editForbiddenZone') : t('addForbiddenZone')"
         class="station-dialog"
         :style="{ width: '960px', maxWidth: '96vw' }"
         @show="fitCurrentZone"
@@ -463,24 +465,24 @@ function closeRing(coords: number[][]) {
     >
       <div class="form-grid">
         <div class="form-panel">
-          <label>Zone Name</label>
+          <label>{{ t('zoneName') }}</label>
           <InputText
             v-model="form.zone_name"
-            placeholder="ชื่อเขตห้ามเข้า"
+            :placeholder="t('zoneNamePlaceholder')"
             class="w-full"
           />
 
           <div class="hint">
-            กดปุ่มวาด Polygon แล้วคลิกบนแผนที่หลายจุด ดับเบิลคลิกเพื่อจบ
+            {{ t('drawPolygonHint') }}
           </div>
 
           <div class="coords">
-            จำนวนจุด: {{ form.polygon.length }}
+            {{ t('pointsCount') }}: {{ form.polygon.length }}
           </div>
 
           <div class="tool-buttons">
             <Button
-              label="วาด Polygon"
+              :label="t('drawPolygon')"
               icon="pi pi-pencil"
               severity="secondary"
               outlined
@@ -488,7 +490,7 @@ function closeRing(coords: number[][]) {
             />
 
             <Button
-              label="ล้าง"
+              :label="t('clear')"
               icon="pi pi-times"
               severity="danger"
               outlined
@@ -511,7 +513,7 @@ function closeRing(coords: number[][]) {
             <template #map-controls>
               <button
                 type="button"
-                title="Clear polygon"
+                :title="t('clearShape')"
                 @click.stop="clearShape"
               >
                 <i class="pi pi-times"></i>
@@ -523,13 +525,13 @@ function closeRing(coords: number[][]) {
 
       <template #footer>
         <Button
-          label="Cancel"
+          :label="t('cancel')"
           severity="secondary"
           outlined
           @click="dialogVisible = false"
         />
         <Button
-          label="Save"
+          :label="t('save')"
           icon="pi pi-save"
           :loading="saving"
           @click="saveForbiddenZone"

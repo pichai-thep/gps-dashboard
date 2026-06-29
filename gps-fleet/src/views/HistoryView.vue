@@ -5,12 +5,12 @@
       <div class="filter-card">
         <div class="card-header">
           <div>
-            <h2>History Tracking</h2>
-            <p>ดึงประวัติการเดินรถ</p>
+            <h2>{{ t('historyTracking') }}</h2>
+            <p>{{ t('historySubtitle') }}</p>
           </div>
           <div class="filter-toggle">
             <Button
-                :label="showFilters ? 'Hide Filters' : 'Show Filters'"
+                :label="showFilters ? t('hideFilters') : t('showFilters')"
                 :icon="showFilters ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
                 text
                 size="small"
@@ -24,14 +24,14 @@
         <div v-show="showFilters" class="tracking-filters">
           <div class="field-grid">
             <div class="form-group">
-              <label>Group</label>
+              <label>{{ t('group') }}</label>
 
               <Select
                   v-model="selectedGroup"
                   :options="groups"
                   optionLabel="group_name"
                   optionValue="group_id"
-                  placeholder="All Group"
+                  :placeholder="t('allGroup')"
                   fluid
                   filter
                   showClear
@@ -40,7 +40,7 @@
 
             </div>
             <div class="form-group">
-              <label>Vehicle</label>
+              <label>{{ t('vehicle') }}</label>
 
               <AutoComplete
                   v-model="selectedVehicleOption"
@@ -61,7 +61,7 @@
           </div>
           <div class="date-grid">
             <div class="form-group">
-              <label>Start Date-time</label>
+              <label>{{ t('startDateTime') }}</label>
               <DatePicker id="datepicker-24h" v-model="datetime1"
                           :hide-on-date-time-select="true"
                           date-format="dd/mm/yy" showTime hourFormat="24" fluid
@@ -69,7 +69,7 @@
             </div>
 
             <div class="form-group">
-              <label>End Date-time</label>
+              <label>{{ t('endDateTime') }}</label>
               <DatePicker id="datepicker-24h" v-model="datetime2" :hide-on-date-time-select="true" date-format="dd/mm/yy" showTime hourFormat="24" fluid />
             </div>
           </div>
@@ -86,7 +86,7 @@
                 :disabled="loading || pageLoading"
                 @click="searchHistory"
             >
-              {{ loading ? 'Loading...' : 'Load History' }}
+              {{ loading ? t('loading') : t('loadHistory') }}
             </button>
 
             <button
@@ -95,7 +95,7 @@
                 :disabled="!rows.length"
                 @click="exportXls"
             >
-              Save XLS
+              {{ t('saveXls') }}
             </button>
           </div>
         </div>
@@ -112,22 +112,22 @@
 
         <div v-if="summary" class="summary-grid">
           <div class="summary-card running">
-            <span>Run-time</span>
+            <span>{{ t('runTime') }}</span>
             <strong>{{ summary.run_time ?? '00:00:00' }}</strong>
           </div>
 
           <div class="summary-card idle">
-            <span>Idle-time</span>
+            <span>{{ t('idleTime') }}</span>
             <strong>{{ summary.idle_time ?? '00:00:00' }}</strong>
           </div>
 
           <div class="summary-card parking">
-            <span>Park-time</span>
+            <span>{{ t('parkTime') }}</span>
             <strong>{{ summary.park_time ?? '00:00:00' }}</strong>
           </div>
 
           <div class="summary-card distance">
-            <span>Distance</span>
+            <span>{{ t('distance') }}</span>
             <strong>{{ summary.distance_km ?? 0 }} km</strong>
           </div>
         </div>
@@ -158,7 +158,7 @@
               </template>
             </Column>
 
-            <Column header="History">
+            <Column :header="t('history')">
               <template #body="{ data, index }">
                 <div class="history-cell">
                   <div class="mobile-history-index">
@@ -243,7 +243,7 @@
                         v-if="data.fuel_left !== null && data.fuel_left !== undefined"
                         class="sensor-chip fuel"
                     >
-                      <span>Fuel</span>
+                      <span>{{ t('fuel') }}</span>
                       <strong>{{ data.fuel_left }}</strong>
                     </div>
 
@@ -251,7 +251,7 @@
                         v-if="data.temperature !== null && data.temperature !== undefined"
                         class="sensor-chip temp"
                     >
-                      <span>Temp</span>
+                      <span>{{ t('temp') }}</span>
                       <strong>{{ data.temperature }}</strong>
                     </div>
 
@@ -298,6 +298,7 @@ import AutoComplete from 'primevue/autocomplete'
 import Select from 'primevue/select'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import { useI18n } from '@/i18n'
 
 type GroupItem = {
   group_id: number | string
@@ -313,6 +314,7 @@ type VehicleItem = {
 }
 
 const auth = useAuthStore()
+const { t } = useI18n()
 
 const customerId = computed(() => {
   return (
@@ -459,10 +461,10 @@ function getStatusLabel(
 ): string {
 
   return {
-    run: 'Run',
-    idle: 'Idle',
-    park: 'Park',
-    no_gps: 'No-GPS',
+    run: t('run'),
+    idle: t('idle'),
+    park: t('park'),
+    no_gps: t('noGps'),
   }[
       normalizeStatus(state, speed, gpsStatus)
       ] ?? '-'
@@ -543,7 +545,7 @@ async function loadGroups() {
   } catch (error: any) {
     errorMessage.value =
         error?.response?.data?.message ||
-        'โหลดกลุ่มรถไม่สำเร็จ'
+        t('errorGroupsLoadFailed')
   }
 }
 
@@ -584,7 +586,7 @@ async function loadVehicles(groupId: string | number | null = -1) {
   } catch (error: any) {
     errorMessage.value =
         error?.response?.data?.message ||
-        'โหลดรถไม่สำเร็จ'
+        t('errorVehiclesLoadFailed')
   }
 }
 
@@ -600,7 +602,7 @@ async function loadHistory() {
   const vehicle = findSelectedVehicle()
 
   if (!vehicle?.imei) {
-    errorMessage.value = 'ไม่พบ IMEI ของรถ'
+    errorMessage.value = t('errorImeiMissing')
     return
   }
 
@@ -635,7 +637,7 @@ async function loadHistory() {
   } catch (error: any) {
     errorMessage.value =
         error?.response?.data?.message ||
-        'โหลดประวัติไม่สำเร็จ'
+        t('errorHistoryLoadFailed')
   } finally {
     loading.value = false
   }
@@ -732,7 +734,7 @@ async function exportXls() {
   const vehicle = findSelectedVehicle()
 
   if (!vehicle?.imei || !datetime1.value || !datetime2.value) {
-    errorMessage.value = 'กรุณาเลือกรถและช่วงเวลา'
+    errorMessage.value = t('errorSelectVehicleAndRange')
     return
   }
 
@@ -765,12 +767,12 @@ function validateRange() {
   errorMessage.value = ''
 
   if (!customerId.value) {
-    errorMessage.value = 'ไม่พบ customer_id'
+    errorMessage.value = t('errorCustomerMissing')
     return false
   }
 
   if (!selectedVehicle.value) {
-    errorMessage.value = 'กรุณาเลือกรถ'
+    errorMessage.value = t('errorSelectVehicle')
     return false
   }
 
@@ -778,14 +780,14 @@ function validateRange() {
   const end = new Date(`${endDate.value}T${endTime.value}:59`)
 
   if (start >= end) {
-    errorMessage.value = 'เวลาเริ่มต้นต้องน้อยกว่าเวลาสิ้นสุด'
+    errorMessage.value = t('errorEndBeforeStart')
     return false
   }
 
   const diffDays = (end.getTime() - start.getTime()) / 86400000
 
   if (diffDays > 31) {
-    errorMessage.value = 'ดึงประวัติได้ไม่เกิน 31 วัน'
+    errorMessage.value = t('errorDateRangeTooLong')
     return false
   }
 

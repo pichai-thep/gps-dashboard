@@ -7,16 +7,16 @@
         </Message>
 
         <div class="loading-text" :class="{ active: loading }">
-          Loading...
+          {{ t('loading') }}
         </div>
 
         <div class="header-title-row">
           <div>
-            <h2>Current Tracking</h2>
+            <h2>{{ t('currentTracking') }}</h2>
 
             <p class="subtitle">
               <span>{{ mapVehicles.length }}</span>
-              / {{ totalRecords }} vehicles on map
+              / {{ totalRecords }} {{ t('onMapVehicles') }}
             </p>
           </div>
 
@@ -35,7 +35,7 @@
 
       <div class="filter-toggle">
         <Button
-            :label="showFilters ? 'Hide Filters' : 'Show Filters'"
+            :label="showFilters ? t('hideFilters') : t('showFilters')"
             :icon="showFilters ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
             text
             size="small"
@@ -62,7 +62,7 @@
               :class="{ active: noDriverCardFilter }"
               @click="toggleNoDriverCardFilter"
           >
-            no-license {{ noDriverCardCount }}
+            {{ t('noDriverCard') }} {{ noDriverCardCount }}
           </button>
 
           <button
@@ -71,7 +71,7 @@
               :class="{ active: dltSynchFilter }"
               @click="toggleDltSynchFilter"
           >
-            DLT {{ dltSynchCount }}
+            {{ t('dlt') }} {{ dltSynchCount }}
           </button>
         </div>
 
@@ -84,7 +84,7 @@
                 :options="groupOptions"
                 optionLabel="name"
                 optionValue="id"
-                placeholder="Group"
+                :placeholder="t('group')"
             />
           </div>
 
@@ -93,7 +93,7 @@
 
             <InputText
                 v-model="search"
-                placeholder="Search vehicle..."
+                :placeholder="t('searchVehicle')"
             />
           </div>
 
@@ -105,7 +105,7 @@
                 :options="statusOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Status"
+                :placeholder="t('status')"
                 showClear
                 @update:modelValue="setStatusAndLoad"
             />
@@ -119,7 +119,7 @@
                 :options="sortOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Sort by"
+                :placeholder="t('sortBy')"
             />
           </div>
 
@@ -161,7 +161,7 @@
           </template>
         </Column>
 
-        <Column header="Status" style="width: 120px">
+        <Column :header="t('status')" style="width: 120px">
           <template #body="slotProps">
             <div class="status-box">
               <div class="status-row">
@@ -172,11 +172,11 @@
                     slotProps.data.status,
                   ]"
                     :style="getStatusIconStyle(slotProps.data.status, slotProps.data.heading)"
-                    v-tooltip="slotProps.data.status"
+                    v-tooltip="formatVehicleStatus(slotProps.data.status)"
                 />
 
                 <span :class="['status-text', slotProps.data.status]">
-                  {{ slotProps.data.status }}
+                  {{ formatVehicleStatus(slotProps.data.status) }}
                 </span>
               </div>
 
@@ -186,7 +186,7 @@
 
               <div class="fuel-badge" v-if="slotProps.data.fuel_left!=null">
                 <i class="pi pi-car"></i>
-                Fuel: {{ formatFuel(slotProps.data.fuel_left) }}
+                {{ t('fuel') }}: {{ formatFuel(slotProps.data.fuel_left) }}
               </div>
 
               <template v-if="getDriverStatus(slotProps.data) !== 'hide'">
@@ -203,7 +203,7 @@
           </template>
         </Column>
 
-        <Column field="plate_no" header="Vehicle">
+        <Column field="plate_no" :header="t('vehicle')">
           <template #body="slotProps">
             <div class="vehicle-box">
               <div class="plate-text">
@@ -228,7 +228,7 @@
           </template>
         </Column>
 
-        <Column header="GPS / Temp" style="width: 130px">
+        <Column :header="t('gpsTemp')" style="width: 130px">
           <template #body="slotProps">
             <div class="gps-box">
               <div class="gps-line">
@@ -337,6 +337,7 @@ import {
 import { useAuthStore } from '../stores/auth'
 import type { Vehicle, VehicleStatus } from '../types/fleet'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from '@/i18n'
 
 const route = useRoute()
 const router = useRouter()
@@ -353,6 +354,7 @@ type DriverStatus = 'ok' | 'missing' | 'no_license' | 'hide'
 
 const showFilters = ref(false)
 const auth = useAuthStore()
+const { locale, t } = useI18n()
 
 const defaultStatusCount: StatusCount = {
   run: 0,
@@ -368,29 +370,29 @@ const refreshOptions = [
   { label: '1m', value: 60_000 },
 ]
 
-const statusOptions = [
-  { label: 'Run', value: 'run' },
-  { label: 'Idle', value: 'idle' },
-  { label: 'Park', value: 'park' },
-  { label: 'No GPS', value: 'no_gps' },
-  { label: 'Offline', value: 'offline' },
-]
+const statusOptions = computed(() => [
+  { label: t('run'), value: 'run' },
+  { label: t('idle'), value: 'idle' },
+  { label: t('park'), value: 'park' },
+  { label: t('noGps'), value: 'no_gps' },
+  { label: t('offline'), value: 'offline' },
+])
 
-const statusSummaryItems = [
-  { label: 'Run', value: 'run' },
-  { label: 'Idle', value: 'idle' },
-  { label: 'Park', value: 'park' },
-  { label: 'No GPS', value: 'no_gps' },
-  { label: 'Offline', value: 'offline' },
-] as const
+const statusSummaryItems = computed(() => [
+  { label: t('run'), value: 'run' },
+  { label: t('idle'), value: 'idle' },
+  { label: t('park'), value: 'park' },
+  { label: t('noGps'), value: 'no_gps' },
+  { label: t('offline'), value: 'offline' },
+] as const)
 
-const sortOptions = [
-  { label: 'Plate', value: 'plate_no' },
-  { label: 'Time', value: 'gps_time' },
-  { label: 'Speed', value: 'speed' },
-  { label: 'Fuel', value: 'fuel_left' },
-  { label: 'Status', value: 'status' },
-]
+const sortOptions = computed(() => [
+  { label: t('vehicle'), value: 'plate_no' },
+  { label: t('gpsTime'), value: 'gps_time' },
+  { label: t('speed'), value: 'speed' },
+  { label: t('fuel'), value: 'fuel_left' },
+  { label: t('status'), value: 'status' },
+])
 
 const sortDirOptions = [
   { label: 'ASC', value: 'asc' },
@@ -398,7 +400,7 @@ const sortDirOptions = [
 ]
 
 const vehicles = ref<Vehicle[]>([])
-const groupOptions = ref<VehicleGroup[]>([{ id: -1, name: 'All Group' }])
+const groupOptions = ref<VehicleGroup[]>([{ id: -1, name: t('allGroup') }])
 
 const selectedVehicleId = ref<string | null>(null)
 const selectedGroupId = ref<number | string>(-1)
@@ -490,7 +492,7 @@ function getStatusFromQuery(): VehicleStatus | null {
 
   if (typeof status !== 'string') return null
 
-  const allowStatuses = statusOptions.map((item) => item.value)
+  const allowStatuses = statusOptions.value.map((item) => item.value)
 
   return allowStatuses.includes(status as VehicleStatus)
       ? status as VehicleStatus
@@ -539,7 +541,7 @@ async function loadVehicles() {
     noDriverCardTotal.value = response.meta.no_driver_card_count ?? 0
     dltSynchTotal.value = response.meta.dlt_synch_count ?? 0
   } catch (e: any) {
-    error.value = e?.response?.data?.message || 'โหลดข้อมูลไม่ได้'
+    error.value = e?.response?.data?.message || t('errorTrackingLoadFailed')
     vehicles.value = []
     totalRecords.value = 0
     statusCount.value = { ...defaultStatusCount }
@@ -556,15 +558,15 @@ async function loadGroups() {
     const customerId = auth.customer?.id
 
     if (!customerId) {
-      groupOptions.value = [{ id: -1, name: 'All Group' }]
+      groupOptions.value = [{ id: -1, name: t('allGroup') }]
       return
     }
 
     const groups = await getVehicleGroups(customerId)
-    groupOptions.value = [{ id: -1, name: 'All Group' }, ...groups]
+    groupOptions.value = [{ id: -1, name: t('allGroup') }, ...groups]
   } catch (e) {
     console.error('LOAD GROUPS ERROR', e)
-    groupOptions.value = [{ id: -1, name: 'All Group' }]
+    groupOptions.value = [{ id: -1, name: t('allGroup') }]
   }
 }
 
@@ -707,6 +709,16 @@ function getStatusIcon(status: VehicleStatus) {
   }[status] || 'pi pi-circle'
 }
 
+function formatVehicleStatus(status: VehicleStatus): string {
+  return {
+    run: t('run'),
+    idle: t('idle'),
+    park: t('park'),
+    no_gps: t('noGps'),
+    offline: t('offline'),
+  }[status] || status
+}
+
 function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
   const shouldRotate = status === 'run' || status === 'idle'
 
@@ -750,9 +762,9 @@ function getDriverClass(status: DriverStatus): string {
 
 function getDriverTooltip(status: DriverStatus): string {
   return {
-    ok: 'รูดบัตรแล้ว',
-    missing: 'ยังไม่รูดบัตร',
-    no_license: 'ไม่มีใบขับขี่',
+    ok: t('driverCardOk'),
+    missing: t('driverCardMissing'),
+    no_license: t('noDriverLicense'),
     hide: '',
   }[status]
 }
@@ -763,7 +775,7 @@ function formatGpsTimeCompact(value?: string | null): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat('th-TH', {
+  return new Intl.DateTimeFormat(locale.value === 'th' ? 'th-TH' : 'en-US', {
     day: '2-digit',
     month: '2-digit',
     hour: '2-digit',
@@ -807,6 +819,14 @@ function getInputClass(value?: string | number | boolean | null) {
 watch([selectedGroupId, sortBy, sortDir], () => {
   resetListState()
   loadVehicles()
+})
+
+watch(locale, () => {
+  groupOptions.value = groupOptions.value.map((item) => (
+      String(item.id) === '-1'
+          ? { ...item, name: t('allGroup') }
+          : item
+  ))
 })
 
 watch(search, () => {
