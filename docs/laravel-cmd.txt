@@ -25,6 +25,7 @@ sudo chmod -R 775 storage bootstrap/cache
 sudo php artisan config:clear
 sudo php artisan cache:clear
 sudo php artisan config:cache
+sudo php artisan optimize:clear
 
 sudo -u apache php artisan optimize:clear
 

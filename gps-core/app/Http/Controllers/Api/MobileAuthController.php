@@ -150,6 +150,8 @@ class MobileAuthController extends Controller
                 'attendance' => (bool) $customer->enable_attendance,
                 'fare' => (bool) $customer->enable_fare_cal,
                 'temperature' => (bool) $customer->show_temp,
+                'input1' => (bool) $customer->show_input1,
+                'input2' => (bool) $customer->show_input2,
             ],
 
             'config' => [
