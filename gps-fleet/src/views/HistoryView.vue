@@ -146,7 +146,7 @@
               :rows="perPage"
               :first="firstRow"
               :totalRecords="totalRows"
-              :rowsPerPageOptions="[100, 300, 500, 1000]"
+              :rowsPerPageOptions="[100, 300, 500, 1000, 5000]"
               paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
               currentPageReportTemplate="{first} - {last} / {totalRecords}"
               @page="onPageChange"
@@ -343,7 +343,7 @@ const selectedHistoryRow = ref<HistoryPoint | null>(null)
 const rows = ref<HistoryPoint[]>([])
 
 const currentPage = ref(1)
-const perPage = ref(1000)
+const perPage = ref(5000)
 const totalRows = ref(0)
 const totalPages = ref(0)
 
@@ -776,8 +776,13 @@ function validateRange() {
     return false
   }
 
-  const start = new Date(`${startDate.value}T${startTime.value}:00`)
-  const end = new Date(`${endDate.value}T${endTime.value}:59`)
+  if (!datetime1.value || !datetime2.value) {
+    errorMessage.value = t('errorSelectVehicleAndRange')
+    return false
+  }
+
+  const start = datetime1.value
+  const end = datetime2.value
 
   if (start >= end) {
     errorMessage.value = t('errorEndBeforeStart')

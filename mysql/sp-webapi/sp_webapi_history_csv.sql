@@ -67,11 +67,11 @@ proc: begin
         input1 VARCHAR(1),
         input2 VARCHAR(1),
         car_status VARCHAR(10),
-        address VARCHAR(255)
+        address VARCHAR(255),
 
---         UNIQUE KEY uk_gpsdata_id (gpsdata_id),
---         KEY idx_imei_date (imei, data_date),
---         KEY idx_status (car_status)
+        UNIQUE KEY uk_gpsdata_id (gpsdata_id),
+        KEY idx_imei_date (imei, data_date),
+        KEY idx_status (car_status)
 --     ) ENGINE=MyISAM;
     ) ENGINE=MEMORY;
 
@@ -81,7 +81,7 @@ proc: begin
     SET @v_event_codes = v_event_codes;
 
     SET v_sql = CONCAT(
-        'INSERT INTO tmp_raw (
+        'INSERT IGNORE INTO tmp_raw (
             gpsdata_id, imei, tracker_model, plate_no, data_date, event_code,
             engine_volt, ext_power, state, speed, speed_limited,
             lat, lng, heading, gps_status, num_sats, fuel_left,
@@ -133,7 +133,7 @@ proc: begin
 --     select * from tmp_raw;
 --     leave proc;
 
-    INSERT INTO tmp_raw (
+    INSERT IGNORE INTO tmp_raw (
         gpsdata_id, imei, tracker_model, plate_no, data_date, event_code,
 		engine_volt, ext_power, state, speed, speed_limited,
 		lat, lng, heading, gps_status, num_sats, fuel_left,
@@ -170,7 +170,6 @@ proc: begin
         g.address
     FROM gps_data g inner join tracker t on g.box_imei=t.imei
     WHERE g.box_imei = p_imei
-      AND g.data_date >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 MINUTE)
       AND g.data_date BETWEEN v_start AND v_end
       AND (v_event_codes IS NULL OR FIND_IN_SET(g.event_code, v_event_codes) > 0)
       AND g.g_point IS NOT NULL

@@ -106,7 +106,7 @@ END IF;
     SET @v_event_codes = v_event_codes;
 
     SET v_sql = CONCAT(
-        'INSERT INTO tmp_raw (
+        'INSERT IGNORE INTO tmp_raw (
             gpsdata_id, imei, tracker_model, plate_no, data_date, event_code,
             engine_volt, ext_power, state, speed, speed_limited,
             lat, lng, heading, gps_status, num_sats, fuel_left,
@@ -160,7 +160,7 @@ DEALLOCATE PREPARE stmt;
 --     select * from tmp_raw;
 --     leave proc;
 
-INSERT INTO tmp_raw (
+INSERT IGNORE INTO tmp_raw (
     gpsdata_id, imei, tracker_model, plate_no, data_date, event_code,
     engine_volt, ext_power, state, speed, speed_limited,
     lat, lng, heading, gps_status, num_sats, fuel_left,
@@ -199,7 +199,6 @@ SELECT
     g.address, track1, track3
 FROM gps_data g inner join tracker t on g.box_imei=t.imei
 WHERE g.box_imei = p_imei
-  AND g.data_date >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 MINUTE)
   AND g.data_date BETWEEN v_start AND v_end
   AND (v_event_codes IS NULL OR FIND_IN_SET(g.event_code, v_event_codes) > 0)
   AND g.g_point IS NOT NULL
@@ -294,8 +293,8 @@ SELECT
     input1,
     input2,
     car_status,
-    address, track1, track3
-        duration_sec,
+    address, track1, track3,
+    duration_sec,
     duration_mm,
     segment_meter
 FROM tmp_state1
