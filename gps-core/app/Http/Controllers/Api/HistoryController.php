@@ -145,6 +145,9 @@ class HistoryController extends Controller
         $stmt->execute();
 
         $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        if ($stmt->nextRowset()) {
+            $stmt->fetch(PDO::FETCH_ASSOC);
+        }
         $rows = [];
         if ($stmt->nextRowset()) {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
