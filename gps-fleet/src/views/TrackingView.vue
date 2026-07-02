@@ -167,15 +167,15 @@
               <div class="status-row">
                 <i
                     :class="[
-                    getStatusIcon(slotProps.data.status),
+                    getStatusIcon(normalizeVehicleStatus(slotProps.data.status)),
                     'status-icon',
-                    slotProps.data.status,
+                    normalizeVehicleStatus(slotProps.data.status),
                   ]"
-                    :style="getStatusIconStyle(slotProps.data.status, slotProps.data.heading)"
+                    :style="getStatusIconStyle(normalizeVehicleStatus(slotProps.data.status), slotProps.data.heading)"
                     v-tooltip="formatVehicleStatus(slotProps.data.status)"
                 />
 
-                <span :class="['status-text', slotProps.data.status]">
+                <span :class="['status-text', normalizeVehicleStatus(slotProps.data.status)]">
                   {{ formatVehicleStatus(slotProps.data.status) }}
                 </span>
               </div>
@@ -709,14 +709,33 @@ function getStatusIcon(status: VehicleStatus) {
   }[status] || 'pi pi-circle'
 }
 
-function formatVehicleStatus(status: VehicleStatus): string {
+function normalizeVehicleStatus(status: unknown): VehicleStatus {
+  const value = String(status ?? '').trim().toLowerCase()
+  const statusMap: Record<string, VehicleStatus> = {
+    run: 'run',
+    running: 'run',
+    moving: 'run',
+    idle: 'idle',
+    park: 'park',
+    parking: 'park',
+    no_gps: 'no_gps',
+    nogps: 'no_gps',
+    offline: 'offline',
+  }
+
+  return statusMap[value] || 'offline'
+}
+
+function formatVehicleStatus(status: unknown): string {
+  const normalizedStatus = normalizeVehicleStatus(status)
+
   return {
     run: t('run'),
     idle: t('idle'),
     park: t('park'),
     no_gps: t('noGps'),
     offline: t('offline'),
-  }[status] || status
+  }[normalizedStatus] || String(status ?? '')
 }
 
 function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
@@ -1216,9 +1235,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 5px;
+  gap: 3px;
   min-width: 0;
-  padding-left: 8px;
+  padding-left: 5px;
   border-left: 1px solid rgba(148, 163, 184, 0.14);
 }
 
@@ -1267,9 +1286,9 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 1.5;
   text-transform: lowercase;
 }
 
