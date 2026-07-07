@@ -4,8 +4,12 @@ export default {
     dltConnected: 'เชื่อมต่อ DLT',
     dltDriverCard: 'บัตรผู้ขับขี่ DLT',
     dltDrivingWithoutCard: 'ขับโดยไม่รูดบัตร DLT',
+    dltVehicleList: 'รายชื่อรถที่มีข้อมูลบัตร',
+    dltVehicleListSubtitle: 'แสดงคันที่มีข้อมูลใน track1 หรือ track3',
     inStation: 'อยู่ในสถานี',
     lastUpdated: 'อัปเดตล่าสุด',
+    noDltVehicles: 'ไม่พบรถที่มีข้อมูลใน track1 หรือ track3',
     outStation: 'อยู่นอกสถานี',
     vehicleStatus: 'สถานะรถ',
+    viewAll: 'ดูทั้งหมด',
 }

@@ -130,46 +130,8 @@
     </section>
 
     <section class="dashboard-section">
-      <h2>{{ t('station') }}</h2>
-
-      <div class="wide-grid">
-        <Card class="summary-card wide-card readonly-card in-station">
-          <template #content>
-            <div class="wide-card-inner">
-              <div class="large-icon-circle">
-                <i class="pi pi-home"></i>
-              </div>
-
-              <div>
-                <div class="label">{{ t('inStation') }}</div>
-                <div class="wide-value">{{ summary.in_station }}</div>
-                <div class="percent">{{ percent(summary.in_station) }}</div>
-              </div>
-            </div>
-          </template>
-        </Card>
-
-        <Card class="summary-card wide-card readonly-card out-station">
-          <template #content>
-            <div class="wide-card-inner">
-              <div class="large-icon-circle">
-                <i class="pi pi-send"></i>
-              </div>
-
-              <div>
-                <div class="label">{{ t('outStation') }}</div>
-                <div class="wide-value">{{ summary.out_station }}</div>
-                <div class="percent">{{ percent(summary.out_station) }}</div>
-              </div>
-            </div>
-          </template>
-        </Card>
-      </div>
-    </section>
-
-    <section class="dashboard-section">
       <h2>{{ t('dltDriverCard') }}</h2>
-
+<!--      <h3>{{ t('dltConnected') }} : {{ summary.dlt_synch_total }}</h3>-->
       <div class="wide-grid">
         <Card
             class="summary-card wide-card dlt-synched"
@@ -209,7 +171,102 @@
           </template>
         </Card>
       </div>
+
+      <div class="dlt-list-panel">
+        <div class="dlt-list-header">
+          <div>
+            <h3>{{ t('dltVehicleList') }}</h3>
+            <p>{{ t('dltVehicleListSubtitle') }}</p>
+          </div>
+
+          <button
+              class="text-button"
+              type="button"
+              @click="goToTracking(undefined, { dlt_synch: 1 })"
+          >
+            {{ t('viewAll') }}
+          </button>
+        </div>
+
+        <div v-if="summary.driver_card_vehicles.length" class="dlt-table-wrap">
+          <table class="dlt-table">
+            <thead>
+            <tr>
+              <th>{{ t('vehicle') }}</th>
+              <th>{{ t('licenseName') }}</th>
+              <th>{{ t('licenseNo') }}</th>
+              <th>{{ t('status') }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr
+                v-for="(vehicle, index) in summary.driver_card_vehicles"
+                :key="vehicle.imei || vehicle.plate_no || index"
+                @click="goToTracking(undefined, { dlt_synch: 1 })"
+            >
+              <td>
+                <div class="vehicle-name">{{ vehicle.plate_no || '-' }}</div>
+                <div v-if="vehicle.driver_name" class="vehicle-subtitle">
+                  {{ vehicle.driver_name }}
+                </div>
+              </td>
+              <td>{{ vehicle.license_name || '-' }}</td>
+              <td>{{ vehicle.license_no || '-' }}</td>
+              <td>
+                <span class="status-pill" :class="vehicle.status">
+                  {{ formatStatus(vehicle.status) }}
+                </span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-else class="empty-state">
+          {{ t('noDltVehicles') }}
+        </div>
+      </div>
     </section>
+
+    <section class="dashboard-section">
+      <h2>{{ t('station') }}</h2>
+
+      <div class="wide-grid">
+        <Card class="summary-card wide-card readonly-card in-station">
+          <template #content>
+            <div class="wide-card-inner">
+              <div class="large-icon-circle">
+                <i class="pi pi-home"></i>
+              </div>
+
+              <div>
+                <div class="label">{{ t('inStation') }}</div>
+                <div class="wide-value">{{ summary.in_station }}</div>
+                <div class="percent">{{ percent(summary.in_station) }}</div>
+              </div>
+            </div>
+          </template>
+        </Card>
+
+        <Card class="summary-card wide-card readonly-card out-station">
+          <template #content>
+            <div class="wide-card-inner">
+              <div class="large-icon-circle">
+                <i class="pi pi-send"></i>
+              </div>
+
+              <div>
+                <div class="label">{{ t('outStation') }}</div>
+                <div class="wide-value">{{ summary.out_station }}</div>
+                <div class="percent">{{ percent(summary.out_station) }}</div>
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
+    </section>
+
+
 
     <div class="dashboard-footer">
       <span>{{ t('lastUpdated') }}: {{ lastUpdated || '-' }}</span>
@@ -241,6 +298,17 @@ type DashboardSummary = {
   driving_without_card: number
   card_inserted: number
   dlt_synch_total: number
+  driver_card_vehicles: DriverCardVehicle[]
+}
+
+type DriverCardVehicle = {
+  imei?: string | null
+  plate_no?: string | null
+  driver_name?: string | null
+  license_name?: string | null
+  license_no?: string | null
+  speed?: number
+  status?: string | null
 }
 
 const summary = ref<DashboardSummary>({
@@ -256,6 +324,7 @@ const summary = ref<DashboardSummary>({
   driving_without_card: 0,
   card_inserted: 0,
   dlt_synch_total: 0,
+  driver_card_vehicles: [],
 })
 
 const loading = ref(false)
@@ -295,6 +364,17 @@ function goToTracking(status?: string, extraQuery: Record<string, string | numbe
 function percent(value: number) {
   if (!vehicleTotal.value) return '0%'
   return `${((value / vehicleTotal.value) * 100).toFixed(1)}%`
+}
+
+function formatStatus(status?: string | null) {
+  return {
+    run: t('run'),
+    idle: t('idle'),
+    acc_on: 'Acc-on',
+    park: t('park'),
+    no_gps: t('noGps'),
+    offline: t('offline'),
+  }[String(status ?? '')] || '-'
 }
 
 function formatDateTime() {
@@ -338,6 +418,7 @@ async function loadDashboard() {
 function normalizeSummary(data: Partial<DashboardSummary> & {
   running?: number
   parking?: number
+  dlt_synched_vehicles?: DriverCardVehicle[]
 } = {}): DashboardSummary {
   return {
     total: Number(data.total ?? 0),
@@ -352,6 +433,11 @@ function normalizeSummary(data: Partial<DashboardSummary> & {
     driving_without_card: Number(data.driving_without_card ?? 0),
     card_inserted: Number(data.card_inserted ?? 0),
     dlt_synch_total: Number(data.dlt_synch_total ?? 0),
+    driver_card_vehicles: Array.isArray(data.driver_card_vehicles)
+        ? data.driver_card_vehicles
+        : Array.isArray(data.dlt_synched_vehicles)
+            ? data.dlt_synched_vehicles
+        : [],
   }
 }
 
@@ -588,6 +674,146 @@ onUnmounted(() => {
   letter-spacing: -0.05em;
 }
 
+.dlt-list-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.dlt-list-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.dlt-list-header h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.dlt-list-header p {
+  margin: 0.25rem 0 0;
+  color: #94a3b8;
+  font-size: 0.88rem;
+}
+
+.text-button {
+  min-height: 34px;
+  padding: 0 0.85rem;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: 8px;
+  color: #ccfbf1;
+  background: rgba(15, 118, 110, 0.24);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  background: rgba(15, 118, 110, 0.36);
+}
+
+.dlt-table-wrap {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.dlt-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.dlt-table th,
+.dlt-table td {
+  padding: 0.75rem 0.65rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.dlt-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: #94a3b8;
+  background: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.dlt-table td {
+  color: #e5e7eb;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.dlt-table tbody tr {
+  cursor: pointer;
+}
+
+.dlt-table tbody tr:hover {
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.vehicle-name {
+  color: #f8fafc;
+  font-weight: 900;
+}
+
+.vehicle-subtitle {
+  margin-top: 0.2rem;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  color: #f8fafc;
+  background: rgba(148, 163, 184, 0.28);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.status-pill.run {
+  background: rgba(22, 163, 74, 0.72);
+}
+
+.status-pill.idle,
+.status-pill.acc_on {
+  background: rgba(202, 138, 4, 0.72);
+}
+
+.status-pill.park {
+  background: rgba(185, 28, 28, 0.72);
+}
+
+.status-pill.no_gps {
+  background: rgba(29, 78, 216, 0.72);
+}
+
+.status-pill.offline {
+  background: rgba(107, 114, 128, 0.72);
+}
+
+.empty-state {
+  padding: 1.25rem;
+  border: 1px dashed rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  color: #94a3b8;
+  text-align: center;
+}
+
 .dashboard-footer {
   display: flex;
   align-items: center;
@@ -712,6 +938,14 @@ onUnmounted(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.6rem;
+  }
+
+  .dlt-list-header {
+    flex-direction: column;
+  }
+
+  .text-button {
+    width: 100%;
   }
 }
 </style>

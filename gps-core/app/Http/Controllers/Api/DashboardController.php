@@ -61,6 +61,7 @@ class DashboardController extends Controller
         $drivingWithoutCard = 0;
         $cardInserted = 0;
         $dltSynchTotal = 0;
+        $driverCardVehicles = [];
 
         foreach ($rows as $row) {
             $status = $this->resolveStatus($row);
@@ -76,9 +77,24 @@ class DashboardController extends Controller
             $isDltSynched = (int) ($row->dlt_synch ?? 0) === 1;
             $speed = (float) ($row->speed ?? 0);
             $hasDriverCard = trim((string) ($row->track3 ?? '')) !== '';
+            $hasDriverCardData =
+                trim((string) ($row->track1 ?? '')) !== '' ||
+                trim((string) ($row->track3 ?? '')) !== '';
 
             if ($isDltSynched) {
                 $dltSynchTotal++;
+            }
+
+            if ($hasDriverCardData) {
+                $driverCardVehicles[] = [
+                    'imei' => $row->imei ?? null,
+                    'plate_no' => $row->plate_no ?? null,
+                    'driver_name' => $row->driver_name ?? null,
+                    'license_name' => $this->formatDriverName($row->track1 ?? null),
+                    'license_no' => $row->track3 ?? null,
+                    'speed' => isset($row->speed) ? (float) $row->speed : 0,
+                    'status' => $status,
+                ];
             }
 
             if (
@@ -112,10 +128,40 @@ class DashboardController extends Controller
                 'driving_without_card' => $drivingWithoutCard,
                 'card_inserted' => $cardInserted,
                 'dlt_synch_total' => $dltSynchTotal,
+                'driver_card_vehicles' => $driverCardVehicles,
 
                 'updated_at' => now('Asia/Bangkok')->toDateTimeString(),
             ],
         ]);
+    }
+
+    private function cleanDriverText(?string $value): string
+    {
+        return trim(preg_replace('/\s+/', ' ', str_replace(['^', '%'], ' ', (string) $value)));
+    }
+
+    private function formatDriverName(?string $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        $parts = array_map(
+            fn ($part) => $this->cleanDriverText($part),
+            explode('$', $value)
+        );
+
+        $lastname = $parts[0] ?? '';
+        $firstname = $parts[1] ?? '';
+        $prefix = $parts[2] ?? '';
+
+        $name = trim(implode(' ', array_filter([
+            $prefix,
+            $firstname,
+            $lastname,
+        ])));
+
+        return $name !== '' ? $name : null;
     }
 
     private function resolveAcc($row): bool

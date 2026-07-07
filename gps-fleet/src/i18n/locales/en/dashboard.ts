@@ -4,8 +4,12 @@ export default {
     dltConnected: 'DLT Connected',
     dltDriverCard: 'DLT Driver Card',
     dltDrivingWithoutCard: 'DLT Driving Without Card',
+    dltVehicleList: 'Vehicles With Card Data',
+    dltVehicleListSubtitle: 'Shows vehicles that have data in track1 or track3',
     inStation: 'In Station',
     lastUpdated: 'Last updated',
+    noDltVehicles: 'No vehicles with track1 or track3 data found',
     outStation: 'Out Station',
     vehicleStatus: 'Vehicle Status',
+    viewAll: 'View all',
 }
