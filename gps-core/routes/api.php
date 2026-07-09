@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\EngineCutController;
 use App\Http\Controllers\Api\ForbiddenZoneController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\MapLayerController;
@@ -78,6 +79,10 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
     Route::get('/notifications/recent', [NotificationController::class, 'recent']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
+
+    Route::get('/engine-cut', [EngineCutController::class, 'index']);
+    Route::post('/engine-cut', [EngineCutController::class, 'engine_cut']);
+    Route::post('/engine-cut-cancel', [EngineCutController::class, 'engine_cut_cancel']);
 
     Route::prefix('reports')->group(function () {
         Route::get('/daily-summary', [ReportController::class, 'dailySummary']);

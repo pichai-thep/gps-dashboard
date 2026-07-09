@@ -9,7 +9,8 @@
         "ext-pdo": "*",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "predis/predis": "^3.4"
+        "predis/predis": "^3.4",
+        "ext-sockets": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
