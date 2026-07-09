@@ -135,10 +135,100 @@
           {{ selectedAddress }}
         </div>
 
+        <Button
+            v-if="showEngineCutCommand"
+            type="button"
+            class="command-button"
+            icon="pi pi-bolt"
+            :label="t('sendCommand')"
+            size="small"
+            severity="warning"
+            @click.stop="openCommandDialog"
+        />
+
       </div>
     </template>
 
   </BaseMap>
+
+  <Dialog
+      v-model:visible="commandDialogVisible"
+      modal
+      :header="t('sendCommand')"
+      :style="{ width: 'min(92vw, 440px)' }"
+  >
+    <div v-if="commandVehicle" class="command-dialog">
+      <div class="command-intro">
+        {{ t('commandTargetIntro') }}
+      </div>
+
+      <div class="command-target">
+        <div class="command-target-row">
+          <span>{{ t('plate') }}</span>
+          <strong>{{ commandVehicle.plate_no || '-' }}</strong>
+        </div>
+
+        <div class="command-target-row">
+          <span>{{ t('imei') }}</span>
+          <strong>{{ commandVehicle.imei || '-' }}</strong>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="engine-command">{{ t('command') }}</label>
+
+        <Dropdown
+            id="engine-command"
+            v-model="selectedCommand"
+            :options="engineCommandOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+        />
+      </div>
+
+      <div class="field">
+        <label for="engine-command-pwd">{{ t('confirmPassword') }}</label>
+
+        <Password
+            id="engine-command-pwd"
+            v-model="commandPassword"
+            :feedback="false"
+            toggleMask
+            class="w-full"
+            :inputProps="{ autocomplete: 'current-password' }"
+            @keydown.enter="sendCommand"
+        />
+      </div>
+
+      <Message
+          v-if="commandResult"
+          :severity="commandResultSeverity"
+          :closable="false"
+      >
+        {{ commandResult }}
+      </Message>
+    </div>
+
+    <template #footer>
+      <Button
+          :label="t('cancel')"
+          severity="secondary"
+          outlined
+          :disabled="commandSending"
+          @click="commandDialogVisible = false"
+      />
+
+      <Button
+          :label="t('sendCommand')"
+          icon="pi pi-send"
+          severity="warning"
+          :loading="commandSending"
+          :disabled="!canSendCommand"
+          @click="sendCommand"
+      />
+    </template>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -150,6 +240,11 @@ import {
 } from 'vue'
 
 import BaseMap from './BaseMap.vue'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import Dropdown from 'primevue/dropdown'
+import Message from 'primevue/message'
+import Password from 'primevue/password'
 
 import Map from 'ol/Map'
 import Feature from 'ol/Feature'
@@ -177,6 +272,10 @@ import type {
 } from '@/types/fleet'
 import {useAuthStore} from "@/stores/auth";
 import { useI18n } from '@/i18n'
+import {
+  sendEngineCutCommand,
+  type EngineCutCommand,
+} from '@/services/tracking'
 
 const auth = useAuthStore()
 const { t } = useI18n()
@@ -212,7 +311,39 @@ const clickedFromMap = ref(false)
 const vehicleFeatureMap = new globalThis.Map<string, Feature<Point>>()
 const showInput1 = computed(() => Boolean(auth.features?.input1))
 const showInput2 = computed(() => Boolean(auth.features?.input2))
+const showEngineCutCommand = computed(() => Boolean(auth.features?.engineCut))
 let selectedFeatureKey: string | null = null
+
+const commandDialogVisible = ref(false)
+const commandVehicle = ref<Vehicle | null>(null)
+const selectedCommand = ref<EngineCutCommand>('engine-cut')
+const commandPassword = ref('')
+const commandSending = ref(false)
+const commandResult = ref('')
+const commandSucceeded = ref(false)
+
+const engineCommandOptions = computed(() => [
+  {
+    label: t('engineCut'),
+    value: 'engine-cut',
+  },
+  {
+    label: t('engineCutCancel'),
+    value: 'engine-cut-cancel',
+  },
+])
+
+const canSendCommand = computed(() => {
+  return Boolean(
+      commandVehicle.value?.imei &&
+      commandPassword.value.trim() &&
+      !commandSending.value
+  )
+})
+
+const commandResultSeverity = computed(() => {
+  return commandSucceeded.value ? 'success' : 'error'
+})
 
 function isInputOn(value?: string | number | boolean | null): boolean {
   if (value === true) return true
@@ -228,6 +359,56 @@ function formatInputState(value?: string | number | boolean | null): string {
   }
 
   return isInputOn(value) ? 'ON' : 'OFF'
+}
+
+function openCommandDialog() {
+  if (!popupVehicle.value) return
+
+  commandVehicle.value = popupVehicle.value
+  selectedCommand.value = 'engine-cut'
+  commandPassword.value = ''
+  commandResult.value = ''
+  commandSucceeded.value = false
+  commandDialogVisible.value = true
+}
+
+async function sendCommand() {
+  if (!canSendCommand.value || !commandVehicle.value?.imei) return
+
+  try {
+    commandSending.value = true
+    commandResult.value = ''
+    commandSucceeded.value = false
+
+    const response = await sendEngineCutCommand(
+        selectedCommand.value,
+        {
+          imei: commandVehicle.value.imei,
+          pwd: commandPassword.value.trim(),
+        }
+    )
+
+    commandSucceeded.value = Number(response.code) === 1
+    commandResult.value =
+        response.message ||
+        (
+            commandSucceeded.value
+                ? t('commandSuccess')
+                : t('commandFailed')
+        )
+
+    if (response.ref_id) {
+      commandResult.value += ` (${t('referenceId')}: ${response.ref_id})`
+    }
+  } catch (e: any) {
+    commandSucceeded.value = false
+    commandResult.value =
+        e?.response?.data?.message ||
+        e?.message ||
+        t('commandFailed')
+  } finally {
+    commandSending.value = false
+  }
 }
 
 async function loadSelectedAddress() {
@@ -806,6 +987,63 @@ watch(
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   color: #e5e7eb;
   line-height: 1.35;
+}
+
+.command-button {
+  width: 100%;
+  margin-top: 12px;
+  justify-content: center;
+}
+
+.command-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.command-intro {
+  color: #475569;
+  line-height: 1.45;
+}
+
+.command-target {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.command-target-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.command-target-row span {
+  color: #64748b;
+}
+
+.command-target-row strong {
+  color: #0f172a;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-weight: 700;
+  color: #334155;
+}
+
+.w-full {
+  width: 100%;
 }
 
 </style>

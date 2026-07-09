@@ -1,9 +1,18 @@
 export default {
+    command: 'คำสั่ง',
+    commandFailed: 'ส่งคำสั่งไม่สำเร็จ',
+    commandSuccess: 'ส่งคำสั่งสำเร็จ',
+    commandTargetIntro: 'กำลังจะส่งคำสั่งไปยังรถคันนี้',
+    confirmPassword: 'รหัสยืนยัน',
     currentTracking: 'ติดตามรถปัจจุบัน',
     driverCardMissing: 'ยังไม่รูดบัตร',
     driverCardOk: 'รูดบัตรแล้ว',
+    engineCut: 'ดับเครื่อง',
+    engineCutCancel: 'ยกเลิกดับเครื่อง',
     errorTrackingLoadFailed: 'โหลดข้อมูลไม่ได้',
     noDriverLicense: 'ไม่มีใบขับขี่',
     onMapVehicles: 'คันบนแผนที่',
+    referenceId: 'เลขอ้างอิง',
     searchVehicle: 'ค้นหารถ...',
+    sendCommand: 'ส่งคำสั่ง',
 }

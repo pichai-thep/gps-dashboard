@@ -51,6 +51,33 @@ export async function getCurrentTracking(
     return res.data
 }
 
+export type EngineCutCommand = 'engine-cut' | 'engine-cut-cancel'
+
+export type EngineCutPayload = {
+    imei: string
+    pwd: string
+}
+
+export type EngineCutResponse = {
+    code: number
+    message: string
+    ref_id?: string | number | null
+}
+
+export async function sendEngineCutCommand(
+    command: EngineCutCommand,
+    payload: EngineCutPayload,
+): Promise<EngineCutResponse> {
+    const endpoint =
+        command === 'engine-cut'
+            ? '/engine-cut'
+            : '/engine-cut-cancel'
+
+    const res = await api.post<EngineCutResponse>(endpoint, payload)
+
+    return res.data
+}
+
 export type StatusCount = {
     run: number
     idle: number

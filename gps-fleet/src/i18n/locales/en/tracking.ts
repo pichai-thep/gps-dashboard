@@ -1,9 +1,18 @@
 export default {
+    command: 'Command',
+    commandFailed: 'Failed to send command',
+    commandSuccess: 'Command sent successfully',
+    commandTargetIntro: 'You are about to send a command to this vehicle',
+    confirmPassword: 'Confirm password',
     currentTracking: 'Current Tracking',
     driverCardMissing: 'Driver card not swiped',
     driverCardOk: 'Driver card swiped',
+    engineCut: 'Engine cut',
+    engineCutCancel: 'Cancel engine cut',
     errorTrackingLoadFailed: 'Failed to load tracking data',
     noDriverLicense: 'No driver license',
     onMapVehicles: 'vehicles on map',
+    referenceId: 'Reference ID',
     searchVehicle: 'Search vehicle...',
+    sendCommand: 'Send command',
 }
