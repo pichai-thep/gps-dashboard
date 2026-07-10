@@ -351,6 +351,8 @@ class EngineCutController extends Controller
                 case "iStartek":
                     $this->cut_cancel_istartek($dbConnection, $server, $username, $imei, $dev_pwd);
                     break;
+                case "jm-evl":
+                    $this->cut_cancel_jm_evl($dbConnection, $server, $username, $imei, $dev_pwd);
             }
 
             $code = 1;
