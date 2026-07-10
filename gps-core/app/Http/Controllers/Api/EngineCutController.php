@@ -304,16 +304,13 @@ class EngineCutController extends Controller
             $server_ip = $this->resolveCommandServerIp($dbConnection);
             Log::debug("Engine cut cancel ========> dbConnection=$dbConnection, server_ip=$server_ip, customer_id=$customer_id,imei=$imei,pwd=$pwd");
 
-            $customer = Customer::on($dbConnection)->find($customer_id);
-            Log::debug("engine_cut_cancel customer pwd=$customer->engine_cut_pwd");
-            if ($customer!=null){
-                if ($customer->engine_cut_pwd!=null) {
-                    if ($customer->engine_cut_pwd != $pwd) {
-                        throw new \Exception("wrong password, command not authorized");
-                    }
+            $engine_cut_pwd = Customer::on($dbConnection)->where('customer_id', $customer_id)->value('engine_cut_pwd');
+            Log::debug("Engine-cut Pwd: $engine_cut_pwd");
+
+            if ($engine_cut_pwd!=null){
+                if ($engine_cut_pwd != $pwd) {
+                    throw new \Exception("wrong password, command not authorized");
                 }
-            }else{
-                Log::debug("engine_cut_cancel customer:$customer_id not found");
             }
 
             $tracker = Tracker::on($dbConnection)->where('imei','=',$imei)->first();
