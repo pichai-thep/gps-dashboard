@@ -65,18 +65,18 @@ class EngineCutController extends Controller
 
         $customer_id = $request->input('customer_id');
         $imei = $request->input('imei');
-        $pwd = $request->input('pwd','');
+        $password = $request->input('password','');
         $ref_id = '';
 
         try{
             $server_ip = $this->resolveCommandServerIp($dbConnection);
-            Log::debug("Engine cut========> dbConnection=$dbConnection, server_ip=$server_ip, customer_id=$customer_id,imei=$imei,pwd=$pwd");
+            Log::debug("Engine cut========> dbConnection=$dbConnection, server_ip=$server_ip, customer_id=$customer_id,imei=$imei,pwd=$password");
 
             $engine_cut_pwd = Customer::on($dbConnection)->where('customer_id', $customer_id)->value('engine_cut_pwd');
             Log::debug("Engine-cut Pwd: $engine_cut_pwd");
 
             if ($engine_cut_pwd!=null){
-                if ($engine_cut_pwd!= $pwd) {
+                if ($engine_cut_pwd != $password) {
                     throw new \Exception("wrong password, command not authorized");
                 }
             }
@@ -297,18 +297,18 @@ class EngineCutController extends Controller
 
         $customer_id = $request->input('customer_id');
         $imei = $request->input('imei');
-        $pwd = $request->input('pwd');
+        $password = $request->input('password');
         $ref_id = '';
 
         try{
             $server_ip = $this->resolveCommandServerIp($dbConnection);
-            Log::debug("Engine cut cancel ========> dbConnection=$dbConnection, server_ip=$server_ip, customer_id=$customer_id,imei=$imei,pwd=$pwd");
+            Log::debug("Engine cut cancel ========> dbConnection=$dbConnection, server_ip=$server_ip, customer_id=$customer_id,imei=$imei,pwd=$password");
 
             $engine_cut_pwd = Customer::on($dbConnection)->where('customer_id', $customer_id)->value('engine_cut_pwd');
             Log::debug("Engine-cut Pwd: $engine_cut_pwd");
 
             if ($engine_cut_pwd!=null){
-                if ($engine_cut_pwd != $pwd) {
+                if ($engine_cut_pwd != $password) {
                     throw new \Exception("wrong password, command not authorized");
                 }
             }
