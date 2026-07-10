@@ -64,16 +64,19 @@ export type EngineCutResponse = {
     ref_id?: string | number | null
 }
 
+const engineCutEndpoints: Record<EngineCutCommand, string> = {
+    'engine-cut': '/engine-cut',
+    'engine-cut-cancel': '/engine-cut-cancel',
+}
+
 export async function sendEngineCutCommand(
     command: EngineCutCommand,
     payload: EngineCutPayload,
 ): Promise<EngineCutResponse> {
-    const endpoint =
-        command === 'engine-cut'
-            ? '/engine-cut'
-            : '/engine-cut-cancel'
-
-    const res = await api.post<EngineCutResponse>(endpoint, payload)
+    const res = await api.post<EngineCutResponse>(
+        engineCutEndpoints[command],
+        payload,
+    )
 
     return res.data
 }
