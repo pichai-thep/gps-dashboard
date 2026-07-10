@@ -136,5 +136,9 @@ Route::prefix('mobile/v1')->group(function () {
 
         Route::get('/alarm-settings', [MobileAlarmSettingController::class, 'index']);
         Route::put('/alarm-settings', [MobileAlarmSettingController::class, 'update']);
+
+        Route::get('/engine-cut', [EngineCutController::class, 'index']);
+        Route::post('/engine-cut', [EngineCutController::class, 'engine_cut']);
+        Route::post('/engine-cut-cancel', [EngineCutController::class, 'engine_cut_cancel']);
     });
 });
