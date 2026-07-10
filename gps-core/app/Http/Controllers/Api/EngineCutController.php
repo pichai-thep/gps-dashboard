@@ -135,7 +135,8 @@ class EngineCutController extends Controller
             return response()->json(array(
                 'code' => $code,
                 'message' => $msg,
-                'ref_id' => $ref_id ?? null,
+                'server_ip' => $server_ip,
+                'ref_id' => $ref_id,
             ), $status_code);
         }
     }
