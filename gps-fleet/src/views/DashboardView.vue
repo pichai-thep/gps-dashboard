@@ -242,7 +242,7 @@
               <div>
                 <div class="label">{{ t('inStation') }}</div>
                 <div class="wide-value">{{ summary.in_station }}</div>
-                <div class="percent">{{ percent(summary.in_station) }}</div>
+<!--                <div class="percent">{{ percent(summary.in_station) }}</div>-->
               </div>
             </div>
           </template>
@@ -258,7 +258,7 @@
               <div>
                 <div class="label">{{ t('outStation') }}</div>
                 <div class="wide-value">{{ summary.out_station }}</div>
-                <div class="percent">{{ percent(summary.out_station) }}</div>
+<!--                <div class="percent">{{ percent(summary.out_station) }}</div>-->
               </div>
             </div>
           </template>

@@ -1,6 +1,7 @@
 <template>
   <BaseMap
       ref="baseMapRef"
+      :zoom="10"
       @ready="handleMapReady"
       @fit="fitHistory"
   >
@@ -246,10 +247,13 @@ function handleMapClick(event: any) {
           return
         }
 
-        showPopup(
-            point,
-            geometry.getCoordinates()
-        )
+        const historyIndex = feature.get('historyIndex')
+
+        if (typeof historyIndex === 'number') {
+          focusHistoryPoint(historyIndex)
+        } else {
+          showPopup(point, geometry.getCoordinates())
+        }
 
         found = true
       }
@@ -807,9 +811,15 @@ function focusHistoryPoint(
       coordinate
   )
 
-  map.value.getView().animate({
+  const view = map.value.getView()
+  const currentZoom = view.getZoom() ?? 10
+  const targetZoom = Math.max(currentZoom, 16)
+
+  view.cancelAnimations()
+
+  view.animate({
     center: coordinate,
-    // zoom: 16,
+    zoom: targetZoom,
     duration: 300,
   })
 }

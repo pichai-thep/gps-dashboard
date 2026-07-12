@@ -1,6 +1,7 @@
 <template>
   <BaseMap
       ref="baseMapRef"
+      :zoom="10"
 
       @ready="handleMapReady"
       @fit="fitVehicles"
@@ -135,6 +136,35 @@
           {{ selectedAddress }}
         </div>
 
+        <div class="location-actions">
+          <div class="location-action-buttons">
+            <Button
+                type="button"
+                :label="t('createStationFromLocation')"
+                icon="pi pi-map"
+                size="small"
+                severity="secondary"
+                @click.stop="createFromVehicleLocation('stations')"
+            />
+            <Button
+                type="button"
+                :label="t('createPoiFromLocation')"
+                icon="pi pi-map-marker"
+                size="small"
+                severity="secondary"
+                @click.stop="createFromVehicleLocation('pois')"
+            />
+            <Button
+                type="button"
+                :label="t('createForbiddenZoneFromLocation')"
+                icon="pi pi-ban"
+                size="small"
+                severity="secondary"
+                @click.stop="createFromVehicleLocation('forbidden-zones')"
+            />
+          </div>
+        </div>
+
         <Button
             v-if="showEngineCutCommand"
             type="button"
@@ -245,6 +275,7 @@ import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import Message from 'primevue/message'
 import Password from 'primevue/password'
+import { useRouter } from 'vue-router'
 
 import Map from 'ol/Map'
 import Feature from 'ol/Feature'
@@ -279,6 +310,7 @@ import {
 
 const auth = useAuthStore()
 const { t } = useI18n()
+const router = useRouter()
 
 const props = defineProps<{
   vehicles?: Vehicle[]
@@ -291,6 +323,24 @@ const emit = defineEmits<{
 
 const baseMapRef = ref()
 
+function createFromVehicleLocation(routeName: 'stations' | 'pois' | 'forbidden-zones') {
+  if (!popupVehicle.value) return
+
+  const lat = Number(popupVehicle.value.lat)
+  const lng = Number(popupVehicle.value.lng)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+  router.push({
+    name: routeName,
+    query: {
+      create: '1',
+      lat: String(lat),
+      lng: String(lng),
+    },
+  })
+}
+
 // const map = ref<OlMap | null>(null)
 const map = ref<Map | null>(null)
 
@@ -302,7 +352,7 @@ const vehicleLayer =
       source: vehicleSource,
     })
 
-const followVehicle = ref(false)
+const followVehicle = ref(true)
 const showPopup = ref(true)
 const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
@@ -552,6 +602,7 @@ function handleMapClick(event: any) {
           popupOverlay?.setPosition(coordinate)
         }
 
+        focusVehicle(getVehicleKey(vehicle), true)
         clickedFromMap.value = true
         emit('vehicle-click', vehicle)
 
@@ -698,12 +749,13 @@ function focusVehicle(
 
   const view = map.value.getView()
   const currentZoom = view.getZoom() ?? 16
-  const targetZoom = currentZoom < 15 ? 16 : currentZoom
+  const targetZoom = Math.max(currentZoom, 16)
 
   view.cancelAnimations()
 
   view.animate({
     center: coordinate,
+    zoom: targetZoom,
     duration: 250,
   })
 }
@@ -987,6 +1039,23 @@ watch(
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   color: #e5e7eb;
   line-height: 1.35;
+}
+
+.location-actions {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.location-action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.location-action-buttons :deep(.p-button) {
+  flex: 1 1 auto;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .command-button {

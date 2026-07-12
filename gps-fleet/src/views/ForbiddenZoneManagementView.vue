@@ -19,6 +19,7 @@ import Feature from 'ol/Feature'
 import Polygon from 'ol/geom/Polygon'
 import { fromLonLat, transform } from 'ol/proj'
 import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
   getForbiddenZones,
@@ -32,12 +33,16 @@ import {
 const confirm = useConfirm()
 const toast = useToast()
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const zones = ref<ForbiddenZone[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
 const editingId = ref<number | null>(null)
+const createCenter = ref<[number, number]>([100.5018, 13.7563])
+const locationZoom = ref(12)
 
 const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null)
 
@@ -74,7 +79,25 @@ const form = reactive<{
 
 onMounted(async () => {
   await loadForbiddenZones()
+
+  const location = getCreateLocation()
+  if (location) {
+    await openCreate(location)
+    await router.replace({ name: 'forbidden-zones' })
+  }
 })
+
+function getCreateLocation() {
+  if (route.query.create !== '1') return null
+
+  const lat = Number(route.query.lat)
+  const lng = Number(route.query.lng)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+
+  return { lat, lng }
+}
 
 async function loadForbiddenZones() {
   loading.value = true
@@ -100,9 +123,14 @@ function ensurePreviewLayer() {
   }
 }
 
-async function openCreate() {
+async function openCreate(location?: { lat: number; lng: number }) {
   editingId.value = null
   resetForm()
+
+  createCenter.value = location
+      ? [location.lng, location.lat]
+      : [100.5018, 13.7563]
+  locationZoom.value = location ? 16 : 12
   dialogVisible.value = true
 
   await nextTick()
@@ -405,7 +433,7 @@ function closeRing(coords: number[][]) {
         <Button
           :label="t('addForbiddenZone')"
           icon="pi pi-plus"
-          @click="openCreate"
+          @click="() => openCreate()"
         />
       </div>
     </div>
@@ -503,8 +531,8 @@ function closeRing(coords: number[][]) {
           <BaseMap
             ref="baseMapRef"
             class="station-map"
-            :center="[100.5018, 13.7563]"
-            :zoom="12"
+            :center="createCenter"
+            :zoom="locationZoom"
             :show-zoom-control="true"
             :show-fit-control="false"
             :show-fullscreen-control="false"

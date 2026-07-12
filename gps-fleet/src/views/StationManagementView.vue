@@ -24,6 +24,7 @@ import CircleGeom from 'ol/geom/Circle'
 import { fromLonLat, toLonLat, transform } from 'ol/proj'
 import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style'
 import { isEmpty } from 'ol/extent'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
   getStations,
@@ -38,6 +39,8 @@ import {
 const confirm = useConfirm()
 const toast = useToast()
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const stations = ref<Station[]>([])
 const loading = ref(false)
@@ -115,7 +118,22 @@ const form = reactive<{
 
 onMounted(async () => {
   await loadStations()
+
+  const location = getCreateLocation()
+  if (location) {
+    await openCreate(location)
+    await router.replace({ name: 'stations' })
+  }
 })
+
+function getCreateLocation() {
+  if (route.query.create !== '1') return null
+
+  const lat = Number(route.query.lat)
+  const lng = Number(route.query.lng)
+
+  return isValidLatLng(lat, lng) ? { lat, lng } : null
+}
 
 function focusToCurrentShape(retry = 0) {
   map = baseMapRef.value?.getMap() || map
@@ -196,9 +214,15 @@ async function loadStations() {
   }
 }
 
-async function openCreate() {
+async function openCreate(location?: { lat: number; lng: number }) {
   editingId.value = null
   resetForm()
+
+  if (location) {
+    form.lat = location.lat
+    form.lng = location.lng
+  }
+
   dialogVisible.value = true
 
   await nextTick()
@@ -555,7 +579,7 @@ function onTypeChange() {
         <Button
             :label="t('addStation')"
             icon="pi pi-plus"
-            @click="openCreate"
+            @click="() => openCreate()"
         />
       </div>
     </div>

@@ -21,6 +21,7 @@ import {fromLonLat, toLonLat} from 'ol/proj'
 import {Style, Fill, Stroke, Circle as CircleStyle, Text} from 'ol/style'
 import { poiIconRegistry } from '@/constants/poiIcons'
 import Icon from 'ol/style/Icon'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
   getPois,
@@ -34,6 +35,8 @@ import {
 const confirm = useConfirm()
 const toast = useToast()
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const pois = ref<Poi[]>([])
 const loading = ref(false)
@@ -92,7 +95,25 @@ const form = reactive<{
 
 onMounted(async () => {
   await loadPois()
+
+  const location = getCreateLocation()
+  if (location) {
+    await openCreate(location)
+    await router.replace({ name: 'pois' })
+  }
 })
+
+function getCreateLocation() {
+  if (route.query.create !== '1') return null
+
+  const lat = Number(route.query.lat)
+  const lng = Number(route.query.lng)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+
+  return { lat, lng }
+}
 
 // function getPoiMapIcon(value?: string | null) {
 //   return poiIconRegistry[value as keyof typeof poiIconRegistry]?.emoji
@@ -126,14 +147,21 @@ async function loadPois() {
   }
 }
 
-async function openCreate() {
+async function openCreate(location?: { lat: number; lng: number }) {
   editingId.value = null
   resetForm()
+
+  if (location) {
+    form.lat = location.lat
+    form.lng = location.lng
+  }
+
   dialogVisible.value = true
 
   await nextTick()
   initMap()
   renderPreview()
+  if (location) focusCurrentPoi()
 }
 
 function focusCurrentPoi(retry = 0) {
@@ -333,7 +361,7 @@ function findPoiLabel(value?: string | null) {
         <Button
             :label="t('addPoi')"
             icon="pi pi-plus"
-            @click="openCreate"
+            @click="() => openCreate()"
         />
       </div>
     </div>
