@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, reactive, nextTick } from 'vue'
+import { onMounted, ref, reactive, nextTick } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import Dropdown from 'primevue/dropdown'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
@@ -17,6 +16,8 @@ import Map from 'ol/Map'
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 import Draw from 'ol/interaction/Draw'
+import Modify from 'ol/interaction/Modify'
+import Collection from 'ol/Collection'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
 import Polygon from 'ol/geom/Polygon'
@@ -52,6 +53,7 @@ const mapEl = ref<HTMLDivElement | null>(null)
 
 let map: Map | null = null
 let draw: Draw | null = null
+let circleModify: Modify | null = null
 
 const stationSource = new VectorSource()
 const previewSource = new VectorSource()
@@ -94,11 +96,6 @@ const previewLayer = new VectorLayer({
     }),
   }),
 })
-
-const typeOptions = computed(() => [
-  { label: t('circleRadius'), value: 'circle' },
-  { label: t('polygonArea'), value: 'polygon' },
-])
 
 const form = reactive<{
   station_name: string
@@ -186,18 +183,6 @@ function onMapReady(payload: { map: Map }) {
   if (!map.getLayers().getArray().includes(previewLayer)) {
     map.addLayer(previewLayer)
   }
-
-  map.on('click', (event) => {
-    if (form.station_type !== 'circle') return
-
-    const [lng, lat] = toLonLat(event.coordinate)
-
-    form.lng = Number(lng.toFixed(7))
-    form.lat = Number(lat.toFixed(7))
-
-    renderPreview()
-    focusToCurrentShape()
-  })
 
   setTimeout(() => {
     map?.updateSize()
@@ -336,13 +321,40 @@ function clearDraw() {
   }
 }
 
+function clearCircleModify() {
+  if (circleModify && map) {
+    map.removeInteraction(circleModify)
+  }
+  circleModify = null
+}
+
+function goToCoordinates() {
+  if (!isValidLatLng(form.lat, form.lng)) {
+    toast.add({
+      severity: 'warn',
+      summary: t('invalidCoordinates'),
+      life: 2500,
+    })
+    return
+  }
+
+  if (form.station_type === 'circle') {
+    if (!form.radius || form.radius <= 0) form.radius = 300
+    renderPreview()
+  }
+
+  map?.getView().animate({
+    center: fromLonLat([Number(form.lng), Number(form.lat)]),
+    zoom: 15,
+    duration: 700,
+  })
+}
+
 function startDrawPolygon() {
   if (!map) return
 
   form.station_type = 'polygon'
   form.polygon = []
-  form.lat = null
-  form.lng = null
   form.radius = null
 
   previewSource.clear()
@@ -380,6 +392,12 @@ function selectCircleMode() {
   form.polygon = []
   if (!form.radius) form.radius = 300
 
+  if (!isValidLatLng(form.lat, form.lng) && map) {
+    const [lng, lat] = toLonLat(map.getView().getCenter() || fromLonLat([100.5018, 13.7563]))
+    form.lng = Number(lng.toFixed(7))
+    form.lat = Number(lat.toFixed(7))
+  }
+
   clearDraw()
   renderPreview()
 }
@@ -391,10 +409,12 @@ function clearShape() {
   form.polygon = []
 
   clearDraw()
+  clearCircleModify()
   previewSource.clear()
 }
 
 function renderPreview() {
+  clearCircleModify()
   previewSource.clear()
 
   if (form.station_type === 'circle') {
@@ -409,13 +429,29 @@ function renderPreview() {
 
     if (!Number.isFinite(radius) || radius <= 0) return
 
-    previewSource.addFeature(
-        new Feature(new CircleGeom(center, radius))
-    )
+    const circleGeometry = new CircleGeom(center, radius)
+    const circleFeature = new Feature(circleGeometry)
+    const centerFeature = new Feature(new Point(center))
 
-    previewSource.addFeature(
-        new Feature(new Point(center))
-    )
+    previewSource.addFeatures([circleFeature, centerFeature])
+
+    if (map) {
+      circleModify = new Modify({
+        features: new Collection([circleFeature]),
+      })
+
+      circleGeometry.on('change', () => {
+        const updatedCenter = circleGeometry.getCenter()
+        const [lng, lat] = toLonLat(updatedCenter)
+
+        form.lng = Number(lng.toFixed(7))
+        form.lat = Number(lat.toFixed(7))
+        form.radius = Math.max(1, Math.round(circleGeometry.getRadius()))
+        centerFeature.setGeometry(new Point(updatedCenter))
+      })
+
+      map.addInteraction(circleModify)
+    }
   }
 
   if (form.station_type === 'polygon') {
@@ -450,7 +486,10 @@ async function saveStation() {
     return
   }
 
-  if (form.station_type === 'circle' && (!form.lat || !form.lng || !form.radius)) {
+  if (
+    form.station_type === 'circle' &&
+    (!isValidLatLng(form.lat, form.lng) || !form.radius || form.radius <= 0)
+  ) {
     toast.add({
       severity: 'warn',
       summary: t('stationShapeRequired'),
@@ -541,19 +580,6 @@ function parsePolygonWkt(wkt?: string | null) {
       .filter((p) => Number.isFinite(p.lng) && Number.isFinite(p.lat))
 }
 
-function onTypeChange() {
-  clearDraw()
-  previewSource.clear()
-
-  if (form.station_type === 'circle') {
-    form.polygon = []
-    if (!form.radius) form.radius = 300
-  } else {
-    form.lat = null
-    form.lng = null
-    form.radius = null
-  }
-}
 </script>
 
 <template>
@@ -643,7 +669,7 @@ function onTypeChange() {
         class="station-dialog"
         :style="{ width: '960px', maxWidth: '96vw' }"
         @show="onDialogShow"
-        @hide="clearDraw"
+        @hide="() => { clearDraw(); clearCircleModify() }"
     >
       <div class="form-grid">
         <div class="form-panel">
@@ -654,33 +680,53 @@ function onTypeChange() {
               class="w-full"
           />
 
-          <label>{{ t('type') }}</label>
-          <Dropdown
-              v-model="form.station_type"
-              :options="typeOptions"
-              optionLabel="label"
-              optionValue="value"
-              class="w-full"
-              @change="onTypeChange"
+          <div class="coordinate-grid">
+            <div>
+              <label for="station-lat">Lat</label>
+              <InputNumber
+                  v-model="form.lat"
+                  input-id="station-lat"
+                  class="w-full"
+                  :min="-90"
+                  :max="90"
+                  :min-fraction-digits="1"
+                  :max-fraction-digits="7"
+                  :use-grouping="false"
+              />
+            </div>
+
+            <div>
+              <label for="station-lng">Long</label>
+              <InputNumber
+                  v-model="form.lng"
+                  input-id="station-lng"
+                  class="w-full"
+                  :min="-180"
+                  :max="180"
+                  :min-fraction-digits="1"
+                  :max-fraction-digits="7"
+                  :use-grouping="false"
+              />
+            </div>
+          </div>
+
+          <Button
+              :label="t('goToCoordinates')"
+              icon="pi pi-map-marker"
+              severity="secondary"
+              outlined
+              @click="goToCoordinates"
           />
 
           <template v-if="form.station_type === 'circle'">
-            <label>{{ t('radiusMeters') }}</label>
-            <InputNumber
-                v-model="form.radius"
-                class="w-full"
-                :min="1"
-                suffix=" m"
-                @input="renderPreview"
-            />
-
             <div class="hint">
-              {{ t('clickMapForCenter') }}
+              {{ t('dragCircleHint') }}
             </div>
 
             <div class="coords">
               <div>Lat: {{ form.lat || '-' }}</div>
               <div>Lng: {{ form.lng || '-' }}</div>
+              <div>{{ t('radius') }}: {{ form.radius || '-' }} m</div>
             </div>
           </template>
 
@@ -698,16 +744,16 @@ function onTypeChange() {
             <Button
                 label="Circle"
                 icon="pi pi-circle"
-                severity="secondary"
-                outlined
+                :severity="form.station_type === 'circle' ? 'primary' : 'secondary'"
+                :outlined="form.station_type !== 'circle'"
                 @click="selectCircleMode"
             />
 
             <Button
                 :label="t('drawPolygon')"
                 icon="pi pi-pencil"
-                severity="secondary"
-                outlined
+                :severity="form.station_type === 'polygon' ? 'primary' : 'secondary'"
+                :outlined="form.station_type !== 'polygon'"
                 @click="startDrawPolygon"
             />
 
@@ -726,7 +772,7 @@ function onTypeChange() {
               ref="baseMapRef"
               class="station-map"
               :center="[100.5018, 13.7563]"
-              :zoom="12"
+              :zoom="15"
               :show-zoom-control="true"
               :show-fit-control="false"
               :show-fullscreen-control="false"
@@ -911,6 +957,25 @@ function onTypeChange() {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-color);
+}
+
+.coordinate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coordinate-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.coordinate-grid :deep(.p-inputnumber),
+.coordinate-grid :deep(.p-inputnumber-input) {
+  width: 100%;
+  min-width: 0;
 }
 
 .hint {
