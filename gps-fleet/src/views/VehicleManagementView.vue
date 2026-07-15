@@ -254,16 +254,6 @@
                   </div>
 
                   <div class="field">
-                    <label>{{ t('sequenceNo') }}</label>
-                    <InputNumber v-model="form.sequen_no"/>
-                  </div>
-
-                  <div class="field">
-                    <label>{{ t('driverLicense') }}</label>
-                    <InputText v-model="form.driver_id"/>
-                  </div>
-
-                  <div class="field">
                     <label>{{ t('driverName') }}</label>
                     <InputText v-model="form.driver_name"/>
                   </div>
@@ -305,8 +295,6 @@
                           :src="item.image"
                           :alt="item.label"
                       />
-
-                      <span>{{ item.label }}</span>
                     </button>
                   </div>
 
@@ -324,36 +312,6 @@
                     v-else-if="activeTab === 'fuel'"
                     class="form-grid"
                 >
-                  <div class="field">
-                    <label>{{ t('fuelMinVoltage') }}</label>
-                    <InputNumber
-                        v-model="form.fuel_min_vol"
-                        mode="decimal"
-                        :min-fraction-digits="2"
-                    />
-                  </div>
-
-                  <div class="field">
-                    <label>{{ t('fuelMaxVoltage') }}</label>
-                    <InputNumber
-                        v-model="form.fuel_max_vol"
-                        mode="decimal"
-                        :min-fraction-digits="2"
-                    />
-                  </div>
-
-                  <div class="field checkbox-field">
-                    <Checkbox
-                        v-model="form.input_fuel_reverse"
-                        binary
-                        input-id="reverse"
-                    />
-
-                    <label for="reverse">
-                      {{ t('inverseCalculation') }}
-                    </label>
-                  </div>
-
                   <div class="field">
                     <label>{{ t('kmPerLitre') }}</label>
                     <InputNumber
@@ -386,18 +344,6 @@
                         currency="THB"
                         locale="th-TH"
                     />
-                  </div>
-
-                  <div class="field checkbox-field">
-                    <Checkbox
-                        v-model="form.fuel_mont"
-                        binary
-                        input-id="fuelmont"
-                    />
-
-                    <label for="fuelmont">
-                      {{ t('fuelMonitor') }}
-                    </label>
                   </div>
 
                   <div class="actions full">
@@ -581,17 +527,18 @@ const selectedRows = ref<VehicleListItem[]>([])
 const selectedVehicle = ref<VehicleListItem | null>(null)
 
 const vehicleIcons = [
-  'default',
+  // 'default',
   'sedan',
   'van',
-  'bus',
   'truck1',
   'truck2',
   'truck3',
   'truck_danger',
+  'bus',
   'trailer',
   'backhole',
-  'boat',
+  'water_spray',
+  'water_truck',
   'cement',
   'crane',
   'crane_truck',
@@ -599,8 +546,8 @@ const vehicleIcons = [
   'dump',
   'excavator',
   'grader',
-  'water_spray',
-  'water_truck',
+
+  'boat',
 ].map((name) => ({
   label: name.replace(/_/g, ' '),
   value: name,
