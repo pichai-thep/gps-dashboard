@@ -13,6 +13,15 @@
     <div class="map-actions">
       <button v-if="showZoomControl" type="button" title="Zoom in" @click.stop="zoomIn">+</button>
 
+      <output
+          v-if="showZoomControl && showZoomLevel"
+          class="map-zoom-level"
+          title="Current zoom"
+          aria-label="Current zoom level"
+      >
+        {{ currentZoom }}
+      </output>
+
       <button v-if="showZoomControl" type="button" title="Zoom out" @click.stop="zoomOut">−</button>
 
       <button v-if="showFitControl" type="button" title="Fit map" @click.stop="emitFit">
@@ -112,6 +121,7 @@ const props = withDefaults(
       zoom?: number
 
       showZoomControl?: boolean
+      showZoomLevel?: boolean
       showFitControl?: boolean
       showFullscreenControl?: boolean
     }>(),
@@ -122,6 +132,7 @@ const props = withDefaults(
       zoom: 6,
 
       showZoomControl: true,
+      showZoomLevel: false,
       showFitControl: true,
       showFullscreenControl: true,
     }
@@ -150,6 +161,7 @@ const popupOverlay = shallowRef<Overlay | null>(null)
 
 const currentLayer = ref<MapLayerType>(props.layer)
 const isFullscreen = ref(false)
+const currentZoom = ref(formatZoom(props.zoom))
 
 
 const isGoogleMap = computed(() => {
@@ -206,6 +218,8 @@ onMounted(async () => {
     }),
   })
 
+  olMap.getView().on('change:resolution', updateCurrentZoom)
+
   providerLabelEl = document.createElement('div')
   providerLabelEl.className = 'ol-provider-label'
   providerLabelEl.innerText = providerLabel.value
@@ -253,6 +267,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  map.value?.getView().un('change:resolution', updateCurrentZoom)
   map.value?.setTarget(undefined)
   map.value = null
   window.removeEventListener('keydown', onKeydown)
@@ -269,6 +284,18 @@ function toggleFullscreen() {
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     isFullscreen.value = false
+  }
+}
+
+function formatZoom(zoom: number): number {
+  return Number(zoom.toFixed(1))
+}
+
+function updateCurrentZoom() {
+  const zoom = map.value?.getView().getZoom()
+
+  if (zoom !== undefined) {
+    currentZoom.value = formatZoom(zoom)
   }
 }
 
@@ -458,6 +485,28 @@ defineExpose({
 .map-actions button:hover {
   background: #22c55e;
   color: #052e16;
+}
+
+.map-zoom-level {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+
+  background: rgba(15, 23, 42, 0.9);
+  color: #ffffff;
+
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+
+  backdrop-filter: blur(12px);
+  pointer-events: none;
 }
 
 .map-controls {

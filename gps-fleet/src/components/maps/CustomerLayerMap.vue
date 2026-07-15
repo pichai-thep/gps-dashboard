@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  onBeforeUnmount,
   onMounted,
   ref,
   watch,
@@ -7,6 +8,7 @@ import {
 
 import type OlMap from 'ol/Map'
 import Feature from 'ol/Feature'
+import Overlay from 'ol/Overlay'
 
 import Point from 'ol/geom/Point'
 import Polygon from 'ol/geom/Polygon'
@@ -36,7 +38,13 @@ const { t } = useI18n()
 
 type OlMapLike = Pick<
     OlMap,
-    'getLayers' | 'addLayer' | 'removeLayer'
+    | 'addLayer'
+    | 'removeLayer'
+    | 'addOverlay'
+    | 'removeOverlay'
+    | 'on'
+    | 'un'
+    | 'forEachFeatureAtPixel'
 >
 
 const props = withDefaults(
@@ -67,6 +75,10 @@ const forbiddenLoaded = ref(false)
 const poiLoading = ref(false)
 const stationLoading = ref(false)
 const forbiddenLoading = ref(false)
+const hoverTooltipEl = ref<HTMLDivElement | null>(null)
+const hoverName = ref('')
+
+let hoverOverlay: Overlay | null = null
 
 // =========================
 // POI Layer
@@ -176,12 +188,71 @@ onMounted(() => {
   props.map.addLayer(stationLayer)
   props.map.addLayer(forbiddenZoneLayer)
 
+  if (hoverTooltipEl.value) {
+    hoverOverlay = new Overlay({
+      element: hoverTooltipEl.value,
+      positioning: 'bottom-center',
+      offset: [0, -12],
+      stopEvent: false,
+      insertFirst: false,
+    })
+
+    props.map.addOverlay(hoverOverlay)
+    props.map.on('singleclick', handleMapClick)
+  }
+
   poiLayer.setVisible(false)
   stationLayer.setVisible(false)
   forbiddenZoneLayer.setVisible(false)
 
   restoreLayerState()
 })
+
+onBeforeUnmount(() => {
+  props.map.un('singleclick', handleMapClick)
+
+  if (hoverOverlay) {
+    props.map.removeOverlay(hoverOverlay)
+    hoverOverlay = null
+  }
+
+  props.map.removeLayer(poiLayer)
+  props.map.removeLayer(stationLayer)
+  props.map.removeLayer(forbiddenZoneLayer)
+})
+
+function handleMapClick(event: any) {
+  if (!hoverOverlay) {
+    hideHoverTooltip()
+    return
+  }
+
+  const feature = props.map.forEachFeatureAtPixel(
+      event.pixel,
+      (candidate) =>
+          candidate.get('overlayName')
+              ? candidate
+              : undefined,
+      {
+        hitTolerance: 8,
+      },
+  )
+
+  const name = String(feature?.get('overlayName') ?? '').trim()
+
+  if (!name) {
+    hideHoverTooltip()
+    return
+  }
+
+  hoverName.value = name
+  hoverOverlay.setPosition(event.coordinate)
+}
+
+function hideHoverTooltip() {
+  hoverName.value = ''
+  hoverOverlay?.setPosition(undefined)
+}
 
 // =========================
 // Watch
@@ -300,6 +371,7 @@ function toggleLayer(
     layer: VectorLayer<any>,
     visible: boolean,
 ) {
+  hideHoverTooltip()
   layer.setVisible(visible)
 
 }
@@ -342,6 +414,11 @@ function renderPois(rows: any[]) {
         row.icon,
     )
 
+    feature.set(
+        'overlayName',
+        row.poi_name ?? row.name ?? '',
+    )
+
     source?.addFeature(feature)
   })
 }
@@ -380,14 +457,19 @@ function renderStations(
               row.radius || 300,
           )
 
-      source?.addFeature(
-          new Feature(
-              new CircleGeom(
-                  center,
-                  radius,
-              ),
+      const feature = new Feature(
+          new CircleGeom(
+              center,
+              radius,
           ),
       )
+
+      feature.set(
+          'overlayName',
+          row.station_name ?? row.name ?? '',
+      )
+
+      source?.addFeature(feature)
     }
 
     // =====================
@@ -408,18 +490,23 @@ function renderStations(
         return
       }
 
-      source?.addFeature(
-          new Feature(
-              new Polygon([
-                coords.map((p) =>
-                    fromLonLat([
-                      p.lng,
-                      p.lat,
-                    ]),
-                ),
-              ]),
-          ),
+      const feature = new Feature(
+          new Polygon([
+            coords.map((p) =>
+                fromLonLat([
+                  p.lng,
+                  p.lat,
+                ]),
+            ),
+          ]),
       )
+
+      feature.set(
+          'overlayName',
+          row.station_name ?? row.name ?? '',
+      )
+
+      source?.addFeature(feature)
     }
   })
 }
@@ -450,18 +537,23 @@ function renderForbiddenZones(
       return
     }
 
-    source?.addFeature(
-        new Feature(
-            new Polygon([
-              coords.map((p) =>
-                  fromLonLat([
-                    p.lng,
-                    p.lat,
-                  ]),
-              ),
-            ]),
-        ),
+    const feature = new Feature(
+        new Polygon([
+          coords.map((p) =>
+              fromLonLat([
+                p.lng,
+                p.lat,
+              ]),
+          ),
+        ]),
     )
+
+    feature.set(
+        'overlayName',
+        row.zone_name ?? row.name ?? '',
+    )
+
+    source?.addFeature(feature)
   })
 }
 
@@ -511,6 +603,14 @@ function parsePolygonWkt(
 
 <template>
   <div class="customer-layer-control">
+    <div
+        ref="hoverTooltipEl"
+        class="map-feature-tooltip"
+        :class="{ visible: hoverName }"
+    >
+      {{ hoverName }}
+    </div>
+
     <button
         type="button"
         class="layer-toggle-button"
@@ -548,6 +648,35 @@ function parsePolygonWkt(
 .customer-layer-control {
   position: relative;
   z-index: 49;
+}
+
+.map-feature-tooltip {
+  max-width: 240px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+
+  background: rgba(15, 23, 42, 0.94);
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.map-feature-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .layer-toggle-button {

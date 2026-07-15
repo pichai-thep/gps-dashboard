@@ -17,6 +17,7 @@ import Map from 'ol/Map'
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 import Draw from 'ol/interaction/Draw'
+import Modify from 'ol/interaction/Modify'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
 import Polygon from 'ol/geom/Polygon'
@@ -52,10 +53,14 @@ const mapEl = ref<HTMLDivElement | null>(null)
 
 let map: Map | null = null
 let draw: Draw | null = null
+let circleModify: Modify | null = null
+let activeCircleGeometry: CircleGeom | null = null
 
 const stationSource = new VectorSource()
 const previewSource = new VectorSource()
 const shouldFocusAfterMapReady = ref(false)
+const navigationLat = ref<number | null>(null)
+const navigationLng = ref<number | null>(null)
 
 const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null)
 
@@ -192,8 +197,10 @@ function onMapReady(payload: { map: Map }) {
 
     const [lng, lat] = toLonLat(event.coordinate)
 
-    form.lng = Number(lng.toFixed(7))
-    form.lat = Number(lat.toFixed(7))
+    form.lat = Number(lat.toFixed(8))
+    form.lng = Number(lng.toFixed(8))
+    navigationLat.value = form.lat
+    navigationLng.value = form.lng
 
     renderPreview()
     focusToCurrentShape()
@@ -221,6 +228,8 @@ async function openCreate(location?: { lat: number; lng: number }) {
   if (location) {
     form.lat = location.lat
     form.lng = location.lng
+    navigationLat.value = location.lat
+    navigationLng.value = location.lng
   }
 
   dialogVisible.value = true
@@ -231,6 +240,10 @@ async function openCreate(location?: { lat: number; lng: number }) {
 }
 
 function isValidLatLng(lat: any, lng: any) {
+  if (lat === null || lat === undefined || lng === null || lng === undefined) {
+    return false
+  }
+
   const nLat = Number(lat)
   const nLng = Number(lng)
 
@@ -240,8 +253,7 @@ function isValidLatLng(lat: any, lng: any) {
       nLat >= -90 &&
       nLat <= 90 &&
       nLng >= -180 &&
-      nLng <= 180 &&
-      !(nLat === 0 && nLng === 0)
+      nLng <= 180
   )
 }
 
@@ -292,6 +304,10 @@ async function openEdit(row: Station) {
 
   form.polygon = parsePolygonWkt(row.polygon_wkt)
 
+  const polygonCenter = getPointsCenter(form.polygon)
+  navigationLat.value = form.lat ?? polygonCenter?.lat ?? null
+  navigationLng.value = form.lng ?? polygonCenter?.lng ?? null
+
   dialogVisible.value = true
 
 }
@@ -310,6 +326,8 @@ function resetForm() {
   form.lng = null
   form.radius = 300
   form.polygon = []
+  navigationLat.value = null
+  navigationLng.value = null
   previewSource.clear()
 }
 
@@ -326,6 +344,8 @@ function initMap() {
     map.addLayer(previewLayer)
   }
 
+  initCircleModify()
+
   setTimeout(() => map?.updateSize(), 100)
 }
 
@@ -336,10 +356,84 @@ function clearDraw() {
   }
 }
 
-function startDrawPolygon() {
-  if (!map) return
+function initCircleModify() {
+  if (!map || circleModify) return
 
-  form.station_type = 'polygon'
+  circleModify = new Modify({
+    source: previewSource,
+    pixelTolerance: 12,
+    filter: (feature) =>
+        feature.getGeometry() instanceof CircleGeom,
+  })
+
+  circleModify.on('modifystart', (event) => {
+    const geometry = event.features
+        .getArray()
+        .map((feature) => feature.getGeometry())
+        .find((item): item is CircleGeom => item instanceof CircleGeom)
+
+    stopCircleGeometryTracking()
+
+    if (!geometry) return
+
+    activeCircleGeometry = geometry
+    activeCircleGeometry.on('change', syncActiveCircleGeometry)
+  })
+
+  circleModify.on('modifyend', () => {
+    syncActiveCircleGeometry()
+    stopCircleGeometryTracking()
+  })
+
+  map.addInteraction(circleModify)
+}
+
+function syncActiveCircleGeometry() {
+  if (!activeCircleGeometry) return
+
+  const center = activeCircleGeometry.getCenter()
+  const [lng, lat] = toLonLat(center)
+
+  form.lat = Number(lat.toFixed(8))
+  form.lng = Number(lng.toFixed(8))
+  form.radius = Number(activeCircleGeometry.getRadius().toFixed(1))
+  navigationLat.value = form.lat
+  navigationLng.value = form.lng
+
+  const centerFeature = previewSource
+      .getFeatures()
+      .find((feature) => feature.get('shapePart') === 'circle-center')
+
+  const centerGeometry = centerFeature?.getGeometry()
+
+  if (centerGeometry instanceof Point) {
+    centerGeometry.setCoordinates(center)
+  }
+}
+
+function stopCircleGeometryTracking() {
+  activeCircleGeometry?.un('change', syncActiveCircleGeometry)
+  activeCircleGeometry = null
+}
+
+function clearCircleModify() {
+  stopCircleGeometryTracking()
+
+  if (circleModify && map) {
+    map.removeInteraction(circleModify)
+  }
+
+  circleModify = null
+}
+
+function clearMapInteractions() {
+  clearDraw()
+  clearCircleModify()
+}
+
+function startDrawPolygon() {
+  if (!map || form.station_type !== 'polygon') return
+
   form.polygon = []
   form.lat = null
   form.lng = null
@@ -362,10 +456,14 @@ function startDrawPolygon() {
     form.polygon = coords.map((coord) => {
       const [lng, lat] = transform(coord, 'EPSG:3857', 'EPSG:4326')
       return {
-        lng: Number(lng.toFixed(7)),
-        lat: Number(lat.toFixed(7)),
+        lng: Number(lng.toFixed(8)),
+        lat: Number(lat.toFixed(8)),
       }
     })
+
+    const polygonCenter = getPointsCenter(form.polygon)
+    navigationLat.value = polygonCenter?.lat ?? navigationLat.value
+    navigationLng.value = polygonCenter?.lng ?? navigationLng.value
 
     clearDraw()
     setTimeout(() => {
@@ -375,23 +473,86 @@ function startDrawPolygon() {
   })
 }
 
-function selectCircleMode() {
-  form.station_type = 'circle'
-  form.polygon = []
-  if (!form.radius) form.radius = 300
-
-  clearDraw()
-  renderPreview()
-}
-
 function clearShape() {
   form.lat = null
   form.lng = null
   form.radius = form.station_type === 'circle' ? 300 : null
   form.polygon = []
 
+  if (form.station_type === 'circle') {
+    navigationLat.value = null
+    navigationLng.value = null
+  }
+
   clearDraw()
   previewSource.clear()
+}
+
+function getPointsCenter(points: Array<{ lat: number; lng: number }>) {
+  if (!points.length) return null
+
+  const total = points.reduce(
+      (result, point) => ({
+        lat: result.lat + Number(point.lat),
+        lng: result.lng + Number(point.lng),
+      }),
+      { lat: 0, lng: 0 },
+  )
+
+  return {
+    lat: total.lat / points.length,
+    lng: total.lng / points.length,
+  }
+}
+
+function goToCoordinates() {
+  if (!isValidLatLng(navigationLat.value, navigationLng.value)) {
+    toast.add({
+      severity: 'warn',
+      summary: t('invalidMapCoordinates'),
+      life: 2500,
+    })
+    return
+  }
+
+  navigationLat.value = Number(Number(navigationLat.value).toFixed(8))
+  navigationLng.value = Number(Number(navigationLng.value).toFixed(8))
+
+  if (form.station_type === 'circle') {
+    form.lat = navigationLat.value
+    form.lng = navigationLng.value
+    renderPreview()
+  }
+
+  initMap()
+  map?.getView().animate({
+    center: fromLonLat([
+      Number(navigationLng.value),
+      Number(navigationLat.value),
+    ]),
+    zoom: 16,
+    duration: 500,
+  })
+}
+
+function handleCoordinatePaste(event: ClipboardEvent) {
+  const text = event.clipboardData?.getData('text')?.trim()
+  const values = text?.match(/[-+]?(?:\d+(?:\.\d*)?|\.\d+)/g)
+
+  if (!values || values.length < 2) return
+
+  let lat = Number(values[0])
+  let lng = Number(values[1])
+
+  if (!isValidLatLng(lat, lng) && isValidLatLng(lng, lat)) {
+    [lat, lng] = [lng, lat]
+  }
+
+  event.preventDefault()
+
+  navigationLat.value = lat
+  navigationLng.value = lng
+  nextTick(goToCoordinates)
 }
 
 function renderPreview() {
@@ -409,13 +570,18 @@ function renderPreview() {
 
     if (!Number.isFinite(radius) || radius <= 0) return
 
-    previewSource.addFeature(
+    const circleFeature =
         new Feature(new CircleGeom(center, radius))
-    )
 
-    previewSource.addFeature(
+    const centerFeature =
         new Feature(new Point(center))
-    )
+
+    centerFeature.set('shapePart', 'circle-center')
+
+    previewSource.addFeatures([
+      circleFeature,
+      centerFeature,
+    ])
   }
 
   if (form.station_type === 'polygon') {
@@ -548,10 +714,17 @@ function onTypeChange() {
   if (form.station_type === 'circle') {
     form.polygon = []
     if (!form.radius) form.radius = 300
+
+    if (isValidLatLng(navigationLat.value, navigationLng.value)) {
+      form.lat = navigationLat.value
+      form.lng = navigationLng.value
+      renderPreview()
+    }
   } else {
     form.lat = null
     form.lng = null
     form.radius = null
+    startDrawPolygon()
   }
 }
 </script>
@@ -643,7 +816,7 @@ function onTypeChange() {
         class="station-dialog"
         :style="{ width: '960px', maxWidth: '96vw' }"
         @show="onDialogShow"
-        @hide="clearDraw"
+        @hide="clearMapInteractions"
     >
       <div class="form-grid">
         <div class="form-panel">
@@ -678,10 +851,6 @@ function onTypeChange() {
               {{ t('clickMapForCenter') }}
             </div>
 
-            <div class="coords">
-              <div>Lat: {{ form.lat || '-' }}</div>
-              <div>Lng: {{ form.lng || '-' }}</div>
-            </div>
           </template>
 
           <template v-else>
@@ -694,16 +863,49 @@ function onTypeChange() {
             </div>
           </template>
 
+          <div class="coordinate-fields">
+            <div class="coordinate-field">
+              <label for="station-latitude">{{ t('latitude') }}</label>
+              <InputNumber
+                  inputId="station-latitude"
+                  v-model="navigationLat"
+                  class="w-full"
+                  :min="-90"
+                  :max="90"
+                  :maxFractionDigits="8"
+                  :useGrouping="false"
+                  placeholder="13.75630000"
+                  @paste="handleCoordinatePaste"
+                  @keyup.enter="goToCoordinates"
+              />
+            </div>
+
+            <div class="coordinate-field">
+              <label for="station-longitude">{{ t('longitude') }}</label>
+              <InputNumber
+                  inputId="station-longitude"
+                  v-model="navigationLng"
+                  class="w-full"
+                  :min="-180"
+                  :max="180"
+                  :maxFractionDigits="8"
+                  :useGrouping="false"
+                  placeholder="100.50180000"
+                  @paste="handleCoordinatePaste"
+                  @keyup.enter="goToCoordinates"
+              />
+            </div>
+          </div>
+
           <div class="tool-buttons">
             <Button
-                label="Circle"
-                icon="pi pi-circle"
-                severity="secondary"
-                outlined
-                @click="selectCircleMode"
+                :label="t('goToCoordinates')"
+                icon="pi pi-crosshairs"
+                @click="goToCoordinates"
             />
 
             <Button
+                v-if="form.station_type === 'polygon'"
                 :label="t('drawPolygon')"
                 icon="pi pi-pencil"
                 severity="secondary"
@@ -938,6 +1140,19 @@ function onTypeChange() {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 6px;
+}
+
+.coordinate-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.coordinate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 /* =========================

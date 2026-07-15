@@ -3,6 +3,7 @@ import {onMounted, ref, reactive, nextTick} from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
@@ -15,6 +16,7 @@ import BaseMap from '@/components/maps/BaseMap.vue'
 import Map from 'ol/Map'
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
+import Modify from 'ol/interaction/Modify'
 import Feature from 'ol/Feature'
 import Point from 'ol/geom/Point'
 import {fromLonLat, toLonLat} from 'ol/proj'
@@ -55,6 +57,7 @@ const poiIconOptions = Object.entries(poiIconRegistry).map(
 )
 
 let map: Map | null = null
+let pointModify: Modify | null = null
 
 const previewSource = new VectorSource()
 
@@ -109,8 +112,7 @@ function getCreateLocation() {
   const lat = Number(route.query.lat)
   const lng = Number(route.query.lng)
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+  if (!isValidPoiLocation(lat, lng)) return null
 
   return { lat, lng }
 }
@@ -172,7 +174,7 @@ function focusCurrentPoi(retry = 0) {
     return
   }
 
-  if (form.lng === null || form.lat === null) return
+  if (!isValidPoiLocation(form.lat, form.lng)) return
 
   setTimeout(() => {
     map?.updateSize()
@@ -188,8 +190,12 @@ async function openEdit(row: Poi) {
   editingId.value = row.poi_id
   form.poi_name = row.poi_name
   form.icon = row.icon || null
-  form.lat = row.lat ? Number(row.lat) : null
-  form.lng = row.lng ? Number(row.lng) : null
+  form.lat = row.lat !== null && row.lat !== undefined
+      ? Number(row.lat)
+      : null
+  form.lng = row.lng !== null && row.lng !== undefined
+      ? Number(row.lng)
+      : null
 
   dialogVisible.value = true
 
@@ -216,6 +222,8 @@ function initMap() {
     map.addLayer(previewLayer)
   }
 
+  initPointModify()
+
   setTimeout(() => map?.updateSize(), 100)
 }
 
@@ -226,11 +234,13 @@ function onMapReady(payload: { map: Map }) {
     map.addLayer(previewLayer)
   }
 
+  initPointModify()
+
   map.on('click', (event) => {
     const [lng, lat] = toLonLat(event.coordinate)
 
-    form.lng = Number(lng.toFixed(7))
-    form.lat = Number(lat.toFixed(7))
+    form.lng = Number(lng.toFixed(8))
+    form.lat = Number(lat.toFixed(8))
 
     renderPreview()
   })
@@ -243,14 +253,133 @@ function onMapReady(payload: { map: Map }) {
     }
   }, 100)
 }
+
+function initPointModify() {
+  if (!map || pointModify) return
+
+  pointModify = new Modify({
+    source: previewSource,
+    pixelTolerance: 18,
+    hitDetection: previewLayer,
+    filter: (feature) => feature.getGeometry() instanceof Point,
+  })
+
+  pointModify.on('modifyend', (event) => {
+    const geometry = event.features
+        .getArray()
+        .map((feature) => feature.getGeometry())
+        .find((item): item is Point => item instanceof Point)
+
+    if (!geometry) return
+
+    const [lng, lat] = toLonLat(geometry.getCoordinates())
+
+    form.lng = Number(lng.toFixed(8))
+    form.lat = Number(lat.toFixed(8))
+  })
+
+  map.addInteraction(pointModify)
+}
+
+function clearPointModify() {
+  if (pointModify && map) {
+    map.removeInteraction(pointModify)
+  }
+
+  pointModify = null
+}
+
+function onDialogShow() {
+  initMap()
+  renderPreview()
+  focusCurrentPoi()
+}
+
 function renderPreview() {
   previewSource.clear()
 
-  if (form.lng === null || form.lat === null) return
+  if (!isValidPoiLocation(form.lat, form.lng)) return
 
   previewSource.addFeature(
-      new Feature(new Point(fromLonLat([form.lng, form.lat]))),
+      new Feature(new Point(fromLonLat([
+        Number(form.lng),
+        Number(form.lat),
+      ]))),
   )
+}
+
+function isValidPoiLocation(lat: unknown, lng: unknown) {
+  if (lat === null || lat === undefined || lng === null || lng === undefined) {
+    return false
+  }
+
+  const latitude = Number(lat)
+  const longitude = Number(lng)
+
+  return (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180
+  )
+}
+
+function goToCoordinates() {
+  if (!isValidPoiLocation(form.lat, form.lng)) {
+    toast.add({
+      severity: 'warn',
+      summary: t('invalidPoiCoordinates'),
+      life: 2500,
+    })
+    return
+  }
+
+  form.lat = Number(Number(form.lat).toFixed(8))
+  form.lng = Number(Number(form.lng).toFixed(8))
+
+  renderPreview()
+  focusCurrentPoi()
+}
+
+function handleCoordinatePaste(event: ClipboardEvent) {
+  const text = event.clipboardData?.getData('text')?.trim()
+
+  if (!text) return
+
+  const values = text.match(/[-+]?(?:\d+(?:\.\d*)?|\.\d+)/g)
+
+  // Keep the browser's normal paste behavior when copying one value
+  // into an individual latitude or longitude field.
+  if (!values || values.length < 2) return
+
+  let latitude = Number(values[0])
+  let longitude = Number(values[1])
+
+  // Also accept coordinate sources that use longitude, latitude order.
+  if (
+      !isValidPoiLocation(latitude, longitude) &&
+      isValidPoiLocation(longitude, latitude)
+  ) {
+    [latitude, longitude] = [longitude, latitude]
+  }
+
+  event.preventDefault()
+
+  if (!isValidPoiLocation(latitude, longitude)) {
+    toast.add({
+      severity: 'warn',
+      summary: t('invalidPoiCoordinates'),
+      life: 2500,
+    })
+    return
+  }
+
+  form.lat = Number(latitude.toFixed(8))
+  form.lng = Number(longitude.toFixed(8))
+
+  nextTick(goToCoordinates)
 }
 
 function clearPoint() {
@@ -269,7 +398,7 @@ async function savePoi() {
     return
   }
 
-  if (!form.lat || !form.lng) {
+  if (!isValidPoiLocation(form.lat, form.lng)) {
     toast.add({
       severity: 'warn',
       summary: t('poiLocationRequired'),
@@ -429,7 +558,8 @@ function findPoiLabel(value?: string | null) {
         :header="editingId ? t('editPoi') : t('addPoi')"
         class="station-dialog"
         :style="{ width: '900px', maxWidth: '96vw' }"
-        @show="focusCurrentPoi"
+        @show="onDialogShow"
+        @hide="clearPointModify"
     >
       <div class="form-grid">
         <div class="form-panel">
@@ -490,12 +620,47 @@ function findPoiLabel(value?: string | null) {
             {{ t('clickMapForPoi') }}
           </div>
 
-          <div class="coords">
-            <div>Lat: {{ form.lat || '-' }}</div>
-            <div>Lng: {{ form.lng || '-' }}</div>
+          <div class="coordinate-fields">
+            <div class="coordinate-field">
+              <label for="poi-latitude">{{ t('latitude') }}</label>
+              <InputNumber
+                  inputId="poi-latitude"
+                  v-model="form.lat"
+                  class="w-full"
+                  :min="-90"
+                  :max="90"
+                  :maxFractionDigits="8"
+                  :useGrouping="false"
+                  placeholder="13.75630000"
+                  @paste="handleCoordinatePaste"
+                  @keyup.enter="goToCoordinates"
+              />
+            </div>
+
+            <div class="coordinate-field">
+              <label for="poi-longitude">{{ t('longitude') }}</label>
+              <InputNumber
+                  inputId="poi-longitude"
+                  v-model="form.lng"
+                  class="w-full"
+                  :min="-180"
+                  :max="180"
+                  :maxFractionDigits="8"
+                  :useGrouping="false"
+                  placeholder="100.50180000"
+                  @paste="handleCoordinatePaste"
+                  @keyup.enter="goToCoordinates"
+              />
+            </div>
           </div>
 
           <div class="tool-buttons">
+            <Button
+                :label="t('goToCoordinates')"
+                icon="pi pi-crosshairs"
+                @click="goToCoordinates"
+            />
+
             <Button
                 :label="t('clearLocation')"
                 icon="pi pi-times"
@@ -717,6 +882,19 @@ function findPoiLabel(value?: string | null) {
   color: var(--text-color);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.coordinate-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.coordinate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .tool-buttons {

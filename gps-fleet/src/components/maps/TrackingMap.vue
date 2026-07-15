@@ -1,6 +1,7 @@
 <template>
   <BaseMap
       ref="baseMapRef"
+      show-zoom-level
       :zoom="10"
 
       @ready="handleMapReady"

@@ -2,6 +2,7 @@
   <BaseMap
       ref="baseMapRef"
       :zoom="10"
+      show-zoom-level
       @ready="handleMapReady"
       @fit="fitHistory"
   >
@@ -526,7 +527,23 @@ function createHistoryStyle(
   const isEnd =
       index === total - 1
 
+  const endpointLabel =
+      isStart
+          ? {
+            text: 'START',
+            color: '#16a34a',
+          }
+          : {
+            text: 'END',
+            color: '#f59e0b',
+          }
+
   return new Style({
+
+    zIndex:
+        isStart || isEnd
+            ? 10
+            : 1,
 
     image: new Icon({
 
@@ -537,7 +554,7 @@ function createHistoryStyle(
 
       scale:
           isStart || isEnd
-              ? 0.62
+              ? 0.72
               : 0.55,
 
       anchor: [0.5, 0.5],
@@ -553,15 +570,12 @@ function createHistoryStyle(
         isStart || isEnd
             ? new Text({
 
-              text:
-                  isStart
-                      ? 'START'
-                      : 'END',
+              text: endpointLabel.text,
 
-              offsetY: -24,
+              offsetY: -32,
 
               font:
-                  '700 11px system-ui',
+                  '800 15px system-ui',
 
               fill:
                   new Fill({
@@ -571,8 +585,21 @@ function createHistoryStyle(
               stroke:
                   new Stroke({
                     color: '#111827',
-                    width: 4,
+                    width: 2,
                   }),
+
+              backgroundFill:
+                  new Fill({
+                    color: endpointLabel.color,
+                  }),
+
+              backgroundStroke:
+                  new Stroke({
+                    color: '#ffffff',
+                    width: 3,
+                  }),
+
+              padding: [5, 9, 5, 9],
             })
             : undefined,
   })

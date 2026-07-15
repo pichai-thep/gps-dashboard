@@ -3,6 +3,7 @@ import { onMounted, ref, reactive, nextTick } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ConfirmDialog from 'primevue/confirmdialog'
@@ -43,6 +44,8 @@ const saving = ref(false)
 const editingId = ref<number | null>(null)
 const createCenter = ref<[number, number]>([100.5018, 13.7563])
 const locationZoom = ref(12)
+const navigationLat = ref<number | null>(null)
+const navigationLng = ref<number | null>(null)
 
 const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null)
 
@@ -93,8 +96,7 @@ function getCreateLocation() {
   const lat = Number(route.query.lat)
   const lng = Number(route.query.lng)
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+  if (!isValidMapLocation(lat, lng)) return null
 
   return { lat, lng }
 }
@@ -131,6 +133,8 @@ async function openCreate(location?: { lat: number; lng: number }) {
       ? [location.lng, location.lat]
       : [100.5018, 13.7563]
   locationZoom.value = location ? 16 : 12
+  navigationLat.value = location?.lat ?? null
+  navigationLng.value = location?.lng ?? null
   dialogVisible.value = true
 
   await nextTick()
@@ -209,12 +213,18 @@ async function openEdit(row: ForbiddenZone) {
   form.zone_name = row.zone_name
   form.polygon = parsePolygonWkt(row.polygon_wkt)
 
+  const polygonCenter = getPointsCenter(form.polygon)
+  navigationLat.value = polygonCenter?.lat ?? null
+  navigationLng.value = polygonCenter?.lng ?? null
+
   dialogVisible.value = true
 }
 
 function resetForm() {
   form.zone_name = ''
   form.polygon = []
+  navigationLat.value = null
+  navigationLng.value = null
 
   clearDraw()
   previewSource.clear()
@@ -260,11 +270,15 @@ function startDrawPolygon() {
         const [lng, lat] = transform(coord, 'EPSG:3857', 'EPSG:4326')
 
         return {
-          lng: Number(lng.toFixed(7)),
-          lat: Number(lat.toFixed(7)),
+          lng: Number(lng.toFixed(8)),
+          lat: Number(lat.toFixed(8)),
         }
       }),
     )
+
+    const polygonCenter = getPointsCenter(form.polygon)
+    navigationLat.value = polygonCenter?.lat ?? navigationLat.value
+    navigationLng.value = polygonCenter?.lng ?? navigationLng.value
 
     clearDraw()
   })
@@ -275,6 +289,85 @@ function clearShape() {
 
   clearDraw()
   previewSource.clear()
+}
+
+function isValidMapLocation(lat: unknown, lng: unknown) {
+  if (lat === null || lat === undefined || lng === null || lng === undefined) {
+    return false
+  }
+
+  const latitude = Number(lat)
+  const longitude = Number(lng)
+
+  return (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180
+  )
+}
+
+function getPointsCenter(points: Array<{ lat: number; lng: number }>) {
+  if (!points.length) return null
+
+  const total = points.reduce(
+      (result, point) => ({
+        lat: result.lat + Number(point.lat),
+        lng: result.lng + Number(point.lng),
+      }),
+      { lat: 0, lng: 0 },
+  )
+
+  return {
+    lat: total.lat / points.length,
+    lng: total.lng / points.length,
+  }
+}
+
+function goToCoordinates() {
+  if (!isValidMapLocation(navigationLat.value, navigationLng.value)) {
+    toast.add({
+      severity: 'warn',
+      summary: t('invalidMapCoordinates'),
+      life: 2500,
+    })
+    return
+  }
+
+  navigationLat.value = Number(Number(navigationLat.value).toFixed(8))
+  navigationLng.value = Number(Number(navigationLng.value).toFixed(8))
+
+  initMap()
+  map?.getView().animate({
+    center: fromLonLat([
+      Number(navigationLng.value),
+      Number(navigationLat.value),
+    ]),
+    zoom: 16,
+    duration: 500,
+  })
+}
+
+function handleCoordinatePaste(event: ClipboardEvent) {
+  const text = event.clipboardData?.getData('text')?.trim()
+  const values = text?.match(/[-+]?(?:\d+(?:\.\d*)?|\.\d+)/g)
+
+  if (!values || values.length < 2) return
+
+  let lat = Number(values[0])
+  let lng = Number(values[1])
+
+  if (!isValidMapLocation(lat, lng) && isValidMapLocation(lng, lat)) {
+    [lat, lng] = [lng, lat]
+  }
+
+  event.preventDefault()
+
+  navigationLat.value = lat
+  navigationLng.value = lng
+  nextTick(goToCoordinates)
 }
 
 function renderPreview(fit = false) {
@@ -508,7 +601,47 @@ function closeRing(coords: number[][]) {
             {{ t('pointsCount') }}: {{ form.polygon.length }}
           </div>
 
+          <div class="coordinate-fields">
+            <div class="coordinate-field">
+              <label for="forbidden-latitude">{{ t('latitude') }}</label>
+              <InputNumber
+                  inputId="forbidden-latitude"
+                  v-model="navigationLat"
+                  class="w-full"
+                  :min="-90"
+                  :max="90"
+                  :maxFractionDigits="8"
+                  :useGrouping="false"
+                  placeholder="13.75630000"
+                  @paste="handleCoordinatePaste"
+                  @keyup.enter="goToCoordinates"
+              />
+            </div>
+
+            <div class="coordinate-field">
+              <label for="forbidden-longitude">{{ t('longitude') }}</label>
+              <InputNumber
+                  inputId="forbidden-longitude"
+                  v-model="navigationLng"
+                  class="w-full"
+                  :min="-180"
+                  :max="180"
+                  :maxFractionDigits="8"
+                  :useGrouping="false"
+                  placeholder="100.50180000"
+                  @paste="handleCoordinatePaste"
+                  @keyup.enter="goToCoordinates"
+              />
+            </div>
+          </div>
+
           <div class="tool-buttons">
+            <Button
+              :label="t('goToCoordinates')"
+              icon="pi pi-crosshairs"
+              @click="goToCoordinates"
+            />
+
             <Button
               :label="t('drawPolygon')"
               icon="pi pi-pencil"
@@ -714,6 +847,19 @@ function closeRing(coords: number[][]) {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 6px;
+}
+
+.coordinate-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.coordinate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .map-panel {
