@@ -6,10 +6,12 @@ export default {
     dltDrivingWithoutCard: 'DLT Driving Without Card',
     dltVehicleList: 'Vehicles With Card Data',
     dltVehicleListSubtitle: 'Shows vehicles that have data in track1 or track3',
+    hideCardDetails: 'Hide details',
     inStation: 'In Station',
     lastUpdated: 'Last updated',
     noDltVehicles: 'No vehicles with track1 or track3 data found',
     outStation: 'Out Station',
+    showCardDetails: 'Show details',
     vehicleStatus: 'Vehicle Status',
     viewAll: 'View all',
 }

@@ -6,10 +6,12 @@ export default {
     dltDrivingWithoutCard: 'ขับโดยไม่รูดบัตร DLT',
     dltVehicleList: 'รายชื่อรถที่มีข้อมูลบัตร',
     dltVehicleListSubtitle: 'แสดงคันที่มีข้อมูลใน track1 หรือ track3',
+    hideCardDetails: 'ซ่อนข้อมูล',
     inStation: 'อยู่ในสถานี',
     lastUpdated: 'อัปเดตล่าสุด',
     noDltVehicles: 'ไม่พบรถที่มีข้อมูลใน track1 หรือ track3',
     outStation: 'อยู่นอกสถานี',
+    showCardDetails: 'แสดงข้อมูล',
     vehicleStatus: 'สถานะรถ',
     viewAll: 'ดูทั้งหมด',
 }

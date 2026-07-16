@@ -179,51 +179,71 @@
             <p>{{ t('dltVehicleListSubtitle') }}</p>
           </div>
 
-          <button
-              class="text-button"
-              type="button"
-              @click="goToTracking(undefined, { dlt_synch: 1 })"
-          >
-            {{ t('viewAll') }}
-          </button>
-        </div>
-
-        <div v-if="summary.driver_card_vehicles.length" class="dlt-table-wrap">
-          <table class="dlt-table">
-            <thead>
-            <tr>
-              <th>{{ t('vehicle') }}</th>
-              <th>{{ t('licenseName') }}</th>
-              <th>{{ t('licenseNo') }}</th>
-              <th>{{ t('status') }}</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr
-                v-for="(vehicle, index) in summary.driver_card_vehicles"
-                :key="vehicle.imei || vehicle.plate_no || index"
+          <div class="dlt-list-actions">
+            <button
+                v-if="isDltListExpanded"
+                class="text-button"
+                type="button"
                 @click="goToTracking(undefined, { dlt_synch: 1 })"
             >
-              <td>
-                <div class="vehicle-name">{{ vehicle.plate_no || '-' }}</div>
-                <div v-if="vehicle.driver_name" class="vehicle-subtitle">
-                  {{ vehicle.driver_name }}
-                </div>
-              </td>
-              <td>{{ vehicle.license_name || '-' }}</td>
-              <td>{{ vehicle.license_no || '-' }}</td>
-              <td>
-                <span class="status-pill" :class="vehicle.status">
-                  {{ formatStatus(vehicle.status) }}
-                </span>
-              </td>
-            </tr>
-            </tbody>
-          </table>
+              {{ t('viewAll') }}
+            </button>
+
+            <button
+                class="collapse-button"
+                type="button"
+                :aria-expanded="isDltListExpanded"
+                aria-controls="dlt-card-vehicle-list"
+                @click="isDltListExpanded = !isDltListExpanded"
+            >
+              <span>{{ t(isDltListExpanded ? 'hideCardDetails' : 'showCardDetails') }}</span>
+              <i
+                  class="pi pi-chevron-down"
+                  :class="{ 'is-expanded': isDltListExpanded }"
+                  aria-hidden="true"
+              ></i>
+            </button>
+          </div>
         </div>
 
-        <div v-else class="empty-state">
-          {{ t('noDltVehicles') }}
+        <div v-show="isDltListExpanded" id="dlt-card-vehicle-list">
+          <div v-if="summary.driver_card_vehicles.length" class="dlt-table-wrap">
+            <table class="dlt-table">
+              <thead>
+              <tr>
+                <th>{{ t('vehicle') }}</th>
+                <th>{{ t('licenseName') }}</th>
+                <th>{{ t('licenseNo') }}</th>
+                <th>{{ t('status') }}</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr
+                  v-for="(vehicle, index) in summary.driver_card_vehicles"
+                  :key="vehicle.imei || vehicle.plate_no || index"
+                  @click="goToTracking(undefined, { dlt_synch: 1 })"
+              >
+                <td>
+                  <div class="vehicle-name">{{ vehicle.plate_no || '-' }}</div>
+                  <div v-if="vehicle.driver_name" class="vehicle-subtitle">
+                    {{ vehicle.driver_name }}
+                  </div>
+                </td>
+                <td>{{ vehicle.license_name || '-' }}</td>
+                <td>{{ vehicle.license_no || '-' }}</td>
+                <td>
+                  <span class="status-pill" :class="vehicle.status">
+                    {{ formatStatus(vehicle.status) }}
+                  </span>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-else class="empty-state">
+            {{ t('noDltVehicles') }}
+          </div>
         </div>
       </div>
     </section>
@@ -329,6 +349,7 @@ const summary = ref<DashboardSummary>({
 
 const loading = ref(false)
 const lastUpdated = ref('')
+const isDltListExpanded = ref(false)
 const router = useRouter();
 const { locale, t } = useI18n()
 
@@ -684,10 +705,9 @@ onUnmounted(() => {
 
 .dlt-list-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.9rem;
 }
 
 .dlt-list-header h3 {
@@ -701,6 +721,12 @@ onUnmounted(() => {
   margin: 0.25rem 0 0;
   color: #94a3b8;
   font-size: 0.88rem;
+}
+
+.dlt-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .text-button {
@@ -718,7 +744,40 @@ onUnmounted(() => {
   background: rgba(15, 118, 110, 0.36);
 }
 
+.collapse-button {
+  min-height: 34px;
+  padding: 0 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.72);
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+}
+
+.collapse-button:hover {
+  border-color: rgba(148, 163, 184, 0.48);
+  background: rgba(51, 65, 85, 0.82);
+}
+
+.collapse-button i {
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.collapse-button i.is-expanded {
+  transform: rotate(180deg);
+}
+
 .dlt-table-wrap {
+  margin-top: 0.9rem;
   max-height: 320px;
   overflow: auto;
 }
@@ -807,6 +866,7 @@ onUnmounted(() => {
 }
 
 .empty-state {
+  margin-top: 0.9rem;
   padding: 1.25rem;
   border: 1px dashed rgba(148, 163, 184, 0.24);
   border-radius: 8px;
@@ -942,10 +1002,15 @@ onUnmounted(() => {
 
   .dlt-list-header {
     flex-direction: column;
+    align-items: flex-start;
   }
 
-  .text-button {
+  .dlt-list-actions {
     width: 100%;
+  }
+
+  .dlt-list-actions > button {
+    flex: 1;
   }
 }
 </style>
