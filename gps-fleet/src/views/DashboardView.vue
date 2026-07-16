@@ -184,7 +184,7 @@
                 v-if="isDltListExpanded"
                 class="text-button"
                 type="button"
-                @click="goToTracking(undefined, { dlt_synch: 1 })"
+                @click="goToTracking('run', { dlt_synch: 1 })"
             >
               {{ t('viewAll') }}
             </button>
@@ -207,7 +207,7 @@
         </div>
 
         <div v-show="isDltListExpanded" id="dlt-card-vehicle-list">
-          <div v-if="summary.driver_card_vehicles.length" class="dlt-table-wrap">
+          <div v-if="runningDriverCardVehicles.length" class="dlt-table-wrap">
             <table class="dlt-table">
               <thead>
               <tr>
@@ -219,9 +219,9 @@
               </thead>
               <tbody>
               <tr
-                  v-for="(vehicle, index) in summary.driver_card_vehicles"
+                  v-for="(vehicle, index) in runningDriverCardVehicles"
                   :key="vehicle.imei || vehicle.plate_no || index"
-                  @click="goToTracking(undefined, { dlt_synch: 1 })"
+                  @click="goToTracking('run', { dlt_synch: 1 })"
               >
                 <td>
                   <div class="vehicle-name">{{ vehicle.plate_no || '-' }}</div>
@@ -370,6 +370,10 @@ const dltNoCardPercent = computed(() => {
   if (!summary.value.dlt_synch_total) return '0%'
 
   return `${((summary.value.driving_without_card / summary.value.dlt_synch_total) * 100).toFixed(1)}%`
+})
+
+const runningDriverCardVehicles = computed(() => {
+  return summary.value.driver_card_vehicles.filter((vehicle) => vehicle.status === 'run')
 })
 
 function goToTracking(status?: string, extraQuery: Record<string, string | number> = {}) {

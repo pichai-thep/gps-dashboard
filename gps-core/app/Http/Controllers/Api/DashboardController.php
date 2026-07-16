@@ -35,8 +35,12 @@ class DashboardController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
+//        $stmt = $pdo->prepare("
+//            CALL sp_current_track_kw5   (?, ?, ?, ?, ?, ?, ?, ?, ?)
+//        ");
+
         $stmt = $pdo->prepare("
-            CALL sp_current_track_kw5(?, ?, ?, ?, ?, ?, ?, ?, ?)
+            CALL sp_webapi_current_track(?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -85,7 +89,7 @@ class DashboardController extends Controller
                 $dltSynchTotal++;
             }
 
-            if ($hasDriverCardData) {
+            if ($hasDriverCardData && $status === 'run') {
                 $driverCardVehicles[] = [
                     'imei' => $row->imei ?? null,
                     'plate_no' => $row->plate_no ?? null,
