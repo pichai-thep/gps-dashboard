@@ -88,6 +88,7 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
         Route::get('/daily-summary', [ReportController::class, 'dailySummary']);
         Route::get('/status-summary', [ReportController::class, 'statusSummary']);
         Route::get('/station-summary', [ReportController::class, 'stationSummary']);
+        Route::get('/legacy/{report}', [ReportController::class, 'legacyReport']);
 
         Route::get('/options/groups', [ReportController::class, 'groupOptions']);
         Route::get('/options/vehicles', [ReportController::class, 'vehicleOptions']);

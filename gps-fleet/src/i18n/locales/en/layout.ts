@@ -12,6 +12,8 @@ export default {
     myStations: 'My Stations',
     myVehicles: 'My Vehicles',
     stationVisit: 'Station Visit',
+    summaryReports: 'Summary Reports',
+    generalReports: 'General Reports',
     statusTimeline: 'Status Timeline',
     tracking: 'Tracking',
     vehicleManagement: 'Vehicle Management',

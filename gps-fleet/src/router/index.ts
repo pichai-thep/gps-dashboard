@@ -18,6 +18,7 @@ import HistoryView from '@/views/HistoryView.vue'
 import NotificationsView from '@/views/NotificationsView.vue'
 import StationManagementView from '@/views/StationManagementView.vue'
 import VehicleManagementView from "@/views/VehicleManagementView.vue";
+import { legacyReports } from '@/views/reports/legacyReportDefinitions'
 
 
 
@@ -142,6 +143,16 @@ const router = createRouter({
                         title: 'Station Visit Report',
                     },
                 },
+                ...legacyReports.map((report) => ({
+                    path: report.path,
+                    name: `LegacyReport-${report.key}`,
+                    component: () => import('@/views/reports/LegacyReportView.vue'),
+                    meta: {
+                        requiresAuth: true,
+                        title: report.title.en,
+                        reportKey: report.key,
+                    },
+                })),
             ],
         },
     ],

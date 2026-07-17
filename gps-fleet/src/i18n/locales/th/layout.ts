@@ -12,6 +12,8 @@ export default {
     myStations: 'สถานี',
     myVehicles: 'รถของฉัน',
     stationVisit: 'เข้าออกสถานี',
+    summaryReports: 'รายงานสรุป',
+    generalReports: 'รายงานทั่วไป',
     statusTimeline: 'ไทม์ไลน์สถานะ',
     tracking: 'ติดตามรถ',
     vehicleManagement: 'จัดการรถ',

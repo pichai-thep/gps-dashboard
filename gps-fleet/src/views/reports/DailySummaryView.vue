@@ -6,15 +6,22 @@
         <p>{{ t('dailySummarySubtitle') }}</p>
       </div>
 
-      <Button
-          :label="t('exportCsv')"
-          icon="pi pi-download"
-          severity="secondary"
-          :disabled="totalRows === 0"
-          @click="exportCsv"
-      />
-
-
+      <div class="header-actions">
+        <Button
+            :label="t('exportCsv')"
+            icon="pi pi-download"
+            severity="secondary"
+            :disabled="totalRows === 0"
+            @click="exportCsv"
+        />
+        <Button
+            :label="t('savePdf')"
+            icon="pi pi-file-pdf"
+            severity="secondary"
+            :disabled="totalRows === 0"
+            @click="savePdf"
+        />
+      </div>
     </div>
 
     <div class="filter-card">
@@ -205,6 +212,7 @@ import {
   type DailySummaryRow,
 } from '@/services/report'
 import { useI18n } from '@/i18n'
+import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
 
 const { t } = useI18n()
 
@@ -454,6 +462,54 @@ async function exportCsv() {
   ])
 
   downloadCsv('daily-summary.csv', header, body)
+}
+
+async function savePdf() {
+  const target = openReportPrintWindow(t('dailySummaryReport'))
+  if (!target) return
+
+  const res = await getDailySummary({
+    date_from: toDateString(dateFrom.value),
+    date_to: toDateString(dateTo.value),
+    group_ids: selectedGroups.value,
+    imeis: selectedVehicles.value,
+    page: 1,
+    per_page: totalRows.value || 100000,
+    sort_by: sortField.value,
+    sort_order: sortOrder.value,
+    export: true,
+  })
+
+  const printRows = (res.data ?? []).map((row: any) => [
+    row.data_date,
+    row.imei,
+    row.plate_no,
+    formatDuration(row.run_time_s),
+    formatDuration(row.idle_time_s),
+    formatDuration(row.park_time_s),
+    (Number(row.distance_m || 0) / 1000).toFixed(2),
+    row.ur_formula,
+    formatPercent(row.ur_rate),
+    row.updated_at,
+  ])
+
+  renderReportPrintWindow(target, {
+    title: t('dailySummaryReport'),
+    period: `${t('reportPeriod')}: ${toDateString(dateFrom.value)} - ${toDateString(dateTo.value)}`,
+    headers: [
+      t('date'),
+      'IMEI',
+      t('plate'),
+      t('running'),
+      t('idle'),
+      t('parking'),
+      t('distance'),
+      t('formula'),
+      t('urRate'),
+      t('updated'),
+    ],
+    rows: printRows,
+  })
 }
 
 function downloadCsv(filename: string, header: string[], rows: Array<Array<string | number>>) {

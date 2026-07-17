@@ -5,13 +5,22 @@
         <h1>{{ t('statusTimelineReport') }}</h1>
         <p>{{ t('statusTimelineSubtitle') }}</p>
       </div>
-      <Button
-          :label="t('exportCsv')"
-          icon="pi pi-download"
-          severity="secondary"
-          :disabled="totalRows === 0"
-          @click="exportCsv"
-      />
+      <div class="header-actions">
+        <Button
+            :label="t('exportCsv')"
+            icon="pi pi-download"
+            severity="secondary"
+            :disabled="totalRows === 0"
+            @click="exportCsv"
+        />
+        <Button
+            :label="t('savePdf')"
+            icon="pi pi-file-pdf"
+            severity="secondary"
+            :disabled="totalRows === 0"
+            @click="savePdf"
+        />
+      </div>
     </div>
 
     <div class="filter-card">
@@ -139,6 +148,7 @@ import {
   type StatusSummaryRow,
 } from '@/services/report'
 import { useI18n } from '@/i18n'
+import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
 
 const { t } = useI18n()
 
@@ -350,6 +360,49 @@ async function exportCsv() {
   ])
 
   downloadCsv('status-summary.csv', header, body)
+}
+
+async function savePdf() {
+  const target = openReportPrintWindow(t('statusTimelineReport'))
+  if (!target) return
+
+  const res = await getStatusSummary({
+    date_from: toDateString(dateFrom.value),
+    date_to: toDateString(dateTo.value),
+    group_ids: selectedGroups.value,
+    imeis: selectedVehicles.value,
+    status: status.value || '',
+    page: 1,
+    per_page: totalRows.value || 100000,
+    sort_by: sortField.value,
+    sort_order: sortOrder.value,
+    export: true,
+  })
+
+  const printRows = (res.data ?? []).map((row: any) => [
+    row.data_date,
+    row.imei,
+    row.plate_no,
+    row.gps_status,
+    row.start_time,
+    row.end_time,
+    formatDuration(row.duration_s),
+  ])
+
+  renderReportPrintWindow(target, {
+    title: t('statusTimelineReport'),
+    period: `${t('reportPeriod')}: ${toDateString(dateFrom.value)} - ${toDateString(dateTo.value)}`,
+    headers: [
+      t('date'),
+      'IMEI',
+      t('plate'),
+      t('status'),
+      t('start'),
+      t('end'),
+      t('duration'),
+    ],
+    rows: printRows,
+  })
 }
 
 function downloadCsv(filename: string, header: string[], rows: Array<Array<string | number>>) {

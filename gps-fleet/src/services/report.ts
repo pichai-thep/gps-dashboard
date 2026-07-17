@@ -39,6 +39,38 @@ export async function getReportVehicles(params?: { group_ids?: number[] }) {
     return res.data.data as ReportVehicleOption[]
 }
 
+export interface LegacyReportParams {
+    date_from: string
+    date_to: string
+    time_from?: string
+    time_to?: string
+    group_id?: number | null
+    imei?: string | null
+    criteria?: Record<string, string | number>
+}
+
+export interface LegacyReportResponse {
+    success: boolean
+    report: string
+    data: Record<string, unknown>[]
+    meta: {
+        total_rows: number
+        max_range_days: number
+    }
+}
+
+export async function getLegacyReport(
+    report: string,
+    params: LegacyReportParams
+) {
+    const res = await api.get<LegacyReportResponse>(
+        `/reports/legacy/${report}`,
+        { params }
+    )
+
+    return res.data
+}
+
 export interface DailySummaryRow {
     imei: string
     plate_no: string

@@ -138,42 +138,77 @@
         </button>
 
         <button
-            :class="{ active: isActive('/reports') }"
-            :title="t('reports')"
-            @click="openReportsMenu"
+            :class="{ active: isSummaryReportActive }"
+            :title="t('summaryReports')"
+            @click="openReportsMenu('summary')"
         >
-          <i class="pi pi-chart-bar"></i>
+          <i class="pi pi-chart-pie"></i>
+        </button>
+
+        <button
+            :class="{ active: isGeneralReportActive }"
+            :title="t('generalReports')"
+            @click="openReportsMenu('general')"
+        >
+          <i class="pi pi-list"></i>
         </button>
 
       </div>
 
       <div
-          v-if="isMobileLayout && mobileReportsOpen"
+          v-if="isMobileLayout && mobileReportSection"
           class="mobile-report-menu"
       >
-        <button
-            :class="{ active: isActive('/reports/daily-summary') }"
-            type="button"
-            @click="goReport('/reports/daily-summary')"
-        >
-          {{ t('daily') }}
-        </button>
+        <div v-if="mobileReportSection === 'summary'" class="mobile-report-section">
+          <span>{{ t('summaryReports') }}</span>
+          <div class="mobile-report-links">
+            <button
+                :class="{ active: isActive('/reports/daily-summary') }"
+                type="button"
+                @click="goReport('/reports/daily-summary')"
+            >
+              {{ t('daily') }}
+            </button>
+            <button
+                :class="{ active: isActive('/reports/status-summary') }"
+                type="button"
+                @click="goReport('/reports/status-summary')"
+            >
+              {{ t('status') }}
+            </button>
+            <button
+                :class="{ active: isActive('/reports/station-summary') }"
+                type="button"
+                @click="goReport('/reports/station-summary')"
+            >
+              {{ t('station') }}
+            </button>
+            <button
+                v-for="report in summaryLegacyReports"
+                :key="report.key"
+                :class="{ active: isActive(report.path) }"
+                type="button"
+                @click="goReport(report.path)"
+            >
+              {{ report.title[locale] }}
+            </button>
+          </div>
+        </div>
 
-        <button
-            :class="{ active: isActive('/reports/status-summary') }"
-            type="button"
-            @click="goReport('/reports/status-summary')"
-        >
-          {{ t('status') }}
-        </button>
-
-        <button
-            :class="{ active: isActive('/reports/station-summary') }"
-            type="button"
-            @click="goReport('/reports/station-summary')"
-        >
-          {{ t('station') }}
-        </button>
+        <div v-if="mobileReportSection === 'general'" class="mobile-report-section">
+          <span>{{ t('generalReports') }}</span>
+          <div class="mobile-report-links">
+            <button
+                v-for="report in generalLegacyReports"
+                :key="report.key"
+                :class="{ active: isActive(report.path) }"
+                type="button"
+                @click="goReport(report.path)"
+            >
+              {{ report.title[locale] }}
+            </button>
+          </div>
+        </div>
       </div>
 
 
@@ -267,16 +302,38 @@ import { useAuthStore } from '@/stores/auth'
 import PanelMenu from 'primevue/panelmenu'
 import NotificationBell from "@/components/notifications/NotificationBell.vue";
 import { useI18n } from '@/i18n'
+import { legacyReports } from '@/views/reports/legacyReportDefinitions'
 
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
 }
 
 const expandedKeys = ref<Record<string, boolean>>({
-  reports: true,
+  summaryReports: true,
+  generalReports: true,
 })
 
 const { locale, setLocale, t } = useI18n()
+
+const summaryLegacyReports = legacyReports.filter((report) =>
+  report.key.endsWith('-summary')
+)
+const generalLegacyReports = legacyReports.filter((report) =>
+  !report.key.endsWith('-summary')
+)
+const summaryReportPaths = [
+  '/reports/daily-summary',
+  '/reports/status-summary',
+  '/reports/station-summary',
+  ...summaryLegacyReports.map((report) => report.path),
+]
+const generalReportPaths = generalLegacyReports.map((report) => report.path)
+const isSummaryReportActive = computed(() =>
+  summaryReportPaths.some((path) => isActive(path))
+)
+const isGeneralReportActive = computed(() =>
+  generalReportPaths.some((path) => isActive(path))
+)
 
 const menuItems = computed(() => [
   {
@@ -322,9 +379,10 @@ const menuItems = computed(() => [
     command: () => router.push('/forbidden-zones'),
   },
   {
-    key: 'reports',
-    label: t('reports'),
-    icon: 'pi pi-chart-bar',
+    key: 'summaryReports',
+    label: t('summaryReports'),
+    icon: 'pi pi-chart-pie',
+    styleClass: 'report-group',
     items: [
       {
         label: t('dailySummary'),
@@ -344,22 +402,38 @@ const menuItems = computed(() => [
         styleClass: isActive('/reports/station-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/station-summary'),
       },
+      ...summaryLegacyReports.map((report) => ({
+        label: report.title[locale.value],
+        icon: 'pi pi-file',
+        styleClass: isActive(report.path) ? 'active-menu' : '',
+        command: () => router.push(report.path),
+      })),
     ],
   },
-
-
+  {
+    key: 'generalReports',
+    label: t('generalReports'),
+    icon: 'pi pi-list',
+    styleClass: 'report-group',
+    items: generalLegacyReports.map((report) => ({
+      label: report.title[locale.value],
+      icon: 'pi pi-file',
+      styleClass: isActive(report.path) ? 'active-menu' : '',
+      command: () => router.push(report.path),
+    })),
+  },
 ])
 
 const sidebarCollapsed = ref(false)
 const isMobileLayout = ref(false)
-const mobileReportsOpen = ref(false)
+const mobileReportSection = ref<'summary' | 'general' | null>(null)
 let mobileQuery: MediaQueryList | null = null
 
 function handleMobileLayoutChange(event: MediaQueryListEvent) {
   isMobileLayout.value = event.matches
 
   if (!event.matches) {
-    mobileReportsOpen.value = false
+    mobileReportSection.value = null
   }
 }
 
@@ -420,6 +494,9 @@ const currentPageTitle = computed(() => {
     '/reports/daily-summary': t('dailySummaryReport'),
     '/reports/status-summary': t('statusTimelineReport'),
     '/reports/station-summary': t('stationVisitReport'),
+    ...Object.fromEntries(
+      legacyReports.map((report) => [report.path, report.title[locale.value]])
+    ),
   }
 
   return map[route.path] || t('fleetCommandCenter')
@@ -457,21 +534,22 @@ function onLogoError(event: Event) {
   }
 }
 
-function openReportsMenu() {
+function openReportsMenu(section: 'summary' | 'general') {
   if (isMobileLayout.value) {
-    mobileReportsOpen.value = !mobileReportsOpen.value
+    mobileReportSection.value =
+      mobileReportSection.value === section ? null : section
     return
   }
 
   sidebarCollapsed.value = false
   expandedKeys.value = {
     ...expandedKeys.value,
-    reports: true,
+    [`${section}Reports`]: true,
   }
 }
 
 function goReport(path: string) {
-  mobileReportsOpen.value = false
+  mobileReportSection.value = null
   router.push(path)
 }
 
@@ -933,6 +1011,82 @@ function goReport(path: string) {
   color: #ffffff;
 }
 
+/* Report menu hierarchy */
+:deep(.sidebar-panel-menu .report-group) {
+  margin: 3px 0 6px;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-panel.report-group > .p-panelmenu-header .p-panelmenu-header-content) {
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  background: rgba(30, 64, 175, 0.14);
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-panel.report-group > .p-panelmenu-header .p-panelmenu-header-link) {
+  padding: 9px 11px;
+  color: #bfdbfe;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-panel.report-group > .p-panelmenu-header .p-menuitem-icon),
+:deep(.sidebar-panel-menu .p-panelmenu-panel.report-group > .p-panelmenu-header .p-panelmenu-header-icon) {
+  color: #60a5fa;
+}
+
+:deep(.sidebar-panel-menu .report-group > .p-menuitem-content) {
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 9px;
+  background: rgba(30, 64, 175, 0.12);
+}
+
+:deep(.sidebar-panel-menu .report-group > .p-menuitem-content > .p-menuitem-link) {
+  min-height: 32px;
+  padding: 7px 10px 7px 18px;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+:deep(.sidebar-panel-menu .report-group > .p-menuitem-content .p-menuitem-icon) {
+  color: #60a5fa;
+  font-size: 11px;
+}
+
+:deep(.sidebar-panel-menu .report-group .p-menuitem:not(.report-group) > .p-menuitem-content) {
+  margin: 2px 0;
+  border-radius: 8px;
+}
+
+:deep(.sidebar-panel-menu .report-group .p-menuitem:not(.report-group) > .p-menuitem-content > .p-menuitem-link) {
+  min-height: 30px;
+  padding: 6px 9px 6px 32px;
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+:deep(.sidebar-panel-menu .report-group .p-menuitem:not(.report-group) > .p-menuitem-content > .p-menuitem-link:hover) {
+  background: rgba(59, 130, 246, 0.16);
+  color: #ffffff;
+}
+
+:deep(.sidebar-panel-menu .report-group .p-menuitem:not(.report-group) .p-menuitem-icon) {
+  color: #7dd3fc;
+  font-size: 10px;
+}
+
+:deep(.sidebar-panel-menu .report-group .active-menu > .p-menuitem-content) {
+  background: linear-gradient(90deg, #2563eb, #1d4ed8);
+  box-shadow: inset 3px 0 0 #7dd3fc;
+}
+
+:deep(.sidebar-panel-menu .report-group .active-menu > .p-menuitem-content > .p-menuitem-link),
+:deep(.sidebar-panel-menu .report-group .active-menu .p-menuitem-icon) {
+  color: #ffffff;
+}
+
 .collapsed-menu button.active {
   background: #2563eb;
   color: #ffffff;
@@ -987,7 +1141,8 @@ function goReport(path: string) {
 
   .mobile-report-menu {
     display: flex;
-    gap: 6px;
+    align-items: flex-start;
+    gap: 14px;
     padding: 8px 2px 2px;
     overflow-x: auto;
     scrollbar-width: none;
@@ -997,15 +1152,33 @@ function goReport(path: string) {
     display: none;
   }
 
+  .mobile-report-section {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .mobile-report-section > span {
+    color: #93c5fd;
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .mobile-report-links {
+    display: flex;
+    gap: 6px;
+  }
+
   .mobile-report-menu button {
     flex: 0 0 auto;
-    height: 32px;
-    padding: 0 12px;
+    height: 30px;
+    padding: 0 10px;
     border: 1px solid rgba(148, 163, 184, 0.25);
     border-radius: 999px;
     background: #0f172a;
-    color: #cbd5e1;
-    font-size: 12px;
+    color: #e2e8f0;
+    font-size: 10px;
     font-weight: 800;
   }
 
