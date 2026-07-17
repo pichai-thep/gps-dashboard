@@ -11,10 +11,32 @@ class ReportController extends Controller
 {
     private function customerId(Request $request): int
     {
+        $customerId = (int) $request->query('customer_id', 0);
         $gpsUserCustomer = $request->attributes->get('gpsUserCustomer');
-        return (int) (
-            $gpsUserCustomer->customer_id ?? 0
-        );
+
+        if ($customerId <= 0) {
+            $customerId = (int) ($gpsUserCustomer->customer_id ?? 0);
+        }
+
+        if ($customerId <= 0) {
+            abort(422, 'Missing customer_id');
+        }
+
+        $connection = $this->dbConnection($request);
+        $authUser = $request->attributes->get('auth_user');
+
+        $isAllowed = DB::connection($connection)
+            ->table('customer_user as cu')
+            ->join('user as u', 'u.user_id', '=', 'cu.user_user_id')
+            ->where('u.login', $authUser->login ?? null)
+            ->where('cu.customer_customer_id', $customerId)
+            ->exists();
+
+        if (!$isAllowed) {
+            abort(403, 'Unauthorized customer_id');
+        }
+
+        return $customerId;
     }
 
     private function dbConnection(Request $request){
@@ -57,24 +79,38 @@ class ReportController extends Controller
             $groupIds = [$groupIds];
         }
 
-        $where = [];
-        $params = [];
+        $groupIds = array_values(array_filter(
+            array_map('intval', $groupIds),
+            fn (int $groupId) => $groupId > 0
+        ));
+
+        $query = DB::connection($dbConnection)
+            ->table('customer_tracker as ct')
+            ->join('tracker as t', 't.imei', '=', 'ct.tracker_imei')
+            ->leftJoin('customer_group_tracker as cgt', function ($join) use ($customerId) {
+                $join->on('cgt.imei', '=', 'ct.tracker_imei')
+                    ->whereExists(function ($query) use ($customerId) {
+                        $query->select(DB::raw(1))
+                            ->from('customer_group as cg')
+                            ->whereColumn('cg.customer_group_id', 'cgt.customer_group_id')
+                            ->where('cg.customer_id', $customerId);
+                    });
+            })
+            ->where('ct.customer_customer_id', $customerId)
+            ->select([
+                't.imei',
+                't.plate_no',
+                'cgt.customer_group_id as group_id',
+            ]);
 
         if (!empty($groupIds)) {
-            $placeholders = implode(',', array_fill(0, count($groupIds), '?'));
-            $where[] = "customer_group_id IN ($placeholders)";
-            $params = array_merge($params, $groupIds);
+            $query->whereIn('cgt.customer_group_id', $groupIds);
         }
 
-        $whereSql = count($where) ? 'WHERE ' . implode(' AND ', $where) : '';
-
-        $rows = DB::connection($dbConnection)->select("
-            SELECT cgt.imei, t.plate_no, cgt.customer_group_id AS group_id
-            FROM customer_group_tracker cgt inner join tracker t on cgt.imei=t.imei
-            {$whereSql}
-            ORDER BY plate_no ASC
-            LIMIT 5000
-        ", $params);
+        $rows = $query
+            ->orderBy('t.plate_no')
+            ->limit(5000)
+            ->get();
 
         return response()->json([
             'success' => true,
