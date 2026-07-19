@@ -183,11 +183,9 @@ const summary = ref({
 })
 
 const statusOptions = computed(() => [
-  { label: t('running'), value: 'running' },
+  { label: t('run'), value: 'run' },
   { label: t('idle'), value: 'idle' },
-  { label: t('parking'), value: 'parking' },
-  { label: t('offline'), value: 'offline' },
-  { label: t('noGps'), value: 'no_gps' },
+  { label: t('park'), value: 'park' },
 ])
 
 function normalizeOptions(res: any) {
