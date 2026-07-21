@@ -146,6 +146,7 @@
         </button>
 
         <button
+            v-if="showGeneralReports"
             :class="{ active: isGeneralReportActive }"
             :title="t('generalReports')"
             @click="openReportsMenu('general')"
@@ -195,7 +196,10 @@
           </div>
         </div>
 
-        <div v-if="mobileReportSection === 'general'" class="mobile-report-section">
+        <div
+            v-if="showGeneralReports && mobileReportSection === 'general'"
+            class="mobile-report-section"
+        >
           <span>{{ t('generalReports') }}</span>
           <div class="mobile-report-links">
             <button
@@ -304,6 +308,9 @@ import NotificationBell from "@/components/notifications/NotificationBell.vue";
 import { useI18n } from '@/i18n'
 import { legacyReports } from '@/views/reports/legacyReportDefinitions'
 
+// Temporarily hide the general report navigation while keeping its routes available.
+const showGeneralReports = false
+
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
 }
@@ -410,18 +417,18 @@ const menuItems = computed(() => [
       })),
     ],
   },
-  {
-    key: 'generalReports',
-    label: t('generalReports'),
-    icon: 'pi pi-list',
-    styleClass: 'report-group',
-    items: generalLegacyReports.map((report) => ({
-      label: report.title[locale.value],
-      icon: 'pi pi-file',
-      styleClass: isActive(report.path) ? 'active-menu' : '',
-      command: () => router.push(report.path),
-    })),
-  },
+  ...(showGeneralReports ? [{
+      key: 'generalReports',
+      label: t('generalReports'),
+      icon: 'pi pi-list',
+      styleClass: 'report-group',
+      items: generalLegacyReports.map((report) => ({
+        label: report.title[locale.value],
+        icon: 'pi pi-file',
+        styleClass: isActive(report.path) ? 'active-menu' : '',
+        command: () => router.push(report.path),
+      })),
+    }] : []),
 ])
 
 const sidebarCollapsed = ref(false)
