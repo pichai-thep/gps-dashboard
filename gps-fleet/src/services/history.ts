@@ -33,6 +33,7 @@ export interface HistoryPoint {
     latitude?: number
     longitude?: number
     speed?: number
+    speed_limited?: number | null
     course?: number
     heading?: number
     status?: string | number

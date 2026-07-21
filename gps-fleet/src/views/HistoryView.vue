@@ -183,7 +183,10 @@
                       {{ data.gps_time ?? '-' }}
                     </div>
 
-                    <div class="mini-chip speed-chip">
+                    <div
+                        class="mini-chip speed-chip"
+                        :class="{ danger: isSpeedOverLimit(data) }"
+                    >
                       <span>SP</span>
                       <strong>{{ data.speed ?? 0 }}</strong>
                     </div>
@@ -419,6 +422,13 @@ function onHistoryRowClick(event: any) {
   if (index >= 0) {
     selectHistoryRow(index)
   }
+}
+
+function isSpeedOverLimit(point: HistoryPoint): boolean {
+  const speed = Number(point.speed ?? 0)
+  const speedLimit = Number(point.speed_limited ?? 0)
+
+  return speedLimit > 0 && speed > speedLimit
 }
 
 function normalizeStatus(
@@ -673,6 +683,11 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
     lng: item.lng ?? item.lon ?? item.longitude ?? item.x,
 
     speed: item.speed ?? item.vspeed ?? item.gps_speed ?? 0,
+    speed_limited:
+        item.speed_limited ??
+        item.speedLimited ??
+        item.speed_limit ??
+        null,
     heading: item.heading ?? item.course ?? item.direction ?? item.angle ?? 0,
     status: item.status ?? item.status_name ?? item.vehicle_status ?? item.gps_status ?? '-',
 
