@@ -1,26 +1,26 @@
 <template>
   <section class="base-report-filters">
-    <div class="filter-field">
+    <div v-if="enableDateStart" class="filter-field">
       <label>{{ t('reportDateStart') }}</label>
       <Calendar v-model="dateFrom" dateFormat="yy-mm-dd" showIcon />
     </div>
 
-    <div class="filter-field">
+    <div v-if="enableDateEnd" class="filter-field">
       <label>{{ t('reportDateEnd') }}</label>
       <Calendar v-model="dateTo" dateFormat="yy-mm-dd" showIcon />
     </div>
 
-    <div v-if="enableTime" class="filter-field">
-      <label>{{ t('reportTimeStart') }}</label>
-      <InputText v-model="timeStart" type="time" />
+    <div v-if="timeStartEnabled" class="filter-field">
+      <label>{{ t('reportTimeStart') }}<span v-if="timeStartRequired" class="required-mark"> *</span></label>
+      <InputText v-model="timeStart" type="time" :invalid="timeStartRequired && !timeStart" />
     </div>
 
-    <div v-if="enableTime" class="filter-field">
-      <label>{{ t('reportTimeEnd') }}</label>
-      <InputText v-model="timeEnd" type="time" />
+    <div v-if="timeEndEnabled" class="filter-field">
+      <label>{{ t('reportTimeEnd') }}<span v-if="timeEndRequired" class="required-mark"> *</span></label>
+      <InputText v-model="timeEnd" type="time" :invalid="timeEndRequired && !timeEnd" />
     </div>
 
-    <div class="filter-field">
+    <div v-if="enableGroup" class="filter-field">
       <label>{{ t('selectGroup') }}</label>
       <Dropdown
         v-model="groupId"
@@ -34,8 +34,8 @@
       />
     </div>
 
-    <div class="filter-field vehicle-field">
-      <label>{{ t('selectVehicle') }}</label>
+    <div v-if="enableVehicle" class="filter-field vehicle-field">
+      <label>{{ t('selectVehicle') }}<span v-if="vehicleRequired" class="required-mark"> *</span></label>
       <Dropdown
         v-model="imei"
         :options="vehicleOptions"
@@ -44,6 +44,7 @@
         :placeholder="t('allVehicles')"
         showClear
         filter
+        :invalid="vehicleRequired && !imei"
       />
     </div>
 
@@ -51,18 +52,20 @@
 
     <div class="filter-actions">
       <Button
+        v-if="enableSearch"
         :label="t('search')"
         icon="pi pi-search"
         :loading="loading"
         @click="submit"
       />
       <Button
+        v-if="enableReset"
         :label="t('reset')"
         icon="pi pi-refresh"
         severity="secondary"
         outlined
         :disabled="loading"
-        @click="$emit('reset')"
+        @click="resetFilters"
       />
       <Button
         v-if="enableExportCsv"
@@ -93,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 import Calendar from 'primevue/calendar'
 import Dropdown from 'primevue/dropdown'
@@ -108,6 +111,17 @@ const props = withDefaults(defineProps<{
   loading?: boolean
   hasRows?: boolean
   enableTime?: boolean
+  enableTimeStart?: boolean
+  enableTimeEnd?: boolean
+  timeStartRequired?: boolean
+  timeEndRequired?: boolean
+  enableDateStart?: boolean
+  enableDateEnd?: boolean
+  enableGroup?: boolean
+  enableVehicle?: boolean
+  vehicleRequired?: boolean
+  enableSearch?: boolean
+  enableReset?: boolean
   enableExportCsv?: boolean
   enablePdf?: boolean
   maxRangeDays?: number
@@ -115,6 +129,17 @@ const props = withDefaults(defineProps<{
   loading: false,
   hasRows: false,
   enableTime: false,
+  enableTimeStart: undefined,
+  enableTimeEnd: undefined,
+  timeStartRequired: false,
+  timeEndRequired: false,
+  enableDateStart: true,
+  enableDateEnd: true,
+  enableGroup: true,
+  enableVehicle: true,
+  vehicleRequired: false,
+  enableSearch: true,
+  enableReset: true,
   enableExportCsv: true,
   enablePdf: true,
   maxRangeDays: 0,
@@ -137,17 +162,42 @@ const imei = defineModel<string | null>('imei', { default: null })
 
 const { t } = useI18n()
 const validationMessage = ref('')
+const timeStartEnabled = computed(() => props.enableTimeStart ?? props.enableTime)
+const timeEndEnabled = computed(() => props.enableTimeEnd ?? props.enableTime)
 
 function submit() {
   validationMessage.value = ''
 
-  if (!dateFrom.value || !dateTo.value) {
+  if ((props.enableDateStart && !dateFrom.value) || (props.enableDateEnd && !dateTo.value)) {
     validationMessage.value = t('reportDateRequired')
     return
   }
 
-  const start = new Date(dateFrom.value)
-  const end = new Date(dateTo.value)
+  if (timeStartEnabled.value && props.timeStartRequired && !timeStart.value) {
+    validationMessage.value = t('reportTimeStartRequired')
+    return
+  }
+
+  if (timeEndEnabled.value && props.timeEndRequired && !timeEnd.value) {
+    validationMessage.value = t('reportTimeEndRequired')
+    return
+  }
+
+  if (props.enableVehicle && props.vehicleRequired && !imei.value) {
+    validationMessage.value = t('reportVehicleRequired')
+    return
+  }
+
+  const startValue = dateFrom.value ?? dateTo.value
+  const endValue = dateTo.value ?? dateFrom.value
+
+  if (!startValue || !endValue) {
+    emit('search')
+    return
+  }
+
+  const start = new Date(startValue)
+  const end = new Date(endValue)
   start.setHours(0, 0, 0, 0)
   end.setHours(0, 0, 0, 0)
 
@@ -162,12 +212,17 @@ function submit() {
     return
   }
 
-  if (props.enableTime && timeStart.value > timeEnd.value && inclusiveDays === 1) {
+  if (timeStartEnabled.value && timeEndEnabled.value && timeStart.value > timeEnd.value && inclusiveDays === 1) {
     validationMessage.value = t('reportTimeOrderInvalid')
     return
   }
 
   emit('search')
+}
+
+function resetFilters() {
+  validationMessage.value = ''
+  emit('reset')
 }
 </script>
 
@@ -194,6 +249,10 @@ function submit() {
   color: #94a3b8;
   font-size: 12px;
   font-weight: 600;
+}
+
+.required-mark {
+  color: #f87171;
 }
 
 .vehicle-field {

@@ -38,7 +38,13 @@
       :vehicleOptions="vehicleOptions"
       :loading="loading"
       :hasRows="rows.length > 0"
-      :enableTime="definition.enableTime"
+      :enableTimeStart="definition.enableTimeStart"
+      :enableTimeEnd="definition.enableTimeEnd"
+      :timeStartRequired="definition.timeStartRequired"
+      :timeEndRequired="definition.timeEndRequired"
+      :vehicleRequired="definition.vehicleRequired"
+      :enableExportCsv="definition.enableExportCsv"
+      :enablePdf="definition.enablePdf"
       :maxRangeDays="definition.maxRangeDays"
       @group-change="loadVehicles"
       @search="search"
@@ -103,8 +109,14 @@
           :sortField="column.field"
         >
           <template #body="{ data }">
+            <span
+              v-if="isStatusColumn(column)"
+              :class="['status-badge', statusClass(getRowValue(data, column))]"
+            >
+              {{ statusLabel(getRowValue(data, column)) }}
+            </span>
             <a
-              v-if="column.type === 'location' && getRowValue(data, column) !== ''"
+              v-else-if="shouldLinkMap(data, column)"
               :href="mapUrl(data, column)"
               target="_blank"
               rel="noopener noreferrer"
@@ -155,7 +167,6 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
@@ -166,24 +177,21 @@ import MultiSelect from 'primevue/multiselect'
 import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
 import FuelReportChart from '@/components/reports/FuelReportChart.vue'
 import {
-  getLegacyReport,
   getReportGroups,
   getReportVehicles,
   type ReportGroupOption,
   type ReportVehicleOption,
 } from '@/services/report'
 import { locale, useI18n } from '@/i18n'
-import {
-  legacyReportMap,
-  type LegacyColumn,
-  type LegacyReportKey,
-} from './legacyReportDefinitions'
+import type { ReportColumn, ReportDefinition, ReportLoader } from './reportTypes'
 
-const route = useRoute()
+const props = defineProps<{
+  definition: ReportDefinition
+  loadReport: ReportLoader
+}>()
 const { t } = useI18n()
 
-const reportKey = computed(() => route.meta.reportKey as LegacyReportKey)
-const definition = computed(() => legacyReportMap[reportKey.value])
+const definition = computed(() => props.definition)
 
 const filters = reactive({
   dateFrom: yesterday(),
@@ -263,7 +271,7 @@ async function loadVehicles() {
 }
 
 async function search() {
-  if (definition.value.requireVehicle && !filters.imei) {
+  if (definition.value.vehicleRequired && !filters.imei) {
     errorMessage.value = t('reportVehicleRequired')
     return
   }
@@ -272,7 +280,7 @@ async function search() {
   errorMessage.value = ''
 
   try {
-    const response = await getLegacyReport(definition.value.key, {
+    const response = await props.loadReport({
       date_from: toDateString(filters.dateFrom),
       date_to: toDateString(filters.dateTo),
       time_from: filters.timeStart,
@@ -302,10 +310,27 @@ async function reset() {
   await loadOptions()
 }
 
-function getRowValue(row: Record<string, unknown>, column: LegacyColumn) {
-  const candidates = [column.field, ...(column.aliases ?? [])].map((key) => key.toLowerCase())
-  const actualKey = Object.keys(row).find((key) => candidates.includes(key.toLowerCase()))
-  if (actualKey) return String(row[actualKey] ?? '')
+function getRowValue(row: Record<string, unknown>, column: ReportColumn) {
+  if (definition.value.key === 'status-detail' && column.field === 'location') {
+    const station = coordinate(row, ['end_station'])
+    if (station.trim()) return station
+
+    const address = coordinate(row, ['end_address'])
+    if (address.trim()) return address
+
+    const lat = coordinate(row, ['end_lat'])
+    const lon = coordinate(row, ['end_lng'])
+    return lat && lon ? `${lat}, ${lon}` : ''
+  }
+
+  const candidates = [column.field, ...(column.aliases ?? [])]
+  for (const candidate of candidates) {
+    const actualKey = Object.keys(row).find(
+      (key) => key.toLowerCase() === candidate.toLowerCase(),
+    )
+    const value = actualKey ? String(row[actualKey] ?? '') : ''
+    if (value.trim()) return value
+  }
 
   if (column.type === 'location') {
     const lat = coordinate(row, ['lat', 'latitude'])
@@ -316,7 +341,11 @@ function getRowValue(row: Record<string, unknown>, column: LegacyColumn) {
   return ''
 }
 
-function formatCell(row: Record<string, unknown>, column: LegacyColumn) {
+function formatCell(row: Record<string, unknown>, column: ReportColumn) {
+  if (isStatusColumn(column)) {
+    return statusLabel(getRowValue(row, column))
+  }
+
   if (definition.value.key === 'fuel' && column.field === 'vehicle_status') {
     const speed = Number(coordinate(row, ['speed']) || 0)
     const state = coordinate(row, ['state', 'status', 'vehicle_status']).toLowerCase()
@@ -344,11 +373,45 @@ function coordinate(row: Record<string, unknown>, names: string[]) {
   return key ? String(row[key] ?? '') : ''
 }
 
-function mapUrl(row: Record<string, unknown>, column: LegacyColumn) {
-  const lat = coordinate(row, ['lat', 'latitude'])
-  const lon = coordinate(row, ['lon', 'lng', 'longitude'])
+function mapUrl(row: Record<string, unknown>, column: ReportColumn) {
+  const lat = coordinate(row, ['lat', 'latitude', 'end_lat', 'start_lat'])
+  const lon = coordinate(row, ['lon', 'lng', 'longitude', 'end_lng', 'start_lng'])
   const query = lat && lon ? `${lat},${lon}` : getRowValue(row, column)
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
+}
+
+function shouldLinkMap(row: Record<string, unknown>, column: ReportColumn) {
+  if (column.type !== 'location' || getRowValue(row, column) === '') return false
+
+  if (definition.value.key === 'status-detail' && column.field === 'location') {
+    return coordinate(row, ['end_station']).trim() === ''
+  }
+
+  return true
+}
+
+function isStatusColumn(column: ReportColumn) {
+  return definition.value.key === 'status-detail' && column.field === 'status'
+}
+
+function normalizedStatus(value: string) {
+  return value.trim().toLowerCase()
+}
+
+function statusClass(value: string) {
+  const status = normalizedStatus(value)
+  if (status === 'run') return 'status-run'
+  if (status === 'park') return 'status-park'
+  if (status === 'start' || status === 'idle') return 'status-start'
+  return 'status-unknown'
+}
+
+function statusLabel(value: string) {
+  const status = normalizedStatus(value)
+  if (status === 'run') return 'RUN'
+  if (status === 'park') return 'PARK'
+  if (status === 'start' || status === 'idle') return 'IDLE'
+  return value || '-'
 }
 
 function csvCell(value: string) {
@@ -377,7 +440,7 @@ function savePdf() {
   window.print()
 }
 
-watch(reportKey, async () => {
+watch(() => props.definition.key, async () => {
   initializeDefinition()
   await loadOptions()
 }, { immediate: true })
@@ -417,6 +480,42 @@ watch(reportKey, async () => {
   gap: 6px;
   color: #60a5fa;
   text-decoration: none;
+}
+
+.status-badge {
+  display: inline-flex;
+  min-width: 64px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-run {
+  color: #86efac;
+  background: rgb(34 197 94 / 16%);
+  border-color: rgb(34 197 94 / 35%);
+}
+
+.status-park {
+  color: #fca5a5;
+  background: rgb(239 68 68 / 16%);
+  border-color: rgb(239 68 68 / 35%);
+}
+
+.status-start {
+  color: #fde047;
+  background: rgb(234 179 8 / 16%);
+  border-color: rgb(234 179 8 / 35%);
+}
+
+.status-unknown {
+  color: #cbd5e1;
+  background: rgb(148 163 184 / 12%);
+  border-color: rgb(148 163 184 / 25%);
 }
 
 .empty-state {

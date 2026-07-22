@@ -32,14 +32,15 @@ class ReportController extends Controller
             ->where('cu.customer_customer_id', $customerId)
             ->exists();
 
-        if (!$isAllowed) {
+        if (! $isAllowed) {
             abort(403, 'Unauthorized customer_id');
         }
 
         return $customerId;
     }
 
-    private function dbConnection(Request $request){
+    private function dbConnection(Request $request)
+    {
         return $request->attributes->get('gps_connection');
     }
 
@@ -48,19 +49,18 @@ class ReportController extends Controller
         $dbConnection = $this->dbConnection($request);
         $customerId = $this->customerId($request);
 
-//        logger()->info('Report groupOptions', [
-//            'connection' => $dbConnection,
-//            'customer_id' => $customerId,
-//        ]);
+        //        logger()->info('Report groupOptions', [
+        //            'connection' => $dbConnection,
+        //            'customer_id' => $customerId,
+        //        ]);
 
-        $rows = DB::connection($dbConnection)->select("
+        $rows = DB::connection($dbConnection)->select('
             SELECT
                 customer_group_id AS group_id,
                 customer_group_name as group_name
             FROM customer_group
             WHERE customer_id = ?
-            ORDER BY customer_group_name ASC"
-            , [$customerId]
+            ORDER BY customer_group_name ASC', [$customerId]
         );
 
         return response()->json([
@@ -68,6 +68,7 @@ class ReportController extends Controller
             'data' => $rows,
         ]);
     }
+
     public function vehicleOptions(Request $request)
     {
         $dbConnection = $this->dbConnection($request);
@@ -75,7 +76,7 @@ class ReportController extends Controller
 
         $groupIds = $request->query('group_ids', []);
 
-        if (!is_array($groupIds)) {
+        if (! is_array($groupIds)) {
             $groupIds = [$groupIds];
         }
 
@@ -103,7 +104,7 @@ class ReportController extends Controller
                 'cgt.customer_group_id as group_id',
             ]);
 
-        if (!empty($groupIds)) {
+        if (! empty($groupIds)) {
             $query->whereIn('cgt.customer_group_id', $groupIds);
         }
 
@@ -117,11 +118,11 @@ class ReportController extends Controller
             'data' => $rows,
         ]);
     }
+
     public function stationOptions(Request $request)
     {
         $connection = $request->attributes->get('gps_connection');
         $customerId = $this->customerId($request);
-
 
         $rows = DB::connection($connection)
             ->table('stations')
@@ -139,167 +140,12 @@ class ReportController extends Controller
         ]);
     }
 
-    public function legacyReport(Request $request, string $report)
-    {
-        $connection = $this->dbConnection($request);
-        $user = $request->attributes->get('auth_user');
-        $customerId = $this->customerId($request);
-
-        $dateFrom = (string) $request->query('date_from', now()->toDateString());
-        $dateTo = (string) $request->query('date_to', now()->toDateString());
-        $timeFrom = (string) $request->query('time_from', '00:00');
-        $timeTo = (string) $request->query('time_to', '23:59');
-        $groupId = (int) $request->query('group_id', -1);
-        $imei = trim((string) $request->query('imei', ''));
-        $criteria = $request->query('criteria', []);
-
-        if (!is_array($criteria)) {
-            $criteria = [];
-        }
-
-        $startDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $dateFrom);
-        $endDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $dateTo);
-
-        if (!$startDate || !$endDate || $endDate < $startDate) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid report date range',
-            ], 422);
-        }
-
-        if ($groupId > 0) {
-            $groupAllowed = DB::connection($connection)
-                ->table('customer_group')
-                ->where('customer_group_id', $groupId)
-                ->where('customer_id', $customerId)
-                ->exists();
-
-            if (!$groupAllowed) {
-                abort(403, 'Unauthorized group_id');
-            }
-        } else {
-            $groupId = -1;
-        }
-
-        if ($imei !== '') {
-            $vehicleAllowed = DB::connection($connection)
-                ->table('customer_tracker')
-                ->where('customer_customer_id', $customerId)
-                ->where('tracker_imei', $imei)
-                ->exists();
-
-            if (!$vehicleAllowed) {
-                abort(403, 'Unauthorized imei');
-            }
-        }
-
-        $overType = (string) ($criteria['over_type'] ?? '');
-        $eventType = (string) ($criteria['event_type'] ?? '');
-        $swipeType = (string) ($criteria['swipe_type'] ?? '');
-        $mmCheck = (int) ($criteria['mm_chk'] ?? 0);
-        $dateTimeFrom = "{$dateFrom} {$timeFrom}";
-        $dateTimeTo = "{$dateTo} {$timeTo}";
-
-        $definition = match ($report) {
-            'speed-over-summary' => [
-                'procedure' => 'sp_rpt_speed_over_sum',
-                'max_days' => 31,
-                'args' => [$groupId, $user->login, $overType, $imei, $dateFrom, $dateTo],
-            ],
-            'drive4h-summary' => [
-                'procedure' => 'sp_rpt_drive4h_sum',
-                'max_days' => 31,
-                'args' => [$groupId, $user->login, $imei, $dateFrom, $dateTo, $mmCheck],
-            ],
-            'passenger-summary' => [
-                'procedure' => 'sp_rpt_passenger_sum',
-                'max_days' => 31,
-                'args' => [$groupId, $customerId, $user->login, $imei, $dateFrom, $dateTo, $mmCheck],
-            ],
-            'speed-over' => [
-                'procedure' => 'sp_rpt_speed_over_time',
-                'max_days' => 7,
-                'args' => [$groupId, $overType, $user->login, $imei, $dateTimeFrom, $dateTimeTo],
-            ],
-            'event' => [
-                'procedure' => 'sp_rpt_event',
-                'max_days' => 7,
-                'args' => [$groupId, $user->login, $imei, $eventType, $dateFrom, $dateTo],
-            ],
-            'fuel' => [
-                'procedure' => 'sp_rpt_fuel2',
-                'max_days' => 3,
-                'args' => [$imei, $dateFrom, $dateTo, $timeFrom, $timeTo],
-                'requires_vehicle' => true,
-            ],
-            'swipe' => [
-                'procedure' => 'sp_rpt_swipe_data',
-                'max_days' => 7,
-                'args' => [$groupId, $user->login, $imei, $swipeType, $dateTimeFrom, $dateTimeTo],
-            ],
-            'drive4h' => [
-                'procedure' => 'sp_rpt_drive4h',
-                'max_days' => 31,
-                'args' => [$groupId, $user->login, $imei, $dateFrom, $dateTo, $mmCheck],
-            ],
-            'passenger' => [
-                'procedure' => 'sp_rpt_passenger',
-                'max_days' => 31,
-                'args' => [$groupId, $customerId, $user->login, $imei, $dateFrom, $dateTo, $mmCheck],
-            ],
-            'forbidden-inside' => [
-                'procedure' => 'sp_rpt_forbidden_inside',
-                'max_days' => 31,
-                'args' => [$groupId, $user->login, $imei, $dateFrom, $dateTo],
-            ],
-            default => null,
-        };
-
-        if (!$definition) {
-            abort(404, 'Report not found');
-        }
-
-        $inclusiveDays = (int) $startDate->diff($endDate)->days + 1;
-
-        if ($inclusiveDays > $definition['max_days']) {
-            return response()->json([
-                'success' => false,
-                'message' => "Date range may not exceed {$definition['max_days']} days",
-            ], 422);
-        }
-
-        if (($definition['requires_vehicle'] ?? false) && $imei === '') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vehicle is required',
-            ], 422);
-        }
-
-        $placeholders = implode(', ', array_fill(0, count($definition['args']), '?'));
-        $pdo = DB::connection($connection)->getPdo();
-        $statement = $pdo->prepare("CALL {$definition['procedure']}({$placeholders})");
-        $statement->execute($definition['args']);
-        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
-        $statement->closeCursor();
-
-        return response()->json([
-            'success' => true,
-            'report' => $report,
-            'data' => $rows,
-            'meta' => [
-                'total_rows' => count($rows),
-                'max_range_days' => $definition['max_days'],
-            ],
-        ]);
-    }
-
-
     public function dailySummary(Request $request)
     {
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
-        if (!$connection) {
+        if (! $connection) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unsupported GPS server',
@@ -310,7 +156,6 @@ class ReportController extends Controller
         $dateTo = $request->query('date_to', now()->toDateString());
         $sortField = $request->query('sort_by', 'data_date');
         $sortOrder = $request->query('sort_order', 'desc');
-
 
         $isExport = filter_var($request->query('export', false), FILTER_VALIDATE_BOOLEAN);
 
@@ -324,7 +169,7 @@ class ReportController extends Controller
 
         $imeis = $request->query('imeis', []);
 
-        if (!is_array($imeis)) {
+        if (! is_array($imeis)) {
             $imeis = [$imeis];
         }
 
@@ -370,9 +215,9 @@ class ReportController extends Controller
                 'idle_time_s' => (int) ($summary['idle_time_s'] ?? 0),
                 'park_time_s' => (int) ($summary['park_time_s'] ?? 0),
                 'distance_m' => (float) ($summary['distance_m'] ?? 0),
-//                'ur_rate_avg' => $summary['ur_rate_avg'] !== null
-//                    ? (float) $summary['ur_rate_avg']
-//                    : null,
+                //                'ur_rate_avg' => $summary['ur_rate_avg'] !== null
+                //                    ? (float) $summary['ur_rate_avg']
+                //                    : null,
             ],
             'pagination' => [
                 'current_page' => $page,
@@ -390,7 +235,7 @@ class ReportController extends Controller
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
-        if (!$connection) {
+        if (! $connection) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unsupported GPS server',
@@ -416,7 +261,7 @@ class ReportController extends Controller
 
         $imeis = $request->query('imeis', []);
 
-        if (!is_array($imeis)) {
+        if (! is_array($imeis)) {
             $imeis = [$imeis];
         }
 
@@ -477,7 +322,7 @@ class ReportController extends Controller
         $user = $request->attributes->get('auth_user');
         $connection = $request->attributes->get('gps_connection');
 
-        if (!$connection) {
+        if (! $connection) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unsupported GPS server',
@@ -506,7 +351,7 @@ class ReportController extends Controller
 
         $imeis = $request->query('imeis', []);
 
-        if (!is_array($imeis)) {
+        if (! is_array($imeis)) {
             $imeis = [$imeis];
         }
 
@@ -562,6 +407,4 @@ class ReportController extends Controller
             'data' => $rows,
         ]);
     }
-
-
 }

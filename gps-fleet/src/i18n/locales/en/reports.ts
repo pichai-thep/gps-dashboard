@@ -29,6 +29,8 @@ export default {
     reportDateOrderInvalid: 'End date must not be before start date',
     reportRangeExceeded: 'Date range must not exceed {days} days',
     reportTimeOrderInvalid: 'End time must not be before start time',
+    reportTimeStartRequired: 'Start time is required',
+    reportTimeEndRequired: 'End time is required',
     reportVehicleRequired: 'Please select a vehicle for this report',
     reportLoadFailed: 'Unable to load report data',
     reportNoData: 'No data found for these criteria',
@@ -38,4 +40,7 @@ export default {
     visibleColumns: 'Visible columns',
     viewGraph: 'View graph',
     fuelChart: 'Fuel chart',
+    reportHubHint: 'Choose a report from the cards below',
+    clickToOpenReport: 'Open the report and configure its search criteria',
+    openReport: 'Open report',
 }

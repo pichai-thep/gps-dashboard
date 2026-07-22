@@ -6,20 +6,28 @@ use App\Http\Controllers\Api\EngineCutController;
 use App\Http\Controllers\Api\ForbiddenZoneController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\MapLayerController;
+use App\Http\Controllers\Api\MobileAlarmSettingController;
+use App\Http\Controllers\Api\MobileAuthController;
+use App\Http\Controllers\Api\MobileDeviceController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PoiController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\Reports\Drive4hController;
+use App\Http\Controllers\Api\Reports\Drive4hSummaryController;
+use App\Http\Controllers\Api\Reports\EventReportController;
+use App\Http\Controllers\Api\Reports\ForbiddenInsideController;
+use App\Http\Controllers\Api\Reports\FuelReportController;
+use App\Http\Controllers\Api\Reports\PassengerReportController;
+use App\Http\Controllers\Api\Reports\PassengerSummaryController;
+use App\Http\Controllers\Api\Reports\SpeedOverController;
+use App\Http\Controllers\Api\Reports\SpeedOverSummaryController;
+use App\Http\Controllers\Api\Reports\StatusDetailController;
+use App\Http\Controllers\Api\Reports\SwipeReportController;
+// mobile
 use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\TrackingController;
 use App\Http\Controllers\Api\VehicleManagementController;
-
-// mobile
-use App\Http\Controllers\Api\MobileAuthController;
-use App\Http\Controllers\Api\MobileDeviceController;
-use App\Http\Controllers\Api\MobileAlarmSettingController;
-
 use Illuminate\Support\Facades\Route;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -88,14 +96,23 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
         Route::get('/daily-summary', [ReportController::class, 'dailySummary']);
         Route::get('/status-summary', [ReportController::class, 'statusSummary']);
         Route::get('/station-summary', [ReportController::class, 'stationSummary']);
-        Route::get('/legacy/{report}', [ReportController::class, 'legacyReport']);
+        Route::get('/speed-over-summary', SpeedOverSummaryController::class);
+        Route::get('/drive4h-summary', Drive4hSummaryController::class);
+        Route::get('/passenger-summary', PassengerSummaryController::class);
+        Route::get('/status-detail', StatusDetailController::class);
+        Route::get('/speed-over', SpeedOverController::class);
+        Route::get('/events', EventReportController::class);
+        Route::get('/fuel', FuelReportController::class);
+        Route::get('/swipe', SwipeReportController::class);
+        Route::get('/drive4h', Drive4hController::class);
+        Route::get('/passenger', PassengerReportController::class);
+        Route::get('/forbidden-inside', ForbiddenInsideController::class);
 
         Route::get('/options/groups', [ReportController::class, 'groupOptions']);
         Route::get('/options/vehicles', [ReportController::class, 'vehicleOptions']);
         Route::get('/options/stations', [ReportController::class, 'stationOptions']);
     });
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -108,14 +125,14 @@ Route::prefix('mobile/v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/login', [MobileAuthController::class, 'login']);
 
-        Route::middleware(['mobile.auth','gps'])->group(function () {
+        Route::middleware(['mobile.auth', 'gps'])->group(function () {
             Route::get('/me', [MobileAuthController::class, 'me']);
             Route::post('/logout', [MobileAuthController::class, 'logout']);
 
         });
     });
 
-    Route::middleware(['mobile.auth','gps'])->group(function () {
+    Route::middleware(['mobile.auth', 'gps'])->group(function () {
         Route::post('/devices/register', [MobileDeviceController::class, 'register']);
         Route::post('/devices/unregister', [MobileDeviceController::class, 'unregister']);
     });

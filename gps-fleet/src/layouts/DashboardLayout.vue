@@ -185,7 +185,7 @@
               {{ t('station') }}
             </button>
             <button
-                v-for="report in summaryLegacyReports"
+                v-for="report in summaryProcedureReports"
                 :key="report.key"
                 :class="{ active: isActive(report.path) }"
                 type="button"
@@ -203,7 +203,7 @@
           <span>{{ t('generalReports') }}</span>
           <div class="mobile-report-links">
             <button
-                v-for="report in generalLegacyReports"
+                v-for="report in generalProcedureReports"
                 :key="report.key"
                 :class="{ active: isActive(report.path) }"
                 type="button"
@@ -306,10 +306,9 @@ import { useAuthStore } from '@/stores/auth'
 import PanelMenu from 'primevue/panelmenu'
 import NotificationBell from "@/components/notifications/NotificationBell.vue";
 import { useI18n } from '@/i18n'
-import { legacyReports } from '@/views/reports/legacyReportDefinitions'
+import { reportNavigation } from '@/views/reports/reportNavigation'
 
-// Temporarily hide the general report navigation while keeping its routes available.
-const showGeneralReports = false
+const showGeneralReports = true
 
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
@@ -322,19 +321,19 @@ const expandedKeys = ref<Record<string, boolean>>({
 
 const { locale, setLocale, t } = useI18n()
 
-const summaryLegacyReports = legacyReports.filter((report) =>
-  report.key.endsWith('-summary')
-)
-const generalLegacyReports = legacyReports.filter((report) =>
-  !report.key.endsWith('-summary')
-)
+const summaryProcedureReports = reportNavigation.filter((report) => report.section === 'summary')
+const generalProcedureReports = reportNavigation.filter((report) => report.section === 'general')
 const summaryReportPaths = [
+  '/reports/summary',
   '/reports/daily-summary',
   '/reports/status-summary',
   '/reports/station-summary',
-  ...summaryLegacyReports.map((report) => report.path),
+  ...summaryProcedureReports.map((report) => report.path),
 ]
-const generalReportPaths = generalLegacyReports.map((report) => report.path)
+const generalReportPaths = [
+  '/reports/general',
+  ...generalProcedureReports.map((report) => report.path),
+]
 const isSummaryReportActive = computed(() =>
   summaryReportPaths.some((path) => isActive(path))
 )
@@ -390,6 +389,7 @@ const menuItems = computed(() => [
     label: t('summaryReports'),
     icon: 'pi pi-chart-pie',
     styleClass: 'report-group',
+    command: () => router.push('/reports/summary'),
     items: [
       {
         label: t('dailySummary'),
@@ -409,7 +409,7 @@ const menuItems = computed(() => [
         styleClass: isActive('/reports/station-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/station-summary'),
       },
-      ...summaryLegacyReports.map((report) => ({
+      ...summaryProcedureReports.map((report) => ({
         label: report.title[locale.value],
         icon: 'pi pi-file',
         styleClass: isActive(report.path) ? 'active-menu' : '',
@@ -417,18 +417,19 @@ const menuItems = computed(() => [
       })),
     ],
   },
-  ...(showGeneralReports ? [{
+  {
       key: 'generalReports',
       label: t('generalReports'),
       icon: 'pi pi-list',
       styleClass: 'report-group',
-      items: generalLegacyReports.map((report) => ({
+      command: () => router.push('/reports/general'),
+      items: generalProcedureReports.map((report) => ({
         label: report.title[locale.value],
         icon: 'pi pi-file',
         styleClass: isActive(report.path) ? 'active-menu' : '',
         command: () => router.push(report.path),
       })),
-    }] : []),
+    },
 ])
 
 const sidebarCollapsed = ref(false)
@@ -501,8 +502,10 @@ const currentPageTitle = computed(() => {
     '/reports/daily-summary': t('dailySummaryReport'),
     '/reports/status-summary': t('statusTimelineReport'),
     '/reports/station-summary': t('stationVisitReport'),
+    '/reports/summary': t('summaryReports'),
+    '/reports/general': t('generalReports'),
     ...Object.fromEntries(
-      legacyReports.map((report) => [report.path, report.title[locale.value]])
+      reportNavigation.map((report) => [report.path, report.title[locale.value]])
     ),
   }
 
@@ -542,9 +545,10 @@ function onLogoError(event: Event) {
 }
 
 function openReportsMenu(section: 'summary' | 'general') {
+  router.push(section === 'summary' ? '/reports/summary' : '/reports/general')
+
   if (isMobileLayout.value) {
-    mobileReportSection.value =
-      mobileReportSection.value === section ? null : section
+    mobileReportSection.value = null
     return
   }
 

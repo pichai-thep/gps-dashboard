@@ -18,7 +18,6 @@ import HistoryView from '@/views/HistoryView.vue'
 import NotificationsView from '@/views/NotificationsView.vue'
 import StationManagementView from '@/views/StationManagementView.vue'
 import VehicleManagementView from "@/views/VehicleManagementView.vue";
-import { legacyReports } from '@/views/reports/legacyReportDefinitions'
 
 
 
@@ -126,6 +125,19 @@ const router = createRouter({
                 },
 
                 {
+                    path: '/reports/summary',
+                    name: 'SummaryReportHub',
+                    component: () => import('@/views/reports/ReportHubView.vue'),
+                    meta: { requiresAuth: true, title: 'Summary Reports', reportSection: 'summary' },
+                },
+                {
+                    path: '/reports/general',
+                    name: 'GeneralReportHub',
+                    component: () => import('@/views/reports/ReportHubView.vue'),
+                    meta: { requiresAuth: true, title: 'General Reports', reportSection: 'general' },
+                },
+
+                {
                     path: '/reports/status-summary',
                     name: 'StatusSummary',
                     component: () => import('@/views/reports/StatusSummaryView.vue'),
@@ -143,16 +155,17 @@ const router = createRouter({
                         title: 'Station Visit Report',
                     },
                 },
-                ...legacyReports.map((report) => ({
-                    path: report.path,
-                    name: `LegacyReport-${report.key}`,
-                    component: () => import('@/views/reports/LegacyReportView.vue'),
-                    meta: {
-                        requiresAuth: true,
-                        title: report.title.en,
-                        reportKey: report.key,
-                    },
-                })),
+                { path: '/reports/speed-over-summary', name: 'SpeedOverSummary', component: () => import('@/views/reports/SpeedOverSummaryView.vue'), meta: { requiresAuth: true, title: 'Speed Over Summary' } },
+                { path: '/reports/drive4h-summary', name: 'Drive4hSummary', component: () => import('@/views/reports/Drive4hSummaryView.vue'), meta: { requiresAuth: true, title: 'Drive Over 4 Hours Summary' } },
+                { path: '/reports/passenger-summary', name: 'PassengerSummary', component: () => import('@/views/reports/PassengerSummaryView.vue'), meta: { requiresAuth: true, title: 'Passenger Summary' } },
+                { path: '/reports/status-detail', name: 'StatusDetail', component: () => import('@/views/reports/StatusDetailView.vue'), meta: { requiresAuth: true, title: 'Vehicle Status Detail Report' } },
+                { path: '/reports/speed-over', name: 'SpeedOver', component: () => import('@/views/reports/SpeedOverView.vue'), meta: { requiresAuth: true, title: 'Speed Over Report' } },
+                { path: '/reports/events', name: 'EventReport', component: () => import('@/views/reports/EventReportView.vue'), meta: { requiresAuth: true, title: 'Important Event Report' } },
+                { path: '/reports/fuel', name: 'FuelReport', component: () => import('@/views/reports/FuelReportView.vue'), meta: { requiresAuth: true, title: 'Fuel Report' } },
+                { path: '/reports/swipe', name: 'SwipeReport', component: () => import('@/views/reports/SwipeReportView.vue'), meta: { requiresAuth: true, title: 'Card Swipe Report' } },
+                { path: '/reports/drive4h', name: 'Drive4hReport', component: () => import('@/views/reports/Drive4hView.vue'), meta: { requiresAuth: true, title: 'Drive Over 4 Hours Report' } },
+                { path: '/reports/passenger', name: 'PassengerReport', component: () => import('@/views/reports/PassengerReportView.vue'), meta: { requiresAuth: true, title: 'Passenger Report' } },
+                { path: '/reports/forbidden-inside', name: 'ForbiddenInside', component: () => import('@/views/reports/ForbiddenInsideView.vue'), meta: { requiresAuth: true, title: 'Forbidden Area Entry Report' } },
             ],
         },
     ],

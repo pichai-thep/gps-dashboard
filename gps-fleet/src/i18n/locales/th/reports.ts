@@ -29,6 +29,8 @@ export default {
     reportDateOrderInvalid: 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น',
     reportRangeExceeded: 'ช่วงวันที่ต้องไม่เกิน {days} วัน',
     reportTimeOrderInvalid: 'เวลาสิ้นสุดต้องไม่น้อยกว่าเวลาเริ่มต้น',
+    reportTimeStartRequired: 'กรุณาระบุเวลาเริ่มต้น',
+    reportTimeEndRequired: 'กรุณาระบุเวลาสิ้นสุด',
     reportVehicleRequired: 'กรุณาเลือกรถสำหรับรายงานนี้',
     reportLoadFailed: 'ไม่สามารถโหลดข้อมูลรายงานได้',
     reportNoData: 'ไม่พบข้อมูลตามเงื่อนไข',
@@ -38,4 +40,7 @@ export default {
     visibleColumns: 'คอลัมน์ที่แสดง',
     viewGraph: 'ดูกราฟ',
     fuelChart: 'กราฟน้ำมัน/เชื้อเพลิง',
+    reportHubHint: 'เลือกรายงานที่ต้องการดูจากรายการด้านล่าง',
+    clickToOpenReport: 'คลิกเพื่อเปิดรายงานและกำหนดเงื่อนไขการค้นหา',
+    openReport: 'เปิดรายงาน',
 }
