@@ -138,8 +138,11 @@
         </button>
 
         <button
+            type="button"
+            class="collapsed-report-button"
             :class="{ active: isSummaryReportActive }"
             :title="t('summaryReports')"
+            :aria-label="t('summaryReports')"
             @click="openReportsMenu('summary')"
         >
           <i class="pi pi-chart-pie"></i>
@@ -147,8 +150,11 @@
 
         <button
             v-if="showGeneralReports"
+            type="button"
+            class="collapsed-report-button"
             :class="{ active: isGeneralReportActive }"
             :title="t('generalReports')"
+            :aria-label="t('generalReports')"
             @click="openReportsMenu('general')"
         >
           <i class="pi pi-list"></i>
@@ -546,17 +552,7 @@ function onLogoError(event: Event) {
 
 function openReportsMenu(section: 'summary' | 'general') {
   router.push(section === 'summary' ? '/reports/summary' : '/reports/general')
-
-  if (isMobileLayout.value) {
-    mobileReportSection.value = null
-    return
-  }
-
-  sidebarCollapsed.value = false
-  expandedKeys.value = {
-    ...expandedKeys.value,
-    [`${section}Reports`]: true,
-  }
+  mobileReportSection.value = null
 }
 
 function goReport(path: string) {
