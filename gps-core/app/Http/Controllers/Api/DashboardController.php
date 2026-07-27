@@ -40,7 +40,7 @@ class DashboardController extends Controller
 //        ");
 
         $stmt = $pdo->prepare("
-            CALL sp_webapi_current_track(?, ?, ?, ?, ?, ?, ?, ?, ?)
+            CALL sp_webapi_dashboard(?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -74,8 +74,13 @@ class DashboardController extends Controller
                 $statusCounts[$status]++;
             }
 
-            // TODO: ถ้ามี field station จริง ค่อยเปลี่ยน logic ตรงนี้
-            $outStation++;
+            $stationCount = (int) ($row->station_count ?? 0);
+
+            if ($stationCount > 0) {
+                $inStation++;
+            } else {
+                $outStation++;
+            }
 
             $driverStatus = $this->resolveDriverStatus($row);
             $isDltSynched = (int) ($row->dlt_synch ?? 0) === 1;

@@ -31,6 +31,7 @@ export default {
     noDriverCard: 'ไม่รูดบัตร',
     noGps: 'ไม่มี GPS',
     offline: 'ออฟไลน์',
+    passengerCount: 'จำนวนผู้โดยสาร',
     park: 'จอด',
     pois: 'จุดสนใจ',
     reports: 'รายงาน',

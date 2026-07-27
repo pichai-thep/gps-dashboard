@@ -31,6 +31,7 @@ export default {
     noDriverCard: 'no-license',
     noGps: 'No GPS',
     offline: 'Offline',
+    passengerCount: 'Passengers',
     park: 'Park',
     pois: 'POI',
     reports: 'Reports',

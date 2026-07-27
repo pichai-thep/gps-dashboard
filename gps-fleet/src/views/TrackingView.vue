@@ -260,6 +260,20 @@
                     </span>
               </div>
 
+              <div
+                  v-if="
+                    showPassenger &&
+                    hasValue(slotProps.data.passenger_num)
+                  "
+                  class="passenger-line"
+              >
+                <i class="pi pi-users"></i>
+                <span>
+                  {{ t('passengerCount') }}:
+                  {{ slotProps.data.passenger_num }}
+                </span>
+              </div>
+
               <div v-if="showInputColumn" class="input-line">
                 <span
                     v-if="showInput1"
@@ -438,9 +452,14 @@ const mapVehicles = computed(() => {
 
 const noDriverCardCount = computed(() => noDriverCardTotal.value)
 const dltSynchCount = computed(() => dltSynchTotal.value)
+const showPassenger = computed(() => Boolean(auth.features?.passenger))
 const showInput1 = computed(() => Boolean(auth.features?.input1))
 const showInput2 = computed(() => Boolean(auth.features?.input2))
 const showInputColumn = computed(() => showInput1.value || showInput2.value)
+
+function hasValue(value: unknown): boolean {
+  return value !== null && value !== undefined && value !== ''
+}
 
 onMounted(async () => {
   statusFilter.value = getStatusFromQuery()
@@ -1394,6 +1413,7 @@ onBeforeUnmount(() => {
 
 .gps-line,
 .temp-line,
+.passenger-line,
 .input-line {
   display: flex;
   align-items: center;
@@ -1405,7 +1425,8 @@ onBeforeUnmount(() => {
 }
 
 .gps-line .pi,
-.temp-line .pi {
+.temp-line .pi,
+.passenger-line .pi {
   color: #60a5fa;
   font-size: 16px;
 }

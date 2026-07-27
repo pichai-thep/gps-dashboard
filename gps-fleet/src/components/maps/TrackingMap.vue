@@ -67,6 +67,17 @@
           <strong>{{ popupVehicle.fuel_left ?? '' }} %</strong>
         </div>
 
+        <div
+            v-if="
+              showPassenger &&
+              hasValue(popupVehicle.passenger_num)
+            "
+            class="popup-row"
+        >
+          <span>{{ t('passengerCount') }}</span>
+          <strong>{{ popupVehicle.passenger_num }}</strong>
+        </div>
+
         <div class="popup-row" v-if="showInput1">
           <span>{{ t('input1') }}</span>
           <strong>{{ formatInputState(popupVehicle.input1) }}</strong>
@@ -360,6 +371,7 @@ const selectedAddress = ref<string | null>(null)
 const addressCache = ref<Record<string, string>>({})
 const clickedFromMap = ref(false)
 const vehicleFeatureMap = new globalThis.Map<string, Feature<Point>>()
+const showPassenger = computed(() => Boolean(auth.features?.passenger))
 const showInput1 = computed(() => Boolean(auth.features?.input1))
 const showInput2 = computed(() => Boolean(auth.features?.input2))
 const showEngineCutCommand = computed(() => Boolean(auth.features?.engineCut))
@@ -410,6 +422,10 @@ function formatInputState(value?: string | number | boolean | null): string {
   }
 
   return isInputOn(value) ? 'ON' : 'OFF'
+}
+
+function hasValue(value: unknown): boolean {
+  return value !== null && value !== undefined && value !== ''
 }
 
 function openCommandDialog() {

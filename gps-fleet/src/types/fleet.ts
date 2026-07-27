@@ -33,6 +33,7 @@ export type Vehicle = {
 
     fuel_left?: number | string | null
     temperature?: string
+    passenger_num?: number | string | null
 
     address?: string
     num_sats?: number | string | null
