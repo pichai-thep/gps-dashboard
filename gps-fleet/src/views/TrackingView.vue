@@ -248,6 +248,7 @@
               <div
                   class="temp-line"
                   v-if="
+                      showTemperature &&
                       slotProps.data.temperature !== null &&
                       slotProps.data.temperature !== undefined &&
                       slotProps.data.temperature !== ''
@@ -453,6 +454,7 @@ const mapVehicles = computed(() => {
 const noDriverCardCount = computed(() => noDriverCardTotal.value)
 const dltSynchCount = computed(() => dltSynchTotal.value)
 const showPassenger = computed(() => Boolean(auth.features?.passenger))
+const showTemperature = computed(() => Boolean(auth.features?.temperature))
 const showInput1 = computed(() => Boolean(auth.features?.input1))
 const showInput2 = computed(() => Boolean(auth.features?.input2))
 const showInputColumn = computed(() => showInput1.value || showInput2.value)
