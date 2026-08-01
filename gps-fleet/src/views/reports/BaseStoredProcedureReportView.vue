@@ -160,7 +160,12 @@
       class="fuel-dialog"
       :style="{ width: '90vw' }"
     >
-      <FuelReportChart :rows="rows" />
+      <FuelReportChart
+        :rows="rows"
+        :plateNo="graphCriteria.plateNo"
+        :rangeStart="graphCriteria.rangeStart"
+        :rangeEnd="graphCriteria.rangeEnd"
+      />
     </Dialog>
   </div>
 </template>
@@ -209,6 +214,11 @@ const rows = ref<Record<string, unknown>[]>([])
 const loading = ref(false)
 const errorMessage = ref('')
 const graphVisible = ref(false)
+const graphCriteria = reactive({
+  plateNo: '',
+  rangeStart: '',
+  rangeEnd: '',
+})
 const perPage = ref(50)
 const visibleFields = ref<string[]>([])
 
@@ -246,6 +256,9 @@ function initializeDefinition() {
   rows.value = []
   errorMessage.value = ''
   graphVisible.value = false
+  graphCriteria.plateNo = ''
+  graphCriteria.rangeStart = ''
+  graphCriteria.rangeEnd = ''
   visibleFields.value = definition.value.columns.map((column) => column.field)
 
   for (const key of Object.keys(criteria)) delete criteria[key]
@@ -280,9 +293,11 @@ async function search() {
   errorMessage.value = ''
 
   try {
+    const dateFrom = toDateString(filters.dateFrom)
+    const dateTo = toDateString(filters.dateTo)
     const response = await props.loadReport({
-      date_from: toDateString(filters.dateFrom),
-      date_to: toDateString(filters.dateTo),
+      date_from: dateFrom,
+      date_to: dateTo,
       time_from: filters.timeStart,
       time_to: filters.timeEnd,
       group_id: filters.groupId,
@@ -290,6 +305,11 @@ async function search() {
       criteria: { ...criteria },
     })
     rows.value = response.data ?? []
+    graphCriteria.plateNo = vehicleOptions.value.find(
+      (vehicle) => vehicle.imei === filters.imei
+    )?.plate_no ?? filters.imei ?? ''
+    graphCriteria.rangeStart = `${dateFrom} ${filters.timeStart}`
+    graphCriteria.rangeEnd = `${dateTo} ${filters.timeEnd}`
   } catch (error: any) {
     rows.value = []
     errorMessage.value =
