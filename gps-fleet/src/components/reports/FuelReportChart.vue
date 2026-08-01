@@ -224,8 +224,8 @@ function timestampOf(label: string) {
   ).getTime()
 }
 
-const points = computed(() => props.rows
-  .map((row, index) => {
+const points = computed(() => {
+  const rawPoints = props.rows.map((row, index) => {
     const label = String(value(row, ['data_date', 'gps_time', 'date']) ?? '')
     return {
       index,
@@ -236,7 +236,20 @@ const points = computed(() => props.rows
     }
   })
   .filter((point) => Number.isFinite(point.fuel))
-)
+
+  let lastActiveFuel: number | null = null
+  return rawPoints.map((point) => {
+    if (point.status === 'park' && lastActiveFuel !== null) {
+      return { ...point, fuel: lastActiveFuel }
+    }
+
+    if (point.status === 'run' || point.status === 'idle') {
+      lastActiveFuel = point.fuel
+    }
+
+    return point
+  })
+})
 
 const yAxisTicks = Array.from({ length: 11 }, (_, index) => ({
   value: index * 10,
