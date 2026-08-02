@@ -27,7 +27,7 @@ class NotificationController extends Controller
 //            'server_name' => $serverName,
 //        ]);
 
-        $items = $this->notificationService->getRecentByLogin($redis_connection, $login, 100);
+        $items = $this->notificationService->getRecentByLogin($redis_connection, $login, 1000);
 
         return response()->json([
             'success' => true,
