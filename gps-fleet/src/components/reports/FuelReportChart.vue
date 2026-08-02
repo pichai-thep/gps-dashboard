@@ -49,7 +49,7 @@
       </g>
 
       <line
-        v-for="segment in segments"
+        v-for="segment in fuelSegments"
         :key="segment.key"
         :x1="segment.x1"
         :y1="segment.y1"
@@ -57,6 +57,7 @@
         :y2="segment.y2"
         :class="['fuel-line', segment.status]"
       />
+
     </svg>
 
     <div class="legend">
@@ -178,11 +179,11 @@ async function saveChartImage() {
     context.drawImage(image, 0, 70, exportWidth, 370)
     URL.revokeObjectURL(svgUrl)
 
-    const legendWidth = 240
+    const legendWidth = 360
     const legendStart = Math.max((exportWidth - legendWidth) / 2, 24)
     drawLegendItem(context, legendStart, 470, '#ef4444', t('fuelChartPark'))
-    drawLegendItem(context, legendStart + 80, 470, '#eab308', t('fuelChartIdle'))
-    drawLegendItem(context, legendStart + 160, 470, '#22c55e', t('fuelChartRun'))
+    drawLegendItem(context, legendStart + 120, 470, '#eab308', t('fuelChartIdle'))
+    drawLegendItem(context, legendStart + 240, 470, '#22c55e', t('fuelChartRun'))
 
     const imageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
     if (!imageBlob) return
@@ -203,9 +204,20 @@ function value(row: Record<string, unknown>, names: string[]) {
 function statusOf(row: Record<string, unknown>) {
   const raw = String(value(row, ['vehicle_status', 'status', 'state']) ?? '').toLowerCase()
   const speed = Number(value(row, ['speed']) ?? 0)
-  if (raw.includes('park') || raw === '0') return 'park'
-  if (raw.includes('idle') || raw.includes('start')) return 'idle'
-  return speed > 0 ? 'run' : 'idle'
+  if (speed > 0 || raw.includes('run') || raw.includes('moving') || raw.includes('วิ่ง')) {
+    return 'run'
+  }
+  if (
+    raw === '1'
+    || raw.includes('idle')
+    || raw.includes('start')
+    || raw.includes('on')
+    || raw.includes('true')
+    || raw.includes('ติดเครื่อง')
+  ) {
+    return 'idle'
+  }
+  return 'park'
 }
 
 function timestampOf(label: string) {
@@ -251,9 +263,17 @@ const points = computed(() => {
   })
 })
 
+const PLOT_TOP = 20
+const PLOT_BOTTOM = 315
+const FUEL_MAX = 100
+
+function yFor(value: number) {
+  return PLOT_BOTTOM - (value / FUEL_MAX) * (PLOT_BOTTOM - PLOT_TOP)
+}
+
 const yAxisTicks = Array.from({ length: 11 }, (_, index) => ({
   value: index * 10,
-  y: 315 - (index / 10) * 285,
+  y: yFor(index * 10),
 }))
 
 const HOUR_MS = 60 * 60 * 1000
@@ -317,19 +337,20 @@ const xAxisTicks = computed(() => {
   })
 })
 
-const segments = computed(() => {
+const fuelSegments = computed(() => {
   return points.value.slice(1).map((point, index) => {
     const previous = points.value[index]
     return {
-      key: `${index}-${point.index}`,
+      key: `fuel-${index}-${point.index}`,
       x1: xFor(previous.timestamp, index),
-      y1: 315 - (Math.min(Math.max(previous.fuel, 0), 100) / 100) * 285,
+      y1: yFor(Math.min(Math.max(previous.fuel, 0), FUEL_MAX)),
       x2: xFor(point.timestamp, index + 1),
-      y2: 315 - (Math.min(Math.max(point.fuel, 0), 100) / 100) * 285,
+      y2: yFor(Math.min(Math.max(point.fuel, 0), FUEL_MAX)),
       status: point.status,
     }
   })
 })
+
 </script>
 
 <style scoped>

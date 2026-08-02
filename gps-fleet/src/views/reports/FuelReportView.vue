@@ -17,6 +17,17 @@ const definition: ReportDefinition = {
   timeEndRequired: true,
   vehicleRequired: true,
   graph: true,
+  criteria: [{
+    key: 'status',
+    label: 'สถานะ / Status',
+    defaultValue: '',
+    options: [
+      {label: 'ทั้งหมด / All', value: ''},
+      {label: 'Park', value: 'park'},
+      {label: 'Idle', value: 'idle'},
+      {label: 'Run', value: 'run'},
+    ],
+  }],
   columns: [{field: 'data_date', label: 'Date/time', type: 'datetime'}, {
     field: 'vehicle_status',
     label: 'Vehicle status',
