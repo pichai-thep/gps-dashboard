@@ -370,7 +370,7 @@ d2.setHours(23, 59, 59, 0)
 const datetime1 = ref<Date | null>(d1)
 const datetime2 = ref<Date | null>(d2)
 
-const showFilters = ref(false)
+const showFilters = ref(true)
 const selectedVehicleOption = ref<VehicleItem | null>(null)
 const filteredVehicles = ref<VehicleItem[]>([])
 
