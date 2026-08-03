@@ -17,6 +17,7 @@ export default {
     onMapVehicles: 'vehicles on map',
     referenceId: 'Reference ID',
     searchVehicle: 'Search vehicle...',
+    selectMapLocation: 'Select POI, station, or forbidden zone',
     selectStation: 'Select station',
     sendCommand: 'Send command',
 }

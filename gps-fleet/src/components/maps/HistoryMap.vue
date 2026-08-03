@@ -145,7 +145,7 @@ import {
 } from 'ol/style'
 import CustomerLayerMap from "@/components/maps/CustomerLayerMap.vue";
 import { useI18n } from '@/i18n'
-import type { Station } from '@/services/station'
+import type { MapLocationOption } from '@/services/mapLocations'
 
 type HistoryPoint = {
   lat?: number | string
@@ -185,7 +185,7 @@ type HistoryPoint = {
 const props = defineProps<{
   historyPoints?: HistoryPoint[]
   focusHistoryIndex?: number | null
-  focusStation?: Station | null
+  focusLocation?: MapLocationOption | null
 }>()
 
 const baseMapRef = ref()
@@ -231,8 +231,8 @@ function handleMapReady(payload: any) {
 
   renderHistory()
 
-  if (props.focusStation) {
-    zoomToStation(props.focusStation, false)
+  if (props.focusLocation) {
+    zoomToLocation(props.focusLocation, false)
   }
 }
 
@@ -425,8 +425,8 @@ function fitHistory() {
   )
 }
 
-function zoomToStation(
-    station: Station,
+function zoomToLocation(
+    location: MapLocationOption,
     animate = true,
 ) {
   if (!map.value) return
@@ -435,8 +435,8 @@ function zoomToStation(
   const view = map.value.getView()
   view.cancelAnimations()
 
-  if (station.station_type === 'polygon') {
-    const coordinates = parsePolygonWkt(station.polygon_wkt)
+  if (location.geometryType === 'polygon') {
+    const coordinates = parsePolygonWkt(location.polygon_wkt)
         .map((point) => fromLonLat([point.lng, point.lat]))
 
     if (!coordinates.length) return
@@ -449,8 +449,8 @@ function zoomToStation(
     return
   }
 
-  const lat = Number(station.lat)
-  const lng = Number(station.lng)
+  const lat = Number(location.lat)
+  const lng = Number(location.lng)
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
 
@@ -942,12 +942,12 @@ watch(
 )
 
 watch(
-    () => props.focusStation,
-    async (station) => {
-      if (!station) return
+    () => props.focusLocation,
+    async (location) => {
+      if (!location) return
 
       await nextTick()
-      zoomToStation(station)
+      zoomToLocation(location)
     }
 )
 </script>

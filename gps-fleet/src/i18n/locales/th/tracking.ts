@@ -17,6 +17,7 @@ export default {
     onMapVehicles: 'คันบนแผนที่',
     referenceId: 'เลขอ้างอิง',
     searchVehicle: 'ค้นหารถ...',
+    selectMapLocation: 'เลือก POI, สถานี หรือเขตห้ามเข้า',
     selectStation: 'เลือกสถานี',
     sendCommand: 'ส่งคำสั่ง',
 }

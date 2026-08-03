@@ -321,25 +321,40 @@
       <TrackingMap
           :vehicles="mapVehicles"
           :focus-vehicle-id="selectedVehicleId"
-          :focus-station="selectedStation"
+          :focus-location="selectedMapLocation"
           @vehicle-click="selectVehicle"
       >
         <template #map-top-controls>
           <div class="station-zoom-control">
-            <i class="pi pi-building-columns"></i>
-
             <Dropdown
-                v-model="selectedStationId"
-                :options="stations"
-                optionLabel="station_name"
-                optionValue="station_id"
-                :placeholder="t('selectStation')"
-                :loading="stationLoading"
+                v-model="selectedMapLocation"
+                :options="mapLocations"
+                optionLabel="name"
+                dataKey="key"
+                :placeholder="t('selectMapLocation')"
+                :loading="mapLocationLoading"
                 appendTo="self"
                 filter
                 showClear
-                @change="onStationChange"
-            />
+                @change="onMapLocationChange"
+            >
+              <template #value="{ value, placeholder }">
+                <div v-if="value" class="map-location-option">
+                  <i :class="getMapLocationIcon(value.type)"></i>
+                  <span>{{ value.name }}</span>
+                  <small>{{ getMapLocationTypeLabel(value.type) }}</small>
+                </div>
+                <span v-else>{{ placeholder }}</span>
+              </template>
+
+              <template #option="{ option }">
+                <div class="map-location-option">
+                  <i :class="getMapLocationIcon(option.type)"></i>
+                  <span>{{ option.name }}</span>
+                  <small>{{ getMapLocationTypeLabel(option.type) }}</small>
+                </div>
+              </template>
+            </Dropdown>
           </div>
         </template>
       </TrackingMap>
@@ -370,9 +385,10 @@ import {
   type VehicleGroup,
 } from '../services/tracking'
 import {
-  getStations,
-  type Station,
-} from '../services/station'
+  getMapLocations,
+  type MapLocationOption,
+  type MapLocationType,
+} from '../services/mapLocations'
 import { useAuthStore } from '../stores/auth'
 import type { Vehicle, VehicleStatus } from '../types/fleet'
 import { useRoute, useRouter } from 'vue-router'
@@ -440,10 +456,10 @@ const sortDirOptions = [
 
 const vehicles = ref<Vehicle[]>([])
 const groupOptions = ref<VehicleGroup[]>([{ id: -1, name: t('allGroup') }])
-const stations = ref<Station[]>([])
+const mapLocations = ref<MapLocationOption[]>([])
 
 const selectedVehicleId = ref<string | null>(null)
-const selectedStationId = ref<number | null>(null)
+const selectedMapLocation = ref<MapLocationOption | null>(null)
 const selectedGroupId = ref<number | string>(-1)
 const statusFilter = ref<VehicleStatus | null>(null)
 const noDriverCardFilter = ref(false)
@@ -460,7 +476,7 @@ const sortBy = ref('plate_no')
 const sortDir = ref<'asc' | 'desc'>('asc')
 
 const loading = ref(false)
-const stationLoading = ref(false)
+const mapLocationLoading = ref(false)
 const error = ref<string | null>(null)
 
 const statusCount = ref<StatusCount>({ ...defaultStatusCount })
@@ -476,12 +492,6 @@ const mapVehicles = computed(() => {
   return vehicles.value.filter((vehicle) => {
     return !hiddenVehicleKeys.value.has(getVehicleKey(vehicle))
   })
-})
-
-const selectedStation = computed(() => {
-  return stations.value.find(
-      (station) => station.station_id === selectedStationId.value
-  ) ?? null
 })
 
 const noDriverCardCount = computed(() => noDriverCardTotal.value)
@@ -624,22 +634,38 @@ async function loadGroups() {
   }
 }
 
-async function loadStationsForMap() {
+async function loadMapLocations() {
   try {
-    stationLoading.value = true
-    stations.value = await getStations()
+    mapLocationLoading.value = true
+    mapLocations.value = await getMapLocations()
   } catch (e) {
-    console.error('LOAD STATIONS ERROR', e)
-    stations.value = []
+    console.error('LOAD MAP LOCATIONS ERROR', e)
+    mapLocations.value = []
   } finally {
-    stationLoading.value = false
+    mapLocationLoading.value = false
   }
 }
 
-function onStationChange() {
-  if (selectedStationId.value !== null) {
+function onMapLocationChange() {
+  if (selectedMapLocation.value) {
     selectedVehicleId.value = null
   }
+}
+
+function getMapLocationIcon(type: MapLocationType) {
+  return {
+    poi: 'pi pi-map-marker location-icon poi',
+    station: 'pi pi-building-columns location-icon station',
+    'forbidden-zone': 'pi pi-ban location-icon forbidden-zone',
+  }[type]
+}
+
+function getMapLocationTypeLabel(type: MapLocationType) {
+  return {
+    poi: t('poisLayer'),
+    station: t('stationsLayer'),
+    'forbidden-zone': t('forbiddenZonesLayer'),
+  }[type]
 }
 
 function resetListState() {
@@ -729,7 +755,7 @@ function onRowClick(event: { data: Vehicle }) {
 }
 
 function selectVehicle(vehicle: Vehicle) {
-  selectedStationId.value = null
+  selectedMapLocation.value = null
   selectedVehicleId.value = getVehicleKey(vehicle)
 }
 
@@ -945,7 +971,7 @@ onMounted(async () => {
 
   await Promise.all([
     loadGroups(),
-    loadStationsForMap(),
+    loadMapLocations(),
   ])
   await loadVehicles()
 
@@ -1624,11 +1650,6 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(12px);
 }
 
-.station-zoom-control > .pi {
-  flex-shrink: 0;
-  color: #60a5fa;
-}
-
 .station-zoom-control :deep(.p-dropdown),
 .station-zoom-control :deep(.p-select) {
   flex: 1;
@@ -1650,6 +1671,45 @@ onBeforeUnmount(() => {
 
 .station-zoom-control :deep(.p-placeholder) {
   color: #cbd5e1 !important;
+}
+
+.map-location-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+}
+
+.map-location-option > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-location-option > small {
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.location-icon {
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.location-icon.poi {
+  color: #22c55e;
+}
+
+.location-icon.station {
+  color: #60a5fa;
+}
+
+.location-icon.forbidden-zone {
+  color: #f87171;
 }
 
 @media (max-width: 1280px) {
