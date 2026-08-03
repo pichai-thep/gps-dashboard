@@ -29,6 +29,11 @@ export function renderReportPrintWindow(
         rows: ReportPrintCell[][]
     }
 ) {
+    const logoUrl = new URL(
+        `/logos/${encodeURIComponent(window.location.hostname)}.png`,
+        window.location.origin
+    ).href
+    const fallbackLogoUrl = new URL('/logos/default.png', window.location.origin).href
     const headerHtml = options.headers
         .map((header) => `<th>${escapeHtml(header)}</th>`)
         .join('')
@@ -50,8 +55,17 @@ export function renderReportPrintWindow(
             <style>
               @page { size: landscape; margin: 12mm; }
               body { color: #111827; font-family: Arial, sans-serif; font-size: 10px; }
+              .report-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 24px;
+                margin-bottom: 14px;
+              }
+              .report-heading { min-width: 0; }
+              .report-logo { width: auto; max-width: 180px; height: 56px; object-fit: contain; }
               h1 { margin: 0 0 4px; font-size: 20px; }
-              .period { margin-bottom: 14px; color: #475569; font-size: 11px; }
+              .period { color: #475569; font-size: 11px; }
               table { width: 100%; border-collapse: collapse; }
               th, td {
                 padding: 5px 6px;
@@ -65,8 +79,18 @@ export function renderReportPrintWindow(
             </style>
           </head>
           <body>
-            <h1>${escapeHtml(options.title)}</h1>
-            <div class="period">${escapeHtml(options.period)}</div>
+            <div class="report-header">
+              <div class="report-heading">
+                <h1>${escapeHtml(options.title)}</h1>
+                <div class="period">${escapeHtml(options.period)}</div>
+              </div>
+              <img
+                class="report-logo"
+                src="${escapeHtml(logoUrl)}"
+                alt="Brand logo"
+                onerror="this.onerror=null;this.src='${escapeHtml(fallbackLogoUrl)}'"
+              >
+            </div>
             <table>
               <thead><tr>${headerHtml}</tr></thead>
               <tbody>${rowHtml}</tbody>

@@ -351,74 +351,74 @@ const menuItems = computed(() => [
   {
     label: t('dashboard'),
     icon: 'pi pi-chart-line',
-    styleClass: route.path === '/' ? 'active-menu' : '',
+    class: route.path === '/' ? 'active-menu' : '',
     command: () => router.push('/'),
   },
   {
     label: t('tracking'),
     icon: 'pi pi-map',
-    styleClass: isActive('/tracking') ? 'active-menu' : '',
+    class: isActive('/tracking') ? 'active-menu' : '',
     command: () => router.push('/tracking'),
   },
   {
     label: t('history'),
     icon: 'pi pi-history',
-    styleClass: isActive('/history') ? 'active-menu' : '',
+    class: isActive('/history') ? 'active-menu' : '',
     command: () => router.push('/history'),
   },
   {
     label: t('myVehicles'),
     icon: 'pi pi-car',
-    styleClass: isActive('/vehicles') ? 'active-menu' : '',
+    class: isActive('/vehicles') ? 'active-menu' : '',
     command: () => router.push('/vehicles'),
   },
   {
     label: t('myStations'),
     icon: 'pi pi-warehouse',
-    styleClass: isActive('/stations') ? 'active-menu' : '',
+    class: isActive('/stations') ? 'active-menu' : '',
     command: () => router.push('/stations'),
   },
   {
     label: t('myPois'),
     icon: 'pi pi-map-marker',
-    styleClass: isActive('/pois') ? 'active-menu' : '',
+    class: isActive('/pois') ? 'active-menu' : '',
     command: () => router.push('/pois'),
   },
   {
     label: t('forbiddenZones'),
     icon: 'pi pi-ban',
-    styleClass: isActive('/forbidden-zones') ? 'active-menu' : '',
+    class: isActive('/forbidden-zones') ? 'active-menu' : '',
     command: () => router.push('/forbidden-zones'),
   },
   {
     key: 'summaryReports',
     label: t('summaryReports'),
     icon: 'pi pi-chart-pie',
-    styleClass: 'report-group',
+    class: 'report-group',
     command: () => router.push('/reports/summary'),
     items: [
       {
         label: t('dailySummary'),
         icon: 'pi pi-calendar',
-        styleClass: isActive('/reports/daily-summary') ? 'active-menu' : '',
+        class: isActive('/reports/daily-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/daily-summary'),
       },
       {
         label: t('statusTimeline'),
         icon: 'pi pi-clock',
-        styleClass: isActive('/reports/status-summary') ? 'active-menu' : '',
+        class: isActive('/reports/status-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/status-summary'),
       },
       {
         label: t('stationVisit'),
         icon: 'pi pi-warehouse',
-        styleClass: isActive('/reports/station-summary') ? 'active-menu' : '',
+        class: isActive('/reports/station-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/station-summary'),
       },
       ...summaryProcedureReports.map((report) => ({
         label: report.title[locale.value],
         icon: 'pi pi-file',
-        styleClass: isActive(report.path) ? 'active-menu' : '',
+        class: isActive(report.path) ? 'active-menu' : '',
         command: () => router.push(report.path),
       })),
     ],
@@ -427,12 +427,12 @@ const menuItems = computed(() => [
       key: 'generalReports',
       label: t('generalReports'),
       icon: 'pi pi-list',
-      styleClass: 'report-group',
+      class: 'report-group',
       command: () => router.push('/reports/general'),
       items: generalProcedureReports.map((report) => ({
         label: report.title[locale.value],
         icon: 'pi pi-file',
-        styleClass: isActive(report.path) ? 'active-menu' : '',
+        class: isActive(report.path) ? 'active-menu' : '',
         command: () => router.push(report.path),
       })),
     },
@@ -598,31 +598,36 @@ function goReport(path: string) {
 }
 
 
-:deep(.sidebar-panel-menu .p-menuitem-link) {
+:deep(.sidebar-panel-menu .p-panelmenu-item-link) {
   color: #cbd5e1;
   padding: 10px 12px 10px 28px;
   border-radius: 10px;
 }
 
-:deep(.sidebar-panel-menu .p-menuitem-link:hover) {
+:deep(.sidebar-panel-menu .p-panelmenu-item-link:hover) {
   background: #1f2937;
   color: #ffffff;
 }
 
-:deep(.sidebar-panel-menu .p-menuitem-icon),
+:deep(.sidebar-panel-menu .p-panelmenu-header-label),
+:deep(.sidebar-panel-menu .p-panelmenu-item-label) {
+  color: inherit;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-item-icon),
 :deep(.sidebar-panel-menu .p-panelmenu-header-icon) {
   color: #94a3b8;
 }
 
-:deep(.sidebar-panel-menu .active-menu > .p-menuitem-content) {
+:deep(.sidebar-panel-menu .active-menu > .p-panelmenu-item-content) {
   background: #2563eb;
 }
 
-:deep(.sidebar-panel-menu .active-menu > .p-menuitem-content .p-menuitem-link) {
+:deep(.sidebar-panel-menu .active-menu > .p-panelmenu-item-content .p-panelmenu-item-link) {
   color: #ffffff;
 }
 
-:deep(.sidebar-panel-menu .active-menu .p-menuitem-icon) {
+:deep(.sidebar-panel-menu .active-menu .p-panelmenu-item-icon) {
   color: #ffffff;
 }
 
@@ -968,18 +973,18 @@ function goReport(path: string) {
   padding-left: 8px;
 }
 
-:deep(.sidebar-panel-menu .p-menuitem-link) {
+:deep(.sidebar-panel-menu .p-panelmenu-item-link) {
   color: #cbd5e1;
   padding: 10px 12px 10px 28px;
   border-radius: 10px;
 }
 
-:deep(.sidebar-panel-menu .p-menuitem-link:hover) {
+:deep(.sidebar-panel-menu .p-panelmenu-item-link:hover) {
   background: #1f2937;
   color: #ffffff;
 }
 
-:deep(.sidebar-panel-menu .p-menuitem-icon),
+:deep(.sidebar-panel-menu .p-panelmenu-item-icon),
 :deep(.sidebar-panel-menu .p-panelmenu-header-icon) {
   color: #94a3b8;
 }
@@ -1006,21 +1011,34 @@ function goReport(path: string) {
   color: #ffffff;
 }
 
-:deep(.sidebar-panel-menu .active-menu > .p-menuitem-content) {
+:deep(.sidebar-panel-menu .active-menu > .p-panelmenu-item-content) {
   background: #2563eb;
 }
 
-:deep(.sidebar-panel-menu .active-menu > .p-menuitem-content .p-menuitem-link) {
+:deep(.sidebar-panel-menu .active-menu > .p-panelmenu-item-content .p-panelmenu-item-link) {
   color: #ffffff;
 }
 
-:deep(.sidebar-panel-menu .active-menu .p-menuitem-icon) {
+:deep(.sidebar-panel-menu .active-menu .p-panelmenu-item-icon) {
   color: #ffffff;
 }
 
 /* Report menu hierarchy */
 :deep(.sidebar-panel-menu .report-group) {
-  margin: 3px 0 6px;
+  flex: 0 0 auto;
+  margin: 2px 0 4px;
+}
+
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-content-container),
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-content-wrapper),
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-content),
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-root-list) {
+  height: auto;
+  min-height: 0;
+}
+
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-content-container) {
+  display: block;
 }
 
 :deep(.sidebar-panel-menu .p-panelmenu-panel.report-group > .p-panelmenu-header .p-panelmenu-header-content) {
@@ -1029,24 +1047,29 @@ function goReport(path: string) {
 }
 
 :deep(.sidebar-panel-menu .p-panelmenu-panel.report-group > .p-panelmenu-header .p-panelmenu-header-link) {
+  min-height: 40px;
   padding: 9px 11px;
   color: #bfdbfe;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 850;
 }
 
-:deep(.sidebar-panel-menu .p-panelmenu-panel.report-group > .p-panelmenu-header .p-menuitem-icon),
+:deep(.sidebar-panel-menu .p-panelmenu-panel.report-group .p-panelmenu-item-label) {
+  color: #f1f5f9;
+}
+
+:deep(.sidebar-panel-menu .p-panelmenu-panel.report-group > .p-panelmenu-header .p-panelmenu-submenu-icon),
 :deep(.sidebar-panel-menu .p-panelmenu-panel.report-group > .p-panelmenu-header .p-panelmenu-header-icon) {
   color: #60a5fa;
 }
 
-:deep(.sidebar-panel-menu .report-group > .p-menuitem-content) {
+:deep(.sidebar-panel-menu .report-group > .p-panelmenu-item-content) {
   border: 1px solid rgba(96, 165, 250, 0.18);
   border-radius: 9px;
   background: rgba(30, 64, 175, 0.12);
 }
 
-:deep(.sidebar-panel-menu .report-group > .p-menuitem-content > .p-menuitem-link) {
+:deep(.sidebar-panel-menu .report-group > .p-panelmenu-item-content > .p-panelmenu-item-link) {
   min-height: 32px;
   padding: 7px 10px 7px 18px;
   color: #93c5fd;
@@ -1055,42 +1078,49 @@ function goReport(path: string) {
   letter-spacing: 0.02em;
 }
 
-:deep(.sidebar-panel-menu .report-group > .p-menuitem-content .p-menuitem-icon) {
+:deep(.sidebar-panel-menu .report-group > .p-panelmenu-item-content .p-panelmenu-item-icon) {
   color: #60a5fa;
   font-size: 11px;
 }
 
-:deep(.sidebar-panel-menu .report-group .p-menuitem:not(.report-group) > .p-menuitem-content) {
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-item:not(.report-group) > .p-panelmenu-item-content) {
   margin: 2px 0;
   border-radius: 8px;
 }
 
-:deep(.sidebar-panel-menu .report-group .p-menuitem:not(.report-group) > .p-menuitem-content > .p-menuitem-link) {
-  min-height: 30px;
-  padding: 6px 9px 6px 32px;
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-item:not(.report-group) > .p-panelmenu-item-content > .p-panelmenu-item-link) {
+  min-height: 36px;
+  padding: 7px 9px 7px 30px;
   color: #e2e8f0;
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.25;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
-:deep(.sidebar-panel-menu .report-group .p-menuitem:not(.report-group) > .p-menuitem-content > .p-menuitem-link:hover) {
-  background: rgba(59, 130, 246, 0.16);
-  color: #ffffff;
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-item:not(.report-group) > .p-panelmenu-item-content:hover) {
+  background: #1e40af !important;
+  color: #ffffff !important;
 }
 
-:deep(.sidebar-panel-menu .report-group .p-menuitem:not(.report-group) .p-menuitem-icon) {
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-item:not(.report-group) > .p-panelmenu-item-content:hover .p-panelmenu-item-link),
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-item:not(.report-group) > .p-panelmenu-item-content:hover .p-panelmenu-item-label),
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-item:not(.report-group) > .p-panelmenu-item-content:hover .p-panelmenu-item-icon) {
+  color: #ffffff !important;
+}
+
+:deep(.sidebar-panel-menu .report-group .p-panelmenu-item:not(.report-group) .p-panelmenu-item-icon) {
   color: #7dd3fc;
-  font-size: 10px;
+  font-size: 12px;
 }
 
-:deep(.sidebar-panel-menu .report-group .active-menu > .p-menuitem-content) {
+:deep(.sidebar-panel-menu .report-group .active-menu > .p-panelmenu-item-content) {
   background: linear-gradient(90deg, #2563eb, #1d4ed8);
   box-shadow: inset 3px 0 0 #7dd3fc;
 }
 
-:deep(.sidebar-panel-menu .report-group .active-menu > .p-menuitem-content > .p-menuitem-link),
-:deep(.sidebar-panel-menu .report-group .active-menu .p-menuitem-icon) {
+:deep(.sidebar-panel-menu .report-group .active-menu > .p-panelmenu-item-content > .p-panelmenu-item-link),
+:deep(.sidebar-panel-menu .report-group .active-menu .p-panelmenu-item-icon),
+:deep(.sidebar-panel-menu .report-group .active-menu .p-panelmenu-item-label) {
   color: #ffffff;
 }
 

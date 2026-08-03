@@ -25,6 +25,13 @@
           class="column-picker"
         />
       </div>
+
+      <img
+        :src="reportLogoUrl"
+        class="report-print-logo"
+        alt="Brand logo"
+        @error="onReportLogoError"
+      />
     </div>
 
     <BaseReportFilters
@@ -197,6 +204,7 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const definition = computed(() => props.definition)
+const reportLogoUrl = ref(`/logos/${encodeURIComponent(window.location.hostname)}.png`)
 
 const filters = reactive({
   dateFrom: yesterday(),
@@ -232,6 +240,12 @@ const pagedRows = computed(() => rows.value)
 const periodLabel = computed(() =>
   `${toDateString(filters.dateFrom)} – ${toDateString(filters.dateTo)}`
 )
+
+function onReportLogoError(event: Event) {
+  const image = event.currentTarget as HTMLImageElement
+  image.onerror = null
+  image.src = '/logos/default.png'
+}
 
 function localized(value: { th: string; en: string }) {
   return value[locale.value]
@@ -548,6 +562,10 @@ watch(() => props.definition.key, async () => {
   display: none;
 }
 
+.report-print-logo {
+  display: none;
+}
+
 @media print {
   :global(.sidebar),
   :global(.topbar),
@@ -561,6 +579,22 @@ watch(() => props.definition.key, async () => {
   .report-page {
     padding: 0;
     color: #000;
+  }
+
+  .page-header {
+    align-items: flex-start;
+  }
+
+  .page-header p {
+    color: #475569;
+  }
+
+  .report-print-logo {
+    display: block;
+    width: auto;
+    max-width: 180px;
+    height: 56px;
+    object-fit: contain;
   }
 
   .table-card {
