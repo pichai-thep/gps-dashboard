@@ -173,8 +173,8 @@ const page = ref(1)
 const perPage = ref(50)
 const totalRows = ref(0)
 const totalPages = ref(0)
-const sortField = ref('data_date')
-const sortOrder = ref<'asc' | 'desc'>('desc')
+const sortField = ref('plate_no')
+const sortOrder = ref<'asc' | 'desc'>('asc')
 
 const summary = ref({
   total_rows: 0,

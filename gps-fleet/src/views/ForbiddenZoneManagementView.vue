@@ -851,7 +851,7 @@ function closeRing(coords: number[][]) {
 
 .coordinate-fields {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -859,6 +859,12 @@ function closeRing(coords: number[][]) {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+}
+
+.coordinate-field :deep(.p-inputnumber),
+.coordinate-field :deep(.p-inputnumber-input) {
+  width: 100%;
   min-width: 0;
 }
 

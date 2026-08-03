@@ -886,7 +886,7 @@ function findPoiLabel(value?: string | null) {
 
 .coordinate-fields {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -894,6 +894,12 @@ function findPoiLabel(value?: string | null) {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+}
+
+.coordinate-field :deep(.p-inputnumber),
+.coordinate-field :deep(.p-inputnumber-input) {
+  width: 100%;
   min-width: 0;
 }
 
