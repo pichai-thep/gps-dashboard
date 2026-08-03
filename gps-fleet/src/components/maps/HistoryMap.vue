@@ -19,6 +19,10 @@
       />
     </template>
 
+    <template #map-top-controls>
+      <slot name="map-top-controls" />
+    </template>
+
     <template #popup>
       <div v-if="popupData">
         <div class="popup-title">
@@ -141,6 +145,7 @@ import {
 } from 'ol/style'
 import CustomerLayerMap from "@/components/maps/CustomerLayerMap.vue";
 import { useI18n } from '@/i18n'
+import type { Station } from '@/services/station'
 
 type HistoryPoint = {
   lat?: number | string
@@ -180,6 +185,7 @@ type HistoryPoint = {
 const props = defineProps<{
   historyPoints?: HistoryPoint[]
   focusHistoryIndex?: number | null
+  focusStation?: Station | null
 }>()
 
 const baseMapRef = ref()
@@ -224,6 +230,10 @@ function handleMapReady(payload: any) {
   )
 
   renderHistory()
+
+  if (props.focusStation) {
+    zoomToStation(props.focusStation, false)
+  }
 }
 
 function handleMapClick(event: any) {
@@ -413,6 +423,58 @@ function fitHistory() {
         maxZoom: 16,
       }
   )
+}
+
+function zoomToStation(
+    station: Station,
+    animate = true,
+) {
+  if (!map.value) return
+
+  closePopup()
+  const view = map.value.getView()
+  view.cancelAnimations()
+
+  if (station.station_type === 'polygon') {
+    const coordinates = parsePolygonWkt(station.polygon_wkt)
+        .map((point) => fromLonLat([point.lng, point.lat]))
+
+    if (!coordinates.length) return
+
+    view.fit(boundingExtent(coordinates), {
+      padding: [100, 100, 100, 100],
+      duration: animate ? 400 : 0,
+      maxZoom: 17,
+    })
+    return
+  }
+
+  const lat = Number(station.lat)
+  const lng = Number(station.lng)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+  view.animate({
+    center: fromLonLat([lng, lat]),
+    zoom: 16,
+    duration: animate ? 400 : 0,
+  })
+}
+
+function parsePolygonWkt(wkt?: string | null) {
+  if (!wkt) return []
+
+  return wkt
+      .replace(/^\s*POLYGON\s*\(\(/i, '')
+      .replace(/\)\)\s*$/, '')
+      .split(',')
+      .map((pair) => {
+        const [lng, lat] = pair.trim().split(/\s+/).map(Number)
+        return { lng, lat }
+      })
+      .filter((point) => (
+        Number.isFinite(point.lng) && Number.isFinite(point.lat)
+      ))
 }
 
 function getHeading(
@@ -876,6 +938,16 @@ watch(
       }
 
       focusHistoryPoint(index)
+    }
+)
+
+watch(
+    () => props.focusStation,
+    async (station) => {
+      if (!station) return
+
+      await nextTick()
+      zoomToStation(station)
     }
 )
 </script>

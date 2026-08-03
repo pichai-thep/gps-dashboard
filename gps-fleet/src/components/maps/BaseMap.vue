@@ -45,6 +45,10 @@
       <slot name="map-controls" />
     </div>
 
+    <div class="map-top-controls">
+      <slot name="map-top-controls" />
+    </div>
+
     <div v-if="isGoogleMap" class="map-layer-switcher">
       <button
           type="button"
@@ -518,6 +522,21 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.map-top-controls {
+  position: absolute;
+  top: 16px;
+  left: 68px;
+  right: 68px;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.map-top-controls :slotted(*) {
+  pointer-events: auto;
 }
 
 .map-controls :slotted(button:hover) {

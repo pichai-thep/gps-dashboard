@@ -321,8 +321,28 @@
       <TrackingMap
           :vehicles="mapVehicles"
           :focus-vehicle-id="selectedVehicleId"
+          :focus-station="selectedStation"
           @vehicle-click="selectVehicle"
-      />
+      >
+        <template #map-top-controls>
+          <div class="station-zoom-control">
+            <i class="pi pi-building-columns"></i>
+
+            <Dropdown
+                v-model="selectedStationId"
+                :options="stations"
+                optionLabel="station_name"
+                optionValue="station_id"
+                :placeholder="t('selectStation')"
+                :loading="stationLoading"
+                appendTo="self"
+                filter
+                showClear
+                @change="onStationChange"
+            />
+          </div>
+        </template>
+      </TrackingMap>
     </section>
   </div>
 </template>
@@ -349,6 +369,10 @@ import {
   getVehicleGroups,
   type VehicleGroup,
 } from '../services/tracking'
+import {
+  getStations,
+  type Station,
+} from '../services/station'
 import { useAuthStore } from '../stores/auth'
 import type { Vehicle, VehicleStatus } from '../types/fleet'
 import { useRoute, useRouter } from 'vue-router'
@@ -416,8 +440,10 @@ const sortDirOptions = [
 
 const vehicles = ref<Vehicle[]>([])
 const groupOptions = ref<VehicleGroup[]>([{ id: -1, name: t('allGroup') }])
+const stations = ref<Station[]>([])
 
 const selectedVehicleId = ref<string | null>(null)
+const selectedStationId = ref<number | null>(null)
 const selectedGroupId = ref<number | string>(-1)
 const statusFilter = ref<VehicleStatus | null>(null)
 const noDriverCardFilter = ref(false)
@@ -434,6 +460,7 @@ const sortBy = ref('plate_no')
 const sortDir = ref<'asc' | 'desc'>('asc')
 
 const loading = ref(false)
+const stationLoading = ref(false)
 const error = ref<string | null>(null)
 
 const statusCount = ref<StatusCount>({ ...defaultStatusCount })
@@ -449,6 +476,12 @@ const mapVehicles = computed(() => {
   return vehicles.value.filter((vehicle) => {
     return !hiddenVehicleKeys.value.has(getVehicleKey(vehicle))
   })
+})
+
+const selectedStation = computed(() => {
+  return stations.value.find(
+      (station) => station.station_id === selectedStationId.value
+  ) ?? null
 })
 
 const noDriverCardCount = computed(() => noDriverCardTotal.value)
@@ -591,6 +624,24 @@ async function loadGroups() {
   }
 }
 
+async function loadStationsForMap() {
+  try {
+    stationLoading.value = true
+    stations.value = await getStations()
+  } catch (e) {
+    console.error('LOAD STATIONS ERROR', e)
+    stations.value = []
+  } finally {
+    stationLoading.value = false
+  }
+}
+
+function onStationChange() {
+  if (selectedStationId.value !== null) {
+    selectedVehicleId.value = null
+  }
+}
+
 function resetListState() {
   page.value = 1
   selectedVehicleId.value = null
@@ -678,6 +729,7 @@ function onRowClick(event: { data: Vehicle }) {
 }
 
 function selectVehicle(vehicle: Vehicle) {
+  selectedStationId.value = null
   selectedVehicleId.value = getVehicleKey(vehicle)
 }
 
@@ -891,7 +943,10 @@ onMounted(async () => {
     await auth.fetchMe()
   }
 
-  await loadGroups()
+  await Promise.all([
+    loadGroups(),
+    loadStationsForMap(),
+  ])
   await loadVehicles()
 
   startPolling()
@@ -1545,12 +1600,56 @@ onBeforeUnmount(() => {
 
 /* map */
 .map-area {
+  position: relative;
   display: flex;
   height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
   border-radius: 20px;
+}
+
+.station-zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(320px, 100%);
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.28);
+  backdrop-filter: blur(12px);
+}
+
+.station-zoom-control > .pi {
+  flex-shrink: 0;
+  color: #60a5fa;
+}
+
+.station-zoom-control :deep(.p-dropdown),
+.station-zoom-control :deep(.p-select) {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.station-zoom-control :deep(.p-dropdown-label),
+.station-zoom-control :deep(.p-select-label) {
+  padding-block: 8px !important;
+  padding-left: 0 !important;
+  color: #f8fafc !important;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.station-zoom-control :deep(.p-placeholder) {
+  color: #cbd5e1 !important;
 }
 
 @media (max-width: 1280px) {

@@ -17,5 +17,6 @@ export default {
     onMapVehicles: 'vehicles on map',
     referenceId: 'Reference ID',
     searchVehicle: 'Search vehicle...',
+    selectStation: 'Select station',
     sendCommand: 'Send command',
 }

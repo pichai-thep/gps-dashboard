@@ -276,7 +276,27 @@
       <HistoryMap
           :history-points="rows"
           :focus-history-index="selectedHistoryIndex"
-      />
+          :focus-station="selectedStation"
+      >
+        <template #map-top-controls>
+          <div class="station-zoom-control">
+            <i class="pi pi-building-columns"></i>
+
+            <Select
+                v-model="selectedStationId"
+                :options="stations"
+                optionLabel="station_name"
+                optionValue="station_id"
+                :placeholder="t('selectStation')"
+                :loading="stationLoading"
+                appendTo="self"
+                filter
+                showClear
+                @change="onStationChange"
+            />
+          </div>
+        </template>
+      </HistoryMap>
     </div>
   </div>
 </template>
@@ -295,6 +315,10 @@ import {
 
 import { getGroups } from '@/services/groups'
 import { getVehicles } from '@/services/vehicles'
+import {
+  getStations,
+  type Station,
+} from '@/services/station'
 import Button from "primevue/button";
 import {DatePicker} from "primevue";
 import AutoComplete from 'primevue/autocomplete'
@@ -332,15 +356,18 @@ const customerId = computed(() => {
 
 const pageLoading = ref(false)
 const loading = ref(false)
+const stationLoading = ref(false)
 const errorMessage = ref('')
 const initializedCustomerId = ref<number | string | null>(null)
 
 const groups = ref<GroupItem[]>([])
 const allVehicles = ref<VehicleItem[]>([])
 const vehicles = ref<VehicleItem[]>([])
+const stations = ref<Station[]>([])
 
 const selectedGroup = ref<number | string | null>(null)
 const selectedVehicle = ref<number | string | null>(null)
+const selectedStationId = ref<number | null>(null)
 const selectedHistoryIndex = ref<number | null>(null)
 const selectedHistoryRow = ref<HistoryPoint | null>(null)
 const rows = ref<HistoryPoint[]>([])
@@ -378,6 +405,12 @@ const firstRow = computed(() => {
   return (currentPage.value - 1) * perPage.value
 })
 
+const selectedStation = computed(() => {
+  return stations.value.find(
+      (station) => station.station_id === selectedStationId.value
+  ) ?? null
+})
+
 const showInput1 = computed(() => Boolean(auth.features?.input1))
 const showInput2 = computed(() => Boolean(auth.features?.input2))
 const showInputColumn = computed(() => showInput1.value || showInput2.value)
@@ -394,7 +427,15 @@ function onVehicleDropdown() {
 async function searchHistory() {
   currentPage.value = 1
   selectedHistoryIndex.value = null
+  selectedStationId.value = null
   await loadHistory()
+}
+
+function onStationChange() {
+  if (selectedStationId.value !== null) {
+    selectedHistoryIndex.value = null
+    selectedHistoryRow.value = null
+  }
 }
 
 function searchVehicle(event: any) {
@@ -520,10 +561,25 @@ async function initPage() {
   pageLoading.value = true
 
   try {
-    await loadGroups()
+    await Promise.all([
+      loadGroups(),
+      loadStationsForMap(),
+    ])
     await loadVehicles(-1)
   } finally {
     pageLoading.value = false
+  }
+}
+
+async function loadStationsForMap() {
+  try {
+    stationLoading.value = true
+    stations.value = await getStations()
+  } catch (error) {
+    console.error('LOAD STATIONS ERROR', error)
+    stations.value = []
+  } finally {
+    stationLoading.value = false
   }
 }
 
@@ -741,6 +797,7 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
 }
 
 function selectHistoryRow(index: number) {
+  selectedStationId.value = null
   selectedHistoryIndex.value = index
   selectedHistoryRow.value = rows.value[index] ?? null
 }
@@ -912,6 +969,7 @@ watch(datetime1, (newValue) => {
 }
 
 .map-panel {
+  position: relative;
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -919,6 +977,47 @@ watch(datetime1, (newValue) => {
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 18px;
   overflow: hidden;
+}
+
+.station-zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(320px, 100%);
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.28);
+  backdrop-filter: blur(12px);
+}
+
+.station-zoom-control > .pi {
+  flex-shrink: 0;
+  color: #60a5fa;
+}
+
+.station-zoom-control :deep(.p-select) {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.station-zoom-control :deep(.p-select-label) {
+  padding-block: 8px !important;
+  padding-left: 0 !important;
+  color: #f8fafc !important;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.station-zoom-control :deep(.p-placeholder) {
+  color: #cbd5e1 !important;
 }
 
 .filter-card,
