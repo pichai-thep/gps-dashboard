@@ -308,8 +308,20 @@ async function resetFilter() {
   sortField.value = 'data_date'
   sortOrder.value = 'desc'
 
+  rows.value = []
+  totalRows.value = 0
+  totalPages.value = 0
+  summary.value = {
+    total_rows: 0,
+    total_vehicle: 0,
+    run_time_s: 0,
+    idle_time_s: 0,
+    park_time_s: 0,
+    distance_m: 0,
+    ur_rate_avg: 0,
+  }
+
   await loadOptions()
-  await loadData()
 }
 
 function formatPercent(value: number | null | undefined) {
@@ -536,7 +548,6 @@ function downloadCsv(filename: string, header: string[], rows: Array<Array<strin
 
 onMounted(async () => {
   await loadOptions()
-  await loadData()
 })
 
 </script>

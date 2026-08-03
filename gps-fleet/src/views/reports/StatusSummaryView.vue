@@ -260,8 +260,16 @@ async function resetFilter() {
   page.value = 1
   perPage.value = 50
 
+  rows.value = []
+  totalRows.value = 0
+  totalPages.value = 0
+  summary.value = {
+    total_rows: 0,
+    total_vehicle: 0,
+    duration_s: 0,
+  }
+
   await loadOptions()
-  await loadData()
 }
 
 async function loadData() {
@@ -427,7 +435,6 @@ function downloadCsv(filename: string, header: string[], rows: Array<Array<strin
 
 onMounted(async () => {
   await loadOptions()
-  await loadData()
 })
 
 </script>
