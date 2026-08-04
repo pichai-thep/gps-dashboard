@@ -7,8 +7,8 @@ CALL sp_sum_report_table(0,'2026-05-25');	-- execute report by report-table-inde
 CALL sp_sum_gps_report_daily(DATE_SUB(CURDATE(), INTERVAL 1 DAY));
 CALL sp_sum_gps_report_daily('2026-05-29');
 
-CALL sp_report_daily_summary('2026-05-01','2026-05-31','',1,100);
-CALL sp_report_daily_summary('2026-05-01','2026-06-03','',3,10, 'distance_m', 'desc');
+
+CALL sp_report_daily_summary('sae','2026-07-30','2026-07-31','',1,100, 'distance_m', 'desc');
 
 
 CALL sp_report_status_summary('2026-05-01','2026-05-31',null,'',1,100);

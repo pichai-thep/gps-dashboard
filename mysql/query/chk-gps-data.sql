@@ -1,6 +1,7 @@
 call sp_movedata_report(0);
 call sp_movedata_report3(0);
 call sp_movedata_report_err_continue(0);
+
 CALL sp_move_gps_data_to_report(5000);
 
 optimize table gps_data;

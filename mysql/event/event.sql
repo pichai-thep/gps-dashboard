@@ -47,10 +47,10 @@ alter event station_inout_batch
 alter event status_batch disable;
 create event status_batch
     on schedule every '1' day
-    starts '2022-03-10 03:00:00'
+    starts '2026-07-23 04:00:00'
     on Completion preserve
     do 
-        call sp_data_sum_batch(null);     
+        call sp_data_sum_batch(null);
         
         
 alter event export_active_device disable;
@@ -80,5 +80,5 @@ DROP EVENT IF EXISTS ev_sum_gps_daily;
 
 SELECT event_name, event_definition, event_type, execute_at, interval_value, INTERVAL_FIELD, starts, status, LAST_EXECUTED 
 FROM INFORMATION_SCHEMA.EVENTS 
-where event_schema='gpsdb' 
+where event_schema='gps_db' 
 order by date_format(starts, '%H:%i');

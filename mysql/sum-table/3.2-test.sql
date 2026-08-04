@@ -1,10 +1,10 @@
 CALL sp_sum_gps_report_daily(curdate()-interval 1 day);
-CALL sp_sum_gps_report_daily('2026-06-07');
-CALL sp_sum_report_table(1,'2026-06-03');
+CALL sp_sum_gps_report_daily('2026-08-02');
+CALL sp_sum_report_table(1,'2026-08-03');
 
 CALL sp_sum_station_daily(curdate()-interval 1 day);
 CALL sp_sum_station_daily('2026-06-07');
-CALL sp_sum_station_report_table(2, '2026-06-06');
+CALL sp_sum_station_report_table(19, '2026-08-03');
 
 
 SHOW FULL COLUMNS FROM tracker LIKE 'imei';

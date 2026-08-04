@@ -1,11 +1,11 @@
-Drop procedure if exists sp_webapi_current_track_passenger;
+Drop procedure if exists sp_webapi_dashboard;
 -- --------------------------------------------------------------------------------
 -- Routine DDL
 -- Note: comments before and after the routine body will not be stored by the server
 -- --------------------------------------------------------------------------------
 DELIMITER $$
 
-CREATE PROCEDURE `sp_webapi_current_track_passenger`(
+CREATE PROCEDURE `sp_webapi_dashboard`(
 	in _login varchar(20),
     in _customer_group_id int,
 	in _sortby varchar(80),
@@ -16,18 +16,19 @@ CREATE PROCEDURE `sp_webapi_current_track_passenger`(
     in _offSet int,
     in _size int
 )
-BEGIN
+proc: BEGIN
             
 	DECLARE done INT DEFAULT FALSE;
 	DECLARE v_imei CHAR(20);
     declare v_plate_no varchar(50);
+    declare v_cust_id int;
 	Declare data_count int;
     DECLARE v_tracker_model VARCHAR(50);
     DECLARE v_event_codes VARCHAR(100);
     
 
 	DECLARE tCursor CURSOR FOR             
-            Select  distinct t.imei, t.plate_no
+            Select  distinct t.imei, t.plate_no, c.customer_id
 			from 
 					tracker t 
 					inner join customer_tracker ct on ct.tracker_imei=t.imei
@@ -45,30 +46,11 @@ BEGIN
 							or 	t.plate_no 		like concat('%', coalesce(_keyword, t.plate_no),'%')
 							or 	t.tracker_model like concat(	 coalesce(_keyword, t.tracker_model),'%')
 					)									
-                    and t.dlt_synch = coalesce(nullif(_is_dltSynch,'0'), t.dlt_synch)
-                    
-            order by 
-					case when _sortby='plate_no' and _direction='asc' then t.plate_no end asc,
-                    case when _sortby='plate_no' and _direction='desc' then t.plate_no end desc,
-                    case when _sortby='imei' and _direction='asc' then t.imei end asc,
-                    case when _sortby='imei' and _direction='desc' then t.imei end desc
+                    and t.dlt_synch = coalesce(nullif(_is_dltSynch,'0'), t.dlt_synch)				
             limit _offset, _size        
             ;
             
-
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;    
-    
-    DROP TEMPORARY TABLE IF EXISTS tmp_passenger_sum;
-	create temporary table tmp_passenger_sum(
-		imei varchar(20),
-		passenger_num int
-	)engine myisam;
-    
-    insert into tmp_passenger_sum(imei, passenger_num)
-	select ck.imei, count(distinct ck.uid) 
-	from student_checkin ck inner join tracker t on ck.imei=t.imei 
-    where ck.checkout_time is null and ck.checkin_time > now()-interval t.std_rfid_timeout minute
-    group by ck.imei;
 
 	DROP TEMPORARY TABLE IF EXISTS tmp_Current_Track;
 	create temporary table tmp_Current_Track(
@@ -78,7 +60,7 @@ BEGIN
 		imei varchar(20),
         sim_no varchar(13),
 		model varchar(15),
-		plate_no nvarchar(50),		
+		plate_no varchar(50),		
 		data_date datetime,
         received_date datetime,
 		event_code varchar(3),
@@ -95,11 +77,6 @@ BEGIN
 		speed_limited int,
         fuel_left float,
         fuel_full_at smallint,
-        temperature varchar(12),
-        temp_a_min decimal(4,1),
-        temp_a_max decimal(4,1),
-        temp_b_min decimal(4,1),
-        temp_b_max decimal(4,1),        
 		input1 varchar(1),
 		input2 varchar(1),
         output_engine_cut varchar(1),
@@ -108,16 +85,12 @@ BEGIN
 		fuel_price decimal(5,2),
 		fuel_kmpl decimal(5,2),
 		icon_path varchar(255),
-        address varchar(255),
         track3 varchar(90),
-        track1 varchar(50),
-                
+        track1 varchar(50),                
         ic_status tinyint,		-- 0=null, 1:off-line, 2=gps-v, 3=park, 4=acc-on, 5=start, 6=run
         dlt_synch tinyint,
-        
--- 		msg_type varchar(30),
---         ev_time varchar(30),
 		num_sats tinyint,
+        station_count int,
         primary key(id)
         
 	)engine myisam;
@@ -136,7 +109,7 @@ BEGIN
 
 		read_loop: LOOP
 
-		FETCH tCursor INTO v_imei, v_plate_no;
+		FETCH tCursor INTO v_imei, v_plate_no, v_cust_id;
 		IF done THEN
 		  LEAVE read_loop;
 		END IF;
@@ -144,26 +117,24 @@ BEGIN
 			insert into tmp_Current_Track(gpsdata_id, sequen_no, imei, sim_no, model, plate_no, data_date, received_date
 										, event_code, engine_volt, ext_power, power_status, gps_status
                                         , lat, lng, heading, state, speed, running, speed_limited
-										, fuel_left, fuel_full_at, temperature, temp_a_max, temp_a_min, temp_b_max, temp_b_min, input1, input2, output_engine_cut
-                                        , driver_name, driver_phone, fuel_price, fuel_kmpl, icon_path, address, track3, track1
-                                        , ic_status, dlt_synch, num_sats)
+										, fuel_left, fuel_full_at, input1, input2, output_engine_cut
+                                        , driver_name, driver_phone, fuel_price, fuel_kmpl, icon_path, track3, track1
+                                        , ic_status, dlt_synch, num_sats, station_count)
 				select g.gpsdata_id, t.sequen_no, t.imei, t.sim_no, t.tracker_model, t.plate_no, DATE_ADD(g.data_date, INTERVAL 7 HOUR), received_date
 						,g.event_code, t.engine_volt, g.ext_power, ifnull(g.ext_power_status,1) as ext_power_status, g.gps_status                        
 						, st_x(g.g_point), st_y(g.g_point), g.heading, fn_acc_state(t.tracker_model, t.input_acc, g.state, g.speed), g.speed, 
 						case when speed>0 then 1 else 0 end as running, t.speed_limited,						
 						fn_fuel_percent(t.input_fuel, t.tracker_model, g.ad, t.fuel_min_vol, t.fuel_max_vol, t.input_fuel_reverse) as fuel_left
                         , t.fuel_full_at
-						, fn_temperature(t.tracker_model, g.ad, t.input_temp)						
-						, tts.a_max, tts.a_min, tts.b_max, tts.b_min
 						, fn_input(t.tracker_model, g.state, 1, t.input_1_reverse) as in1
 						, fn_input(t.tracker_model, g.state, 2, t.input_2_reverse) as in2															
                         , fn_engine_cut_status(t.tracker_model,g.state,g.output_state) AS output_engine_cut											
-						,t.driver_name, t.driver_phone, fuel_price, fuel_kmpl, t.icon_path, g.address, g.track3, g.track1
+						,t.driver_name, t.driver_phone, fuel_price, fuel_kmpl, t.icon_path, g.track3, g.track1
 						,fn_ic_status(g.data_date,g.received_date,g.gps_status,g.state,t.input_acc,t.engine_volt,g.ext_power,g.speed) AS ic_status
 						, t.dlt_synch, g.num_sats
+                        , fn_station_inside(v_cust_id, st_x(g.g_point), st_y(g.g_point))                                                					
 					from 	tracker t 	
 							left join gps_data g on t.imei=g.box_imei 									
-							left join tracker_temp_sensor tts on t.imei=tts.imei                            
 					where 	t.imei=v_imei 
 							AND (v_event_codes IS NULL OR FIND_IN_SET(g.event_code, v_event_codes) > 0)
 					order by g.data_date desc limit 0,1;
@@ -171,7 +142,8 @@ BEGIN
 
 	close tCursor;
     
-    -- select * from tmp_Current_Track;
+    select * from tmp_Current_Track;
+    leave proc;
 
 
 	SET @SQLStatement = CONCAT('
@@ -181,9 +153,9 @@ BEGIN
 				imei, sim_no, model, plate_no, tmp.lat, tmp.lng, gps_status, running, heading, speed, speed_limited, fuel_left,
 				temperature, temp_a_min, temp_a_max, temp_b_min, temp_b_max, 
 				input1, input2, output_engine_cut,
-				driver_name, driver_phone, fuel_full_at, fuel_price, fuel_kmpl, icon_path, gac.address, track3, track1, ic_status, dlt_synch
-				,num_sats
-			from tmp_Current_Track tmp left join gps_address_cache gac on tmp.imei=gac.box_imei
+				driver_name, driver_phone, fuel_full_at, fuel_price, fuel_kmpl, icon_path, track3, track1, ic_status, dlt_synch
+				,num_sats, station_count
+			from tmp_Current_Track tmp 
 		where ic_status=', if(_status=-1,'ic_status',_status), 
 		' ORDER BY ',_sortby, ' ' ,_direction
 	);

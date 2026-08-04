@@ -139,6 +139,7 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
 
   INSERT INTO tmp_day_points_next
   SELECT * FROM tmp_day_points;
+  -- leave proc;
 
   INSERT INTO gps_sum_data (
     imei, data_date, run_time_s, idle_time_s, park_time_s, distance_m, total_rows, updated_at

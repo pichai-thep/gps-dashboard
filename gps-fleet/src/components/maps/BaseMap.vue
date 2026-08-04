@@ -49,7 +49,7 @@
       <slot name="map-top-controls" />
     </div>
 
-    <div v-if="isGoogleMap" class="map-layer-switcher">
+    <div class="map-layer-switcher">
       <button
           type="button"
           :class="{ active: currentLayer === 'default' }"
@@ -168,10 +168,6 @@ const isFullscreen = ref(false)
 const currentZoom = ref(formatZoom(props.zoom))
 
 
-const isGoogleMap = computed(() => {
-  return selectedProvider.value === 'google'
-})
-
 const selectedProvider = computed<MapProviderKey>(() => {
   if (props.provider) {
     return props.provider
@@ -181,7 +177,11 @@ const selectedProvider = computed<MapProviderKey>(() => {
 })
 
 const providerLabel = computed(() => {
-  return `${selectedProvider.value.toUpperCase()} • ${currentLayer.value}`
+  const provider = currentLayer.value === 'default'
+      ? selectedProvider.value
+      : 'google'
+
+  return `${provider.toUpperCase()} • ${currentLayer.value}`
 })
 
 onMounted(async () => {
@@ -330,8 +330,12 @@ function createTileSource(
     providerKey: MapProviderKey,
     layer: MapLayerType
 ): XYZ {
+  const layerProviderKey = layer === 'default'
+      ? providerKey
+      : 'google'
+
   const provider =
-      mapProviders[providerKey] ||
+      mapProviders[layerProviderKey] ||
       mapProviders[DEFAULT_MAP_PROVIDER]
 
   const url =
@@ -563,7 +567,7 @@ defineExpose({
 .map-layer-switcher {
   position: absolute;
   top: 16px;
-  left: 64px;
+  right: 68px;
   z-index: 35;
 
   display: flex;
@@ -599,6 +603,15 @@ defineExpose({
 .map-layer-switcher button.active {
   background: #22c55e;
   color: #052e16;
+}
+
+@media (max-width: 640px) {
+  .map-layer-switcher {
+    top: auto;
+    right: auto;
+    bottom: 16px;
+    left: 16px;
+  }
 }
 
 .base-map-shell.fullscreen {

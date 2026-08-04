@@ -412,16 +412,30 @@
                     />
                   </div>
 
-                  <div class="field checkbox-field">
-                    <Checkbox
-                        v-model="form.ur_rate_satsun"
-                        binary
-                        input-id="ur-rate-satsun"
-                    />
+                  <div class="field checkbox-field weekend-options">
+                    <div class="checkbox-option">
+                      <Checkbox
+                          v-model="form.ur_rate_saturday"
+                          binary
+                          input-id="ur-rate-saturday"
+                      />
 
-                    <label for="ur-rate-satsun">
-                      {{ t('includeWeekend') }}
-                    </label>
+                      <label for="ur-rate-saturday">
+                        {{ t('includeSaturday') }}
+                      </label>
+                    </div>
+
+                    <div class="checkbox-option">
+                      <Checkbox
+                          v-model="form.ur_rate_sunday"
+                          binary
+                          input-id="ur-rate-sunday"
+                      />
+
+                      <label for="ur-rate-sunday">
+                        {{ t('includeSunday') }}
+                      </label>
+                    </div>
                   </div>
 
                   <div class="field">
@@ -581,7 +595,8 @@ const form = reactive<VehicleDetail>({
   current_mileage: null,
 
   ur_rate_type: 'A',
-  ur_rate_satsun: false,
+  ur_rate_saturday: false,
+  ur_rate_sunday: false,
   ur_rate_work_hour: 8,
   ur_rate_target_km: 100,
 
@@ -624,7 +639,8 @@ async function selectVehicle(row: VehicleListItem) {
     Object.assign(form, data, {
       input_fuel_reverse: boolValue(data.input_fuel_reverse),
       fuel_mont: boolValue(data.fuel_mont),
-      ur_rate_satsun: boolValue(data.ur_rate_satsun),
+      ur_rate_saturday: boolValue(data.ur_rate_saturday),
+      ur_rate_sunday: boolValue(data.ur_rate_sunday),
       ur_rate_type: data.ur_rate_type || '',
       ur_rate_work_hour: data.ur_rate_work_hour ?? 8,
       export_to_active: boolValue(data.export_to_active),
@@ -664,7 +680,8 @@ async function saveVehicle() {
       remark: form.remark,
 
       ur_rate_type: form.ur_rate_type,
-      ur_rate_satsun: form.ur_rate_satsun ? 1 : 0,
+      ur_rate_saturday: form.ur_rate_saturday ? 1 : 0,
+      ur_rate_sunday: form.ur_rate_sunday ? 1 : 0,
       ur_rate_work_hour: form.ur_rate_work_hour,
       ur_rate_target_km: form.ur_rate_target_km,
 
@@ -712,7 +729,8 @@ async function saveVehicleConfig() {
       remark: form.remark,
 
       ur_rate_type: form.ur_rate_type,
-      ur_rate_satsun: form.ur_rate_satsun ? 1 : 0,
+      ur_rate_saturday: form.ur_rate_saturday ? 1 : 0,
+      ur_rate_sunday: form.ur_rate_sunday ? 1 : 0,
       ur_rate_work_hour: form.ur_rate_work_hour,
       ur_rate_target_km: form.ur_rate_target_km,
       export_to_active: form.export_to_active ? 1 : 0,
@@ -1097,6 +1115,17 @@ onMounted(async () => {
   align-items: center;
 
   padding-top: 1.6rem;
+}
+
+.weekend-options {
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.checkbox-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .full {

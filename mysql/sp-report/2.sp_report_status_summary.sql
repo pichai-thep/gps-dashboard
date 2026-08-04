@@ -1,6 +1,7 @@
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_report_status_summary $$
+
 CREATE PROCEDURE sp_report_status_summary(
     IN p_date_from DATE,
     IN p_date_to DATE,

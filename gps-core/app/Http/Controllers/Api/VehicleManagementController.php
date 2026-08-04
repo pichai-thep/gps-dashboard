@@ -141,7 +141,8 @@ class VehicleManagementController extends Controller
                 DB::raw('tm.mileage as current_mileage'),
 
                 't.ur_rate_type',
-                't.ur_rate_satsun',
+                't.ur_rate_saturday',
+                't.ur_rate_sunday',
                 't.ur_rate_work_hour',
                 't.ur_rate_target_km',
                 't.export_to_active',
@@ -205,7 +206,8 @@ class VehicleManagementController extends Controller
             'remark' => ['nullable', 'string', 'max:100'],
 
             'ur_rate_type' => ['nullable', 'in:A,B,C'],
-            'ur_rate_satsun' => ['nullable', 'boolean'],
+            'ur_rate_saturday' => ['nullable', 'boolean'],
+            'ur_rate_sunday' => ['nullable', 'boolean'],
             'ur_rate_work_hour' => ['nullable', 'integer', 'min:0', 'max:24'],
             'ur_rate_target_km' => ['nullable', 'numeric', 'min:0'],
             'export_to_active' => ['nullable', 'boolean'],
@@ -218,8 +220,11 @@ class VehicleManagementController extends Controller
         $data['fuel_mont'] =
             !empty($data['fuel_mont']) ? 1 : 0;
 
-        $data['ur_rate_satsun'] =
-            !empty($data['ur_rate_satsun']) ? 1 : 0;
+        $data['ur_rate_saturday'] =
+            !empty($data['ur_rate_saturday']) ? 1 : 0;
+
+        $data['ur_rate_sunday'] =
+            !empty($data['ur_rate_sunday']) ? 1 : 0;
 
         $data['export_to_active'] =
             !empty($data['export_to_active']) ? 1 : 0;

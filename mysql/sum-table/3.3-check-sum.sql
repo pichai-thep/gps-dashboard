@@ -6,7 +6,7 @@ ORDER BY start_time;
 SELECT *
 FROM gps_sum_data
 WHERE data_date = curdate()-interval 1 day
-and imei='860470063304947'
+	and imei='864022081185976'
 LIMIT 200;
 
 SELECT *

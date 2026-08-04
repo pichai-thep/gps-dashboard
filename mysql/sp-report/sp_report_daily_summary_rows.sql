@@ -16,7 +16,8 @@ SELECT
     t.plate_no,
 
     t.ur_rate_type,
-    t.ur_rate_satsun,
+    t.ur_rate_saturday,
+    t.ur_rate_sunday,
     t.ur_rate_work_hour,
     t.ur_rate_target_km,
 
@@ -41,10 +42,10 @@ SELECT
 
             CASE
 
-                /* ไม่รวมเสาร์/อาทิตย์ */
+                /* ไม่รวมวันเสาร์หรือวันอาทิตย์ตามการตั้งค่า */
                 WHEN
-                    t.ur_rate_satsun = 0
-                        AND DAYOFWEEK(s.data_date) IN (1,7)
+                    (t.ur_rate_sunday = 0 AND DAYOFWEEK(s.data_date) = 1)
+                        OR (t.ur_rate_saturday = 0 AND DAYOFWEEK(s.data_date) = 7)
                     THEN NULL
 
                 ELSE

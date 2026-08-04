@@ -34,7 +34,8 @@ export interface VehicleDetail {
     current_mileage?: number | null
 
     ur_rate_type:  'A' | 'B' | 'C' | null
-    ur_rate_satsun: boolean | number | null
+    ur_rate_saturday: boolean | number | null
+    ur_rate_sunday: boolean | number | null
     ur_rate_work_hour: number | null
     ur_rate_target_km: number | null
 
