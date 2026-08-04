@@ -107,6 +107,35 @@
           {{ selectedAddress }}
         </div>
 
+        <div class="location-actions">
+          <div class="location-action-buttons">
+            <Button
+                type="button"
+                :label="t('createStationFromLocation')"
+                icon="pi pi-map"
+                size="small"
+                severity="secondary"
+                @click.stop="createFromHistoryLocation('stations')"
+            />
+            <Button
+                type="button"
+                :label="t('createPoiFromLocation')"
+                icon="pi pi-map-marker"
+                size="small"
+                severity="secondary"
+                @click.stop="createFromHistoryLocation('pois')"
+            />
+            <Button
+                type="button"
+                :label="t('createForbiddenZoneFromLocation')"
+                icon="pi pi-ban"
+                size="small"
+                severity="secondary"
+                @click.stop="createFromHistoryLocation('forbidden-zones')"
+            />
+          </div>
+        </div>
+
       </div>
     </template>
 
@@ -122,6 +151,8 @@ import {
 } from 'vue'
 
 import BaseMap from './BaseMap.vue'
+import Button from 'primevue/button'
+import { useRouter } from 'vue-router'
 
 import Map from 'ol/Map'
 import Feature from 'ol/Feature'
@@ -193,6 +224,7 @@ const baseMapRef = ref()
 const map = ref<Map | null>(null)
 const auth = useAuthStore()
 const { t } = useI18n()
+const router = useRouter()
 const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
 const addressCache = ref<Record<string, string>>({})
@@ -211,6 +243,24 @@ const popupData =
     ref<any>(null)
 
 let popupOverlay: any = null
+
+function createFromHistoryLocation(routeName: 'stations' | 'pois' | 'forbidden-zones') {
+  if (!popupData.value) return
+
+  const lat = Number(popupData.value.lat)
+  const lng = Number(popupData.value.lng)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+  router.push({
+    name: routeName,
+    query: {
+      create: '1',
+      lat: String(lat),
+      lng: String(lng),
+    },
+  })
+}
 
 function handleMapReady(payload: any) {
 
@@ -676,7 +726,10 @@ function getHistoryLatLng(point: HistoryPoint) {
       )
 
   const lng =
-      Number(point.lng)
+      Number(
+          point.lng ??
+          point.longitude
+      )
 
   if (
       Number.isNaN(lat) ||
@@ -990,5 +1043,22 @@ watch(
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   color: #e5e7eb;
   line-height: 1.35;
+}
+
+.location-actions {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.location-action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.location-action-buttons :deep(.p-button) {
+  flex: 1 1 auto;
+  justify-content: center;
+  white-space: nowrap;
 }
 </style>
