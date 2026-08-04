@@ -436,40 +436,59 @@ function renderStations(
   source?.clear()
 
   rows.forEach((row) => {
+    const stationType = String(row.station_type ?? 'circle')
+        .trim()
+        .toLowerCase()
+    const lat = Number(row.lat)
+    const lng = Number(row.lng)
+
     // =====================
     // Circle
     // =====================
 
     if (
-        row.station_type ===
-        'circle' &&
-        row.lat &&
-        row.lng
+        stationType === 'circle' &&
+        Number.isFinite(lat) &&
+        Number.isFinite(lng)
     ) {
       const center =
           fromLonLat([
-            Number(row.lng),
-            Number(row.lat),
+            lng,
+            lat,
           ])
 
-      const radius =
-          Number(
-              row.radius || 300,
-          )
+      const parsedRadius = Number(row.radius)
+      const radius = Number.isFinite(parsedRadius) && parsedRadius > 0
+          ? parsedRadius
+          : 300
 
-      const feature = new Feature(
+      const circleFeature = new Feature(
           new CircleGeom(
               center,
               radius,
           ),
       )
 
-      feature.set(
-          'overlayName',
-          row.station_name ?? row.name ?? '',
+      const centerFeature = new Feature(
+          new Point(center),
       )
 
-      source?.addFeature(feature)
+      const stationName = row.station_name ?? row.name ?? ''
+
+      circleFeature.set(
+          'overlayName',
+          stationName,
+      )
+
+      centerFeature.set(
+          'overlayName',
+          stationName,
+      )
+
+      source?.addFeatures([
+        circleFeature,
+        centerFeature,
+      ])
     }
 
     // =====================
@@ -477,8 +496,7 @@ function renderStations(
     // =====================
 
     if (
-        row.station_type ===
-        'polygon' &&
+        stationType === 'polygon' &&
         row.polygon_wkt
     ) {
       const coords =
