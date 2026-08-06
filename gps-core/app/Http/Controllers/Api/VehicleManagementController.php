@@ -136,7 +136,7 @@ class VehicleManagementController extends Controller
                 't.fuel_price',
 
                 't.fuel_mont',
-                't.remark',
+                't.remark2',
 
                 DB::raw('tm.mileage as current_mileage'),
 
@@ -203,7 +203,8 @@ class VehicleManagementController extends Controller
             'fuel_price' => ['nullable', 'numeric'],
 
             'fuel_mont' => ['nullable', 'boolean'],
-            'remark' => ['nullable', 'string', 'max:100'],
+//            'remark' => ['nullable', 'string', 'max:100'],
+            'remark2' => ['nullable', 'string'],
 
             'ur_rate_type' => ['nullable', 'in:A,B,C'],
             'ur_rate_saturday' => ['nullable', 'boolean'],
