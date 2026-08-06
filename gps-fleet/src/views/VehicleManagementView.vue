@@ -267,7 +267,7 @@
                     <label>{{ t('remark') }}</label>
                     <Textarea
                         v-model="form.remark2"
-                        rows="4"
+                        rows="8"
                     />
                   </div>
 
