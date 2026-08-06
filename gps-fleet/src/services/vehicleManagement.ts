@@ -29,7 +29,7 @@ export interface VehicleDetail {
     fuel_price?: number | null
 
     fuel_mont?: boolean | number | null
-    remark?: string | null
+    remark2?: string | null
 
     current_mileage?: number | null
 

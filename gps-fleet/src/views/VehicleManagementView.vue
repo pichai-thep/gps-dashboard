@@ -266,7 +266,7 @@
                   <div class="field full">
                     <label>{{ t('remark') }}</label>
                     <Textarea
-                        v-model="form.remark"
+                        v-model="form.remark2"
                         rows="4"
                     />
                   </div>
@@ -590,7 +590,7 @@ const form = reactive<VehicleDetail>({
   fuel_price: null,
 
   fuel_mont: false,
-  remark: '',
+  remark2: '',
 
   current_mileage: null,
 
@@ -677,7 +677,7 @@ async function saveVehicle() {
       fuel_price: form.fuel_price,
 
       fuel_mont: !!form.fuel_mont,
-      remark: form.remark,
+      remark2: form.remark2,
 
       ur_rate_type: form.ur_rate_type,
       ur_rate_saturday: form.ur_rate_saturday ? 1 : 0,
@@ -726,7 +726,7 @@ async function saveVehicleConfig() {
   try {
     await updateVehicle(form.imei, {
       speed_limited: form.speed_limited,
-      remark: form.remark,
+      remark2: form.remark2,
 
       ur_rate_type: form.ur_rate_type,
       ur_rate_saturday: form.ur_rate_saturday ? 1 : 0,
