@@ -16,7 +16,7 @@
           @click="openGraph(false)"
         />
         <Button
-          v-if="definition.graph"
+          v-if="definition.graph === true || definition.graph === 'fuel'"
           :label="t('viewAverageGraph')"
           icon="pi pi-chart-line"
           severity="secondary"
@@ -92,7 +92,7 @@
     <div class="summary-grid report-summary">
       <div class="summary-card">
         <span>{{ t('totalRows') }}</span>
-        <strong>{{ rows.length.toLocaleString() }}</strong>
+        <strong>{{ (definition.serverPagination ? totalRows : rows.length).toLocaleString() }}</strong>
       </div>
       <div class="summary-card">
         <span>{{ t('reportPeriod') }}</span>
@@ -114,8 +114,10 @@
         paginator
         :rows="perPage"
         :rowsPerPageOptions="[20, 50, 100, 200]"
-        :totalRecords="rows.length"
-        @page="perPage = $event.rows"
+        :lazy="definition.serverPagination"
+        :first="definition.serverPagination ? pageOffset : 0"
+        :totalRecords="definition.serverPagination ? totalRows : rows.length"
+        @page="onPage"
       >
         <Column
           v-for="column in visibleColumns"
@@ -171,17 +173,25 @@
     <Dialog
       v-model:visible="graphVisible"
       modal
-      :header="t(averageGraph ? 'averageFuelChart' : 'fuelChart')"
+      :header="graphHeader"
       maximizable
       class="fuel-dialog"
       :style="{ width: '90vw' }"
     >
       <FuelReportChart
+        v-if="definition.graph === true || definition.graph === 'fuel'"
         :rows="rows"
         :plateNo="graphCriteria.plateNo"
         :rangeStart="graphCriteria.rangeStart"
         :rangeEnd="graphCriteria.rangeEnd"
         :average="averageGraph"
+      />
+      <SpeedReportChart
+        v-else-if="definition.graph === 'speed'"
+        :rows="rows"
+        :plateNo="graphCriteria.plateNo"
+        :rangeStart="graphCriteria.rangeStart"
+        :rangeEnd="graphCriteria.rangeEnd"
       />
     </Dialog>
   </div>
@@ -198,6 +208,7 @@ import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
 import FuelReportChart from '@/components/reports/FuelReportChart.vue'
+import SpeedReportChart from '@/components/reports/SpeedReportChart.vue'
 import {
   getReportGroups,
   getReportVehicles,
@@ -239,6 +250,8 @@ const graphCriteria = reactive({
   rangeEnd: '',
 })
 const perPage = ref(50)
+const pageOffset = ref(0)
+const totalRows = ref(0)
 const visibleFields = ref<string[]>([])
 
 const columnOptions = computed(() =>
@@ -251,6 +264,9 @@ const pagedRows = computed(() => rows.value)
 const periodLabel = computed(() =>
   `${toDateString(filters.dateFrom)} – ${toDateString(filters.dateTo)}`
 )
+const graphHeader = computed(() => definition.value.graph === 'speed'
+  ? t('speedChart')
+  : t(averageGraph.value ? 'averageFuelChart' : 'fuelChart'))
 
 function onReportLogoError(event: Event) {
   const image = event.currentTarget as HTMLImageElement
@@ -285,6 +301,8 @@ function initializeDefinition() {
   graphCriteria.plateNo = ''
   graphCriteria.rangeStart = ''
   graphCriteria.rangeEnd = ''
+  pageOffset.value = 0
+  totalRows.value = 0
   visibleFields.value = definition.value.columns.map((column) => column.field)
 
   for (const key of Object.keys(criteria)) delete criteria[key]
@@ -314,7 +332,7 @@ async function loadVehicles() {
   })
 }
 
-async function search() {
+async function search(resetPage = true) {
   if (definition.value.vehicleRequired && !filters.imei) {
     errorMessage.value = t('reportVehicleRequired')
     return
@@ -324,6 +342,7 @@ async function search() {
   errorMessage.value = ''
 
   try {
+    if (resetPage) pageOffset.value = 0
     const dateFrom = toDateString(filters.dateFrom)
     const dateTo = toDateString(filters.dateTo)
     const response = await props.loadReport({
@@ -334,8 +353,11 @@ async function search() {
       group_id: filters.groupId,
       imei: filters.imei,
       criteria: { ...criteria },
+      offset: definition.value.serverPagination ? pageOffset.value : undefined,
+      size: definition.value.serverPagination ? perPage.value : undefined,
     })
     rows.value = response.data ?? []
+    totalRows.value = response.meta?.total_rows ?? rows.value.length
     graphCriteria.plateNo = vehicleOptions.value.find(
       (vehicle) => vehicle.imei === filters.imei
     )?.plate_no ?? filters.imei ?? ''
@@ -348,6 +370,13 @@ async function search() {
   } finally {
     loading.value = false
   }
+}
+
+function onPage(event: { first: number; rows: number }) {
+  perPage.value = event.rows
+  if (!definition.value.serverPagination) return
+  pageOffset.value = event.first
+  void search(false)
 }
 
 async function reset() {

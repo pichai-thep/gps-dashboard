@@ -41,6 +41,7 @@ export default {
     viewGraph: 'ดูกราฟ',
     viewAverageGraph: 'ดูกราฟเฉลี่ย',
     fuelChart: 'กราฟน้ำมันเชื้อเพลิง',
+    speedChart: 'กราฟความเร็ว',
     averageFuelChart: 'กราฟน้ำมันเชื้อเพลิงเฉลี่ย',
     averageEvery: 'เฉลี่ยทุก',
     minutes: 'นาที',

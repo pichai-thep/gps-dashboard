@@ -11,6 +11,7 @@ export const reportNavigation: ReportNavigationItem[] = [
   { key: 'passenger-summary', path: '/reports/passenger-summary', title: { th: 'รายงานสรุปจำนวนผู้โดยสาร', en: 'Passenger Summary' }, section: 'summary' },
   { key: 'status-detail', path: '/reports/status-detail', title: { th: 'รายงานรายละเอียดสถานะรถ', en: 'Vehicle Status Detail Report' }, section: 'general' },
   { key: 'speed-over', path: '/reports/speed-over', title: { th: 'รายงานความเร็วเกินกำหนด', en: 'Speed Over Report' }, section: 'general' },
+  { key: 'speed', path: '/reports/speed', title: { th: 'รายงานความเร็ว', en: 'Speed Report' }, section: 'general' },
   { key: 'event', path: '/reports/events', title: { th: 'รายงานเหตุการณ์สำคัญ', en: 'Important Event Report' }, section: 'general' },
   { key: 'fuel', path: '/reports/fuel', title: { th: 'รายงานน้ำมัน/เชื้อเพลิง', en: 'Fuel Report' }, section: 'general' },
   { key: 'swipe', path: '/reports/swipe', title: { th: 'รายงานการรูดบัตร', en: 'Card Swipe Report' }, section: 'general' },

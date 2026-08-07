@@ -57,6 +57,7 @@ const iconByKey: Record<string, string> = {
   'passenger-summary': 'pi pi-users',
   'status-detail': 'pi pi-list-check',
   'speed-over': 'pi pi-gauge',
+  speed: 'pi pi-chart-line',
   event: 'pi pi-bell',
   fuel: 'pi pi-chart-line',
   swipe: 'pi pi-id-card',

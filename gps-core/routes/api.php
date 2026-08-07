@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Reports\PassengerReportController;
 use App\Http\Controllers\Api\Reports\PassengerSummaryController;
 use App\Http\Controllers\Api\Reports\SpeedOverController;
 use App\Http\Controllers\Api\Reports\SpeedOverSummaryController;
+use App\Http\Controllers\Api\Reports\SpeedReportController;
 use App\Http\Controllers\Api\Reports\StatusDetailController;
 use App\Http\Controllers\Api\Reports\SwipeReportController;
 // mobile
@@ -101,6 +102,7 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
         Route::get('/passenger-summary', PassengerSummaryController::class);
         Route::get('/status-detail', StatusDetailController::class);
         Route::get('/speed-over', SpeedOverController::class);
+        Route::get('/speed', SpeedReportController::class);
         Route::get('/events', EventReportController::class);
         Route::get('/fuel', FuelReportController::class);
         Route::get('/swipe', SwipeReportController::class);

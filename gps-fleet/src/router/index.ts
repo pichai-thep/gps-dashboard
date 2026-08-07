@@ -160,6 +160,7 @@ const router = createRouter({
                 { path: '/reports/passenger-summary', name: 'PassengerSummary', component: () => import('@/views/reports/PassengerSummaryView.vue'), meta: { requiresAuth: true, title: 'Passenger Summary' } },
                 { path: '/reports/status-detail', name: 'StatusDetail', component: () => import('@/views/reports/StatusDetailView.vue'), meta: { requiresAuth: true, title: 'Vehicle Status Detail Report' } },
                 { path: '/reports/speed-over', name: 'SpeedOver', component: () => import('@/views/reports/SpeedOverView.vue'), meta: { requiresAuth: true, title: 'Speed Over Report' } },
+                { path: '/reports/speed', name: 'SpeedReport', component: () => import('@/views/reports/SpeedReportView.vue'), meta: { requiresAuth: true, title: 'Speed Report' } },
                 { path: '/reports/events', name: 'EventReport', component: () => import('@/views/reports/EventReportView.vue'), meta: { requiresAuth: true, title: 'Important Event Report' } },
                 { path: '/reports/fuel', name: 'FuelReport', component: () => import('@/views/reports/FuelReportView.vue'), meta: { requiresAuth: true, title: 'Fuel Report' } },
                 { path: '/reports/swipe', name: 'SwipeReport', component: () => import('@/views/reports/SwipeReportView.vue'), meta: { requiresAuth: true, title: 'Card Swipe Report' } },

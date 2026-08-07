@@ -41,6 +41,7 @@ export default {
     viewGraph: 'View graph',
     viewAverageGraph: 'View average graph',
     fuelChart: 'Fuel Chart',
+    speedChart: 'Speed Chart',
     averageFuelChart: 'Average Fuel Chart',
     averageEvery: 'Average every',
     minutes: 'minutes',
