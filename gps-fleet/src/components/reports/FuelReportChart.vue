@@ -8,16 +8,36 @@
           {{ formatCriteriaDateTime(rangeStart) }} - {{ formatCriteriaDateTime(rangeEnd) }}
         </span>
       </div>
-      <Button
-        :label="t('saveChartImage')"
-        icon="pi pi-image"
-        severity="secondary"
-        outlined
-        size="small"
-        :loading="savingImage"
-        :disabled="points.length < 2"
-        @click="saveChartImage"
-      />
+      <div class="chart-actions">
+        <div v-if="average" class="average-controls">
+          <label for="average-minutes">{{ t('averageEvery') }}</label>
+          <InputNumber
+            v-model="averageMinutesDraft"
+            inputId="average-minutes"
+            :min="1"
+            :max="1440"
+            :suffix="` ${t('minutes')}`"
+            showButtons
+            :inputStyle="{ width: '130px' }"
+          />
+          <Button
+            :label="t('applyAverage')"
+            icon="pi pi-sliders-h"
+            size="small"
+            @click="applyAverageMinutes"
+          />
+        </div>
+        <Button
+          :label="t('saveChartImage')"
+          icon="pi pi-image"
+          severity="secondary"
+          outlined
+          size="small"
+          :loading="savingImage"
+          :disabled="points.length < 2"
+          @click="saveChartImage"
+        />
+      </div>
     </div>
 
     <div v-if="points.length < 2" class="empty-chart">{{ t('reportNoData') }}</div>
@@ -27,7 +47,7 @@
       :viewBox="`0 0 ${chartWidth} 370`"
       :style="{ minWidth: `${chartWidth}px` }"
       role="img"
-      :aria-label="t('fuelChart')"
+      :aria-label="chartTitle"
     >
       <g v-for="tick in yAxisTicks" :key="tick.value">
         <line x1="60" :y1="tick.y" :x2="plotRight" :y2="tick.y" class="axis-grid" />
@@ -71,6 +91,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
+import InputNumber from 'primevue/inputnumber'
 import { useI18n } from '@/i18n'
 
 const props = defineProps<{
@@ -78,11 +99,20 @@ const props = defineProps<{
   plateNo?: string
   rangeStart?: string
   rangeEnd?: string
+  average?: boolean
 }>()
 
 const { t } = useI18n()
 const chartSvg = ref<SVGSVGElement | null>(null)
 const savingImage = ref(false)
+const averageMinutes = ref(5)
+const averageMinutesDraft = ref(5)
+const chartTitle = computed(() => t(props.average ? 'averageFuelChart' : 'fuelChart'))
+
+function applyAverageMinutes() {
+  averageMinutes.value = Math.min(1440, Math.max(1, averageMinutesDraft.value ?? 5))
+  averageMinutesDraft.value = averageMinutes.value
+}
 
 function formatCriteriaDateTime(value?: string) {
   const match = value?.trim().match(
@@ -93,7 +123,10 @@ function formatCriteriaDateTime(value?: string) {
 }
 
 function criteriaText() {
-  return `${t('fuelChartPlate')}: ${props.plateNo || '-'}   ${t('fuelChartDuration')}: ${formatCriteriaDateTime(props.rangeStart)} - ${formatCriteriaDateTime(props.rangeEnd)}`
+  const averageText = props.average
+    ? `   ${t('averageEvery')}: ${averageMinutes.value} ${t('minutes')}`
+    : ''
+  return `${t('fuelChartPlate')}: ${props.plateNo || '-'}   ${t('fuelChartDuration')}: ${formatCriteriaDateTime(props.rangeStart)} - ${formatCriteriaDateTime(props.rangeEnd)}${averageText}`
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -144,7 +177,7 @@ async function saveChartImage() {
 
     context.fillStyle = '#1e293b'
     context.font = 'bold 22px sans-serif'
-    context.fillText(t('fuelChart'), 24, 32)
+    context.fillText(chartTitle.value, 24, 32)
     context.fillStyle = '#475569'
     context.font = '14px sans-serif'
     context.fillText(criteriaText(), 24, 58)
@@ -159,7 +192,7 @@ async function saveChartImage() {
       .axis-label { fill: #64748b; font: 12px sans-serif; }
       .axis-tick { stroke: #64748b; stroke-width: 1; }
       .axis-grid { stroke: #cbd5e1; stroke-dasharray: 3 5; stroke-width: 1; opacity: .55; }
-      .fuel-line { fill: none; stroke-width: 3; stroke-linecap: round; }
+      .fuel-line { fill: none; stroke-width: 5; stroke-linecap: round; }
       .fuel-line.run { stroke: #22c55e; }
       .fuel-line.park { stroke: #ef4444; }
       .fuel-line.idle { stroke: #eab308; }
@@ -188,7 +221,8 @@ async function saveChartImage() {
     const imageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
     if (!imageBlob) return
     const safePlate = (props.plateNo || 'report').replace(/[^a-zA-Z0-9ก-๙_-]+/g, '-')
-    downloadBlob(imageBlob, `fuel-chart-${safePlate}.png`)
+    const chartType = props.average ? 'average-fuel-chart' : 'fuel-chart'
+    downloadBlob(imageBlob, `${chartType}-${safePlate}.png`)
   } finally {
     savingImage.value = false
   }
@@ -250,7 +284,7 @@ const points = computed(() => {
   .filter((point) => Number.isFinite(point.fuel))
 
   let lastActiveFuel: number | null = null
-  return rawPoints.map((point) => {
+  const normalizedPoints = rawPoints.map((point) => {
     if (point.status === 'park' && lastActiveFuel !== null) {
       return { ...point, fuel: lastActiveFuel }
     }
@@ -260,6 +294,31 @@ const points = computed(() => {
     }
 
     return point
+  })
+
+  if (!props.average) return normalizedPoints
+
+  const validPoints = normalizedPoints.filter((point) => Number.isFinite(point.timestamp))
+  if (validPoints.length === 0) return normalizedPoints
+
+  const intervalMs = averageMinutes.value * 60 * 1000
+  const firstTime = validPoints[0].timestamp
+  const buckets = new Map<number, typeof validPoints>()
+
+  for (const point of validPoints) {
+    const bucketIndex = Math.floor((point.timestamp - firstTime) / intervalMs)
+    const bucket = buckets.get(bucketIndex) ?? []
+    bucket.push(point)
+    buckets.set(bucketIndex, bucket)
+  }
+
+  return Array.from(buckets.values()).map((samples) => {
+    const lastPoint = samples[samples.length - 1]
+    return {
+      ...lastPoint,
+      fuel: samples.reduce((sum, sample) => sum + sample.fuel, 0) / samples.length,
+      timestamp: samples.reduce((sum, sample) => sum + sample.timestamp, 0) / samples.length,
+    }
   })
 })
 
@@ -369,6 +428,36 @@ const fuelSegments = computed(() => {
   padding: 0 0 12px;
 }
 
+.chart-actions,
+.average-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.average-controls label {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .chart-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chart-actions {
+    justify-content: flex-start;
+  }
+}
+
 .chart-criteria {
   display: flex;
   flex-wrap: wrap;
@@ -409,7 +498,7 @@ svg {
 }
 
 .fuel-line {
-  stroke-width: 3;
+  stroke-width: 5;
   stroke-linecap: round;
 }
 

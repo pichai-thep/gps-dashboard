@@ -13,7 +13,16 @@
           icon="pi pi-chart-line"
           severity="secondary"
           :disabled="rows.length === 0"
-          @click="graphVisible = true"
+          @click="openGraph(false)"
+        />
+        <Button
+          v-if="definition.graph"
+          :label="t('viewAverageGraph')"
+          icon="pi pi-chart-line"
+          severity="secondary"
+          outlined
+          :disabled="rows.length === 0"
+          @click="openGraph(true)"
         />
         <MultiSelect
           v-model="visibleFields"
@@ -162,7 +171,7 @@
     <Dialog
       v-model:visible="graphVisible"
       modal
-      :header="t('fuelChart')"
+      :header="t(averageGraph ? 'averageFuelChart' : 'fuelChart')"
       maximizable
       class="fuel-dialog"
       :style="{ width: '90vw' }"
@@ -172,6 +181,7 @@
         :plateNo="graphCriteria.plateNo"
         :rangeStart="graphCriteria.rangeStart"
         :rangeEnd="graphCriteria.rangeEnd"
+        :average="averageGraph"
       />
     </Dialog>
   </div>
@@ -222,6 +232,7 @@ const rows = ref<Record<string, unknown>[]>([])
 const loading = ref(false)
 const errorMessage = ref('')
 const graphVisible = ref(false)
+const averageGraph = ref(false)
 const graphCriteria = reactive({
   plateNo: '',
   rangeStart: '',
@@ -270,6 +281,7 @@ function initializeDefinition() {
   rows.value = []
   errorMessage.value = ''
   graphVisible.value = false
+  averageGraph.value = false
   graphCriteria.plateNo = ''
   graphCriteria.rangeStart = ''
   graphCriteria.rangeEnd = ''
@@ -279,6 +291,11 @@ function initializeDefinition() {
   for (const criterion of definition.value.criteria ?? []) {
     criteria[criterion.key] = criterion.defaultValue
   }
+}
+
+function openGraph(average: boolean) {
+  averageGraph.value = average
+  graphVisible.value = true
 }
 
 async function loadOptions() {
