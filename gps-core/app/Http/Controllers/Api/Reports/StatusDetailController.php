@@ -11,8 +11,11 @@ class StatusDetailController extends StoredProcedureReportController
         $c = $this->context($request, 7, true);
         $status = strtolower(trim((string) ($c['criteria']['status'] ?? '')));
 
-        if ($status === 'idle') {
-            $status = 'start';
+        // The stored procedure classifies an engine-on, stationary vehicle as
+        // "idle". Keep "start" as a backwards-compatible API alias, but pass
+        // the value used by sp_rpt_status_details when filtering.
+        if ($status === 'start') {
+            $status = 'idle';
         }
 
         if ($status === '' || $status === 'all') {
