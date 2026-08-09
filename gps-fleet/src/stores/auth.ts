@@ -40,6 +40,7 @@ export type FeatureFlags = {
 
     overSpeedReport?: boolean
     summaryReport?: boolean
+    stationInOutSummaryReport?: boolean
 
     canbus?: boolean
     engineCut?: boolean

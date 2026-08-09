@@ -17,6 +17,7 @@ export interface ReportDefinition {
   title: { th: string; en: string }
   subtitle: { th: string; en: string }
   maxRangeDays: number
+  monthly?: boolean
   enableTimeStart?: boolean
   enableTimeEnd?: boolean
   timeStartRequired?: boolean

@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\Reports\ForbiddenInsideController;
 use App\Http\Controllers\Api\Reports\FuelReportController;
 use App\Http\Controllers\Api\Reports\PassengerReportController;
 use App\Http\Controllers\Api\Reports\PassengerSummaryController;
+use App\Http\Controllers\Api\Reports\MonthlyDistanceController;
+use App\Http\Controllers\Api\Reports\MonthlyIncomeController;
 use App\Http\Controllers\Api\Reports\SpeedOverController;
 use App\Http\Controllers\Api\Reports\SpeedOverSummaryController;
 use App\Http\Controllers\Api\Reports\SpeedReportController;
@@ -100,6 +102,8 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
         Route::get('/speed-over-summary', SpeedOverSummaryController::class);
         Route::get('/drive4h-summary', Drive4hSummaryController::class);
         Route::get('/passenger-summary', PassengerSummaryController::class);
+        Route::get('/monthly-distance', MonthlyDistanceController::class);
+        Route::get('/monthly-income', MonthlyIncomeController::class);
         Route::get('/status-detail', StatusDetailController::class);
         Route::get('/speed-over', SpeedOverController::class);
         Route::get('/speed', SpeedReportController::class);

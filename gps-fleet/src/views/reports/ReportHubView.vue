@@ -35,10 +35,16 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { locale, useI18n } from '@/i18n'
 import { reportNavigation } from './reportNavigation'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const auth = useAuthStore()
+
+function reportMenuLabel(label: string) {
+  return label.replace(/^รายงาน\s*/, '').replace(/\s+Reports?$/i, '')
+}
 
 const section = computed(() => route.meta.reportSection as 'summary' | 'general')
 const sectionTitle = computed(() =>
@@ -55,6 +61,8 @@ const iconByKey: Record<string, string> = {
   'speed-over-summary': 'pi pi-gauge',
   'drive4h-summary': 'pi pi-stopwatch',
   'passenger-summary': 'pi pi-users',
+  'monthly-distance': 'pi pi-chart-bar',
+  'monthly-income': 'pi pi-wallet',
   'status-detail': 'pi pi-list-check',
   'speed-over': 'pi pi-gauge',
   speed: 'pi pi-chart-line',
@@ -67,18 +75,23 @@ const iconByKey: Record<string, string> = {
 }
 
 const summaryCoreReports = computed(() => [
-  { key: 'daily-summary', path: '/reports/daily-summary', title: t('dailySummaryReport'), subtitle: t('dailySummarySubtitle') },
-  { key: 'status-summary', path: '/reports/status-summary', title: t('statusTimelineReport'), subtitle: t('statusTimelineSubtitle') },
-  { key: 'station-summary', path: '/reports/station-summary', title: t('stationVisitReport'), subtitle: t('stationVisitSubtitle') },
+  ...(auth.hasFeature('summaryReport') ? [
+    { key: 'daily-summary', path: '/reports/daily-summary', title: t('dailySummaryReport'), subtitle: t('dailySummarySubtitle') },
+    { key: 'status-summary', path: '/reports/status-summary', title: t('statusTimelineReport'), subtitle: t('statusTimelineSubtitle') },
+  ] : []),
+  ...(auth.hasFeature('summaryReport') && auth.hasFeature('stationInOutSummaryReport') ? [
+    { key: 'station-summary', path: '/reports/station-summary', title: t('stationVisitReport'), subtitle: t('stationVisitSubtitle') },
+  ] : []),
 ])
 
 const reports = computed(() => {
   const procedureReports = reportNavigation
     .filter((report) => report.section === section.value)
+    .filter((report) => !report.features?.some((feature) => !auth.hasFeature(feature)))
     .map((report) => ({
       key: report.key,
       path: report.path,
-      title: report.title[locale.value],
+      title: reportMenuLabel(report.title[locale.value]),
       subtitle: t('clickToOpenReport'),
     }))
 
@@ -88,6 +101,7 @@ const reports = computed(() => {
 
   return items.map((report) => ({
     ...report,
+    title: reportMenuLabel(report.title),
     icon: iconByKey[report.key] ?? 'pi pi-file',
   }))
 })

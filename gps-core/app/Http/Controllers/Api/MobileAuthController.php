@@ -141,6 +141,7 @@ class MobileAuthController extends Controller
                 'zone' => (bool) $customer->zone_show,
                 'overSpeedReport' => (bool) $customer->over_speed_report,
                 'summaryReport' => (bool) $customer->summary_report,
+                'stationInOutSummaryReport' => (bool) $customer->summary_station_inout,
                 'canbus' => (bool) $customer->enable_canbus,
                 'engineCut' => (bool) $customer->enable_engine_cut,
                 'fuel' => (bool) $customer->enable_fuel_chk,

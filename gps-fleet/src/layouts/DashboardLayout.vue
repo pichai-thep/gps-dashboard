@@ -138,11 +138,12 @@
         </button>
 
         <button
+            v-if="showSummaryReports"
             type="button"
             class="collapsed-report-button"
             :class="{ active: isSummaryReportActive }"
-            :title="t('summaryReports')"
-            :aria-label="t('summaryReports')"
+            :title="reportMenuLabel(t('summaryReports'))"
+            :aria-label="reportMenuLabel(t('summaryReports'))"
             @click="openReportsMenu('summary')"
         >
           <i class="pi pi-chart-pie"></i>
@@ -167,9 +168,10 @@
           class="mobile-report-menu"
       >
         <div v-if="mobileReportSection === 'summary'" class="mobile-report-section">
-          <span>{{ t('summaryReports') }}</span>
+          <span>{{ reportMenuLabel(t('summaryReports')) }}</span>
           <div class="mobile-report-links">
             <button
+                v-if="auth.hasFeature('summaryReport')"
                 :class="{ active: isActive('/reports/daily-summary') }"
                 type="button"
                 @click="goReport('/reports/daily-summary')"
@@ -177,6 +179,7 @@
               {{ t('daily') }}
             </button>
             <button
+                v-if="auth.hasFeature('summaryReport')"
                 :class="{ active: isActive('/reports/status-summary') }"
                 type="button"
                 @click="goReport('/reports/status-summary')"
@@ -184,6 +187,7 @@
               {{ t('status') }}
             </button>
             <button
+                v-if="auth.hasFeature('summaryReport') && auth.hasFeature('stationInOutSummaryReport')"
                 :class="{ active: isActive('/reports/station-summary') }"
                 type="button"
                 @click="goReport('/reports/station-summary')"
@@ -197,7 +201,7 @@
                 type="button"
                 @click="goReport(report.path)"
             >
-              {{ report.title[locale] }}
+              {{ reportMenuLabel(report.title[locale]) }}
             </button>
           </div>
         </div>
@@ -215,7 +219,7 @@
                 type="button"
                 @click="goReport(report.path)"
             >
-              {{ report.title[locale] }}
+              {{ reportMenuLabel(report.title[locale]) }}
             </button>
           </div>
         </div>
@@ -314,10 +318,16 @@ import NotificationBell from "@/components/notifications/NotificationBell.vue";
 import { useI18n } from '@/i18n'
 import { reportNavigation } from '@/views/reports/reportNavigation'
 
+const auth = useAuthStore()
+
 const showGeneralReports = true
 
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
+}
+
+function reportMenuLabel(label: string) {
+  return label.replace(/^รายงาน\s*/, '').replace(/\s+Reports?$/i, '')
 }
 
 const expandedKeys = ref<Record<string, boolean>>({
@@ -327,14 +337,17 @@ const expandedKeys = ref<Record<string, boolean>>({
 
 const { locale, setLocale, t } = useI18n()
 
-const summaryProcedureReports = reportNavigation.filter((report) => report.section === 'summary')
+const canViewReport = (report: (typeof reportNavigation)[number]) =>
+  !report.features?.some((feature) => !auth.hasFeature(feature))
+const summaryProcedureReports = computed(() => reportNavigation.filter((report) => report.section === 'summary' && canViewReport(report)))
 const generalProcedureReports = reportNavigation.filter((report) => report.section === 'general')
+const showSummaryReports = computed(() => auth.hasFeature('summaryReport'))
 const summaryReportPaths = [
   '/reports/summary',
   '/reports/daily-summary',
   '/reports/status-summary',
   '/reports/station-summary',
-  ...summaryProcedureReports.map((report) => report.path),
+  ...reportNavigation.filter((report) => report.section === 'summary').map((report) => report.path),
 ]
 const generalReportPaths = [
   '/reports/general',
@@ -390,39 +403,39 @@ const menuItems = computed(() => [
     class: isActive('/forbidden-zones') ? 'active-menu' : '',
     command: () => router.push('/forbidden-zones'),
   },
-  {
+  ...(showSummaryReports.value ? [{
     key: 'summaryReports',
-    label: t('summaryReports'),
+    label: reportMenuLabel(t('summaryReports')),
     icon: 'pi pi-chart-pie',
     class: 'report-group',
     command: () => router.push('/reports/summary'),
     items: [
-      {
+      ...(auth.hasFeature('summaryReport') ? [{
         label: t('dailySummary'),
         icon: 'pi pi-calendar',
         class: isActive('/reports/daily-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/daily-summary'),
-      },
-      {
+      }] : []),
+      ...(auth.hasFeature('summaryReport') ? [{
         label: t('statusTimeline'),
         icon: 'pi pi-clock',
         class: isActive('/reports/status-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/status-summary'),
-      },
-      {
+      }] : []),
+      ...(auth.hasFeature('summaryReport') && auth.hasFeature('stationInOutSummaryReport') ? [{
         label: t('stationVisit'),
         icon: 'pi pi-warehouse',
         class: isActive('/reports/station-summary') ? 'active-menu' : '',
         command: () => router.push('/reports/station-summary'),
-      },
-      ...summaryProcedureReports.map((report) => ({
-        label: report.title[locale.value],
+      }] : []),
+      ...summaryProcedureReports.value.map((report) => ({
+        label: reportMenuLabel(report.title[locale.value]),
         icon: 'pi pi-file',
         class: isActive(report.path) ? 'active-menu' : '',
         command: () => router.push(report.path),
       })),
     ],
-  },
+  }] : []),
   {
       key: 'generalReports',
       label: t('generalReports'),
@@ -430,7 +443,7 @@ const menuItems = computed(() => [
       class: 'report-group',
       command: () => router.push('/reports/general'),
       items: generalProcedureReports.map((report) => ({
-        label: report.title[locale.value],
+        label: reportMenuLabel(report.title[locale.value]),
         icon: 'pi pi-file',
         class: isActive(report.path) ? 'active-menu' : '',
         command: () => router.push(report.path),
@@ -453,7 +466,6 @@ function handleMobileLayoutChange(event: MediaQueryListEvent) {
 
 const router = useRouter()
 const route = useRoute()
-const auth = useAuthStore()
 const hostname = window.location.hostname
 
 

@@ -121,6 +121,7 @@ const router = createRouter({
                     meta: {
                         requiresAuth: true,
                         title: 'Daily Summary Report',
+                        features: ['summaryReport'],
                     },
                 },
 
@@ -128,7 +129,7 @@ const router = createRouter({
                     path: '/reports/summary',
                     name: 'SummaryReportHub',
                     component: () => import('@/views/reports/ReportHubView.vue'),
-                    meta: { requiresAuth: true, title: 'Summary Reports', reportSection: 'summary' },
+                    meta: { requiresAuth: true, title: 'Summary Reports', reportSection: 'summary', features: ['summaryReport'] },
                 },
                 {
                     path: '/reports/general',
@@ -144,6 +145,7 @@ const router = createRouter({
                     meta: {
                         requiresAuth: true,
                         title: 'Status Timeline Report',
+                        features: ['summaryReport'],
                     },
                 },
                 {
@@ -153,11 +155,14 @@ const router = createRouter({
                     meta: {
                         requiresAuth: true,
                         title: 'Station Visit Report',
+                        features: ['summaryReport', 'stationInOutSummaryReport'],
                     },
                 },
                 { path: '/reports/speed-over-summary', name: 'SpeedOverSummary', component: () => import('@/views/reports/SpeedOverSummaryView.vue'), meta: { requiresAuth: true, title: 'Speed Over Summary' } },
                 { path: '/reports/drive4h-summary', name: 'Drive4hSummary', component: () => import('@/views/reports/Drive4hSummaryView.vue'), meta: { requiresAuth: true, title: 'Drive Over 4 Hours Summary' } },
                 { path: '/reports/passenger-summary', name: 'PassengerSummary', component: () => import('@/views/reports/PassengerSummaryView.vue'), meta: { requiresAuth: true, title: 'Passenger Summary' } },
+                { path: '/reports/monthly-distance', name: 'MonthlyDistance', component: () => import('@/views/reports/MonthlyDistanceView.vue'), meta: { requiresAuth: true, title: 'Monthly Distance', features: ['summaryReport'] } },
+                { path: '/reports/monthly-income', name: 'MonthlyIncome', component: () => import('@/views/reports/MonthlyIncomeView.vue'), meta: { requiresAuth: true, title: 'Monthly Income', features: ['summaryReport', 'fare'] } },
                 { path: '/reports/status-detail', name: 'StatusDetail', component: () => import('@/views/reports/StatusDetailView.vue'), meta: { requiresAuth: true, title: 'Vehicle Status Detail Report' } },
                 { path: '/reports/speed-over', name: 'SpeedOver', component: () => import('@/views/reports/SpeedOverView.vue'), meta: { requiresAuth: true, title: 'Speed Over Report' } },
                 { path: '/reports/speed', name: 'SpeedReport', component: () => import('@/views/reports/SpeedReportView.vue'), meta: { requiresAuth: true, title: 'Speed Report' } },
@@ -217,6 +222,11 @@ router.beforeEach(async (to) => {
         return {
             path: '/tracking',
         }
+    }
+
+    const requiredFeatures = to.meta.features as Array<keyof typeof auth.features> | undefined
+    if (requiredFeatures?.some((feature) => !auth.hasFeature(feature))) {
+        return { path: '/' }
     }
 
     return true

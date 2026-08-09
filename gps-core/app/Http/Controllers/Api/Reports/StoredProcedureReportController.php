@@ -10,6 +10,15 @@ use PDO;
 
 abstract class StoredProcedureReportController extends Controller
 {
+    protected function requireCustomerFeature(array $context, string $column): void
+    {
+        $enabled = DB::connection($context['connection'])->table('customer')
+            ->where('customer_id', $context['customer_id'])
+            ->where($column, 1)
+            ->exists();
+        abort_unless($enabled, 403, 'Report feature is not enabled');
+    }
+
     protected function context(Request $request, int $maxDays, bool $requiresVehicle = false): array
     {
         $connection = $request->attributes->get('gps_connection');
@@ -38,7 +47,9 @@ abstract class StoredProcedureReportController extends Controller
         }
 
         $inclusiveDays = (int) $startDate->diff($endDate)->days + 1;
-        abort_if($inclusiveDays > $maxDays, 422, "Date range may not exceed {$maxDays} days");
+        if ($maxDays > 0) {
+            abort_if($inclusiveDays > $maxDays, 422, "Date range may not exceed {$maxDays} days");
+        }
 
         $timeFrom = (string) $request->query('time_from', '00:00');
         $timeTo = (string) $request->query('time_to', '23:59');

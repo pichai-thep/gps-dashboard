@@ -6,7 +6,7 @@ import type { ReportDefinition } from './reportTypes'
 
 const definition: ReportDefinition = {
   key: 'speed-over-summary', title: { th: 'รายงานสรุปความเร็วเกินกำหนด', en: 'Speed Over Summary' },
-  subtitle: { th: 'สรุปเหตุการณ์ความเร็วเกินแยกตามรถ', en: 'Speed violation summary by vehicle' }, maxRangeDays: 30,
+  subtitle: { th: 'สรุปเหตุการณ์ความเร็วเกินแยกตามรถ', en: 'Speed violation summary by vehicle' }, maxRangeDays: 0,
   criteria: [{ key: 'over_type', label: 'Over type', defaultValue: '', options: [{ label: 'ทั้งหมด / All', value: '' }, { label: 'Cloud', value: 'cloud' }, { label: 'Device', value: 'device' }] }],
   columns: [
     { field: 'plate_no', label: 'Plate no', aliases: ['Plate_no'] }, { field: 'max_speed_date', label: 'Max speed date' },

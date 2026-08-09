@@ -3,12 +3,15 @@ export interface ReportNavigationItem {
   path: string
   title: { th: string; en: string }
   section: 'summary' | 'general'
+  features?: Array<'summaryReport' | 'fare'>
 }
 
 export const reportNavigation: ReportNavigationItem[] = [
-  { key: 'speed-over-summary', path: '/reports/speed-over-summary', title: { th: 'รายงานสรุปความเร็วเกินกำหนด', en: 'Speed Over Summary' }, section: 'summary' },
-  { key: 'drive4h-summary', path: '/reports/drive4h-summary', title: { th: 'รายงานสรุปการขับรถเกิน 4 ชั่วโมง', en: 'Drive Over 4 Hours Summary' }, section: 'summary' },
-  { key: 'passenger-summary', path: '/reports/passenger-summary', title: { th: 'รายงานสรุปจำนวนผู้โดยสาร', en: 'Passenger Summary' }, section: 'summary' },
+  { key: 'monthly-distance', path: '/reports/monthly-distance', title: { th: 'ระยะทางรายเดือน', en: 'Monthly Distance' }, section: 'summary', features: ['summaryReport'] },
+  { key: 'monthly-income', path: '/reports/monthly-income', title: { th: 'รายได้รายเดือน', en: 'Monthly Income' }, section: 'summary', features: ['summaryReport', 'fare'] },
+  { key: 'speed-over-summary', path: '/reports/speed-over-summary', title: { th: 'รายงานสรุปความเร็วเกินกำหนด', en: 'Speed Over Summary' }, section: 'summary', features: ['summaryReport'] },
+  { key: 'drive4h-summary', path: '/reports/drive4h-summary', title: { th: 'รายงานสรุปการขับรถเกิน 4 ชั่วโมง', en: 'Drive Over 4 Hours Summary' }, section: 'summary', features: ['summaryReport'] },
+  { key: 'passenger-summary', path: '/reports/passenger-summary', title: { th: 'รายงานสรุปจำนวนผู้โดยสาร', en: 'Passenger Summary' }, section: 'summary', features: ['summaryReport'] },
   { key: 'status-detail', path: '/reports/status-detail', title: { th: 'รายงานรายละเอียดสถานะรถ', en: 'Vehicle Status Detail Report' }, section: 'general' },
   { key: 'speed-over', path: '/reports/speed-over', title: { th: 'รายงานความเร็วเกินกำหนด', en: 'Speed Over Report' }, section: 'general' },
   { key: 'speed', path: '/reports/speed', title: { th: 'รายงานความเร็ว', en: 'Speed Report' }, section: 'general' },

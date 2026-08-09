@@ -62,6 +62,8 @@
       :enableExportCsv="definition.enableExportCsv"
       :enablePdf="definition.enablePdf"
       :maxRangeDays="definition.maxRangeDays"
+      :monthly="definition.monthly"
+      :enableDateEnd="!definition.monthly"
       @group-change="loadVehicles"
       @search="search"
       @reset="reset"
@@ -98,7 +100,7 @@
         <span>{{ t('reportPeriod') }}</span>
         <strong>{{ periodLabel }}</strong>
       </div>
-      <div class="summary-card">
+      <div v-if="definition.maxRangeDays > 0" class="summary-card">
         <span>{{ t('reportRangeLimit') }}</span>
         <strong>{{ definition.maxRangeDays }} {{ t('days') }}</strong>
       </div>
@@ -261,8 +263,9 @@ const visibleColumns = computed(() =>
   definition.value.columns.filter((column) => visibleFields.value.includes(column.field))
 )
 const pagedRows = computed(() => rows.value)
-const periodLabel = computed(() =>
-  `${toDateString(filters.dateFrom)} – ${toDateString(filters.dateTo)}`
+const periodLabel = computed(() => definition.value.monthly && filters.dateFrom
+  ? filters.dateFrom.toLocaleDateString(locale.value === 'th' ? 'th-TH' : 'en-US', { month: 'long', year: 'numeric' })
+  : `${toDateString(filters.dateFrom)} – ${toDateString(filters.dateTo)}`
 )
 const graphHeader = computed(() => definition.value.graph === 'speed'
   ? t('speedChart')
@@ -344,7 +347,9 @@ async function search(resetPage = true) {
   try {
     if (resetPage) pageOffset.value = 0
     const dateFrom = toDateString(filters.dateFrom)
-    const dateTo = toDateString(filters.dateTo)
+    const dateTo = definition.value.monthly && filters.dateFrom
+      ? toDateString(new Date(filters.dateFrom.getFullYear(), filters.dateFrom.getMonth() + 1, 0))
+      : toDateString(filters.dateTo)
     const response = await props.loadReport({
       date_from: dateFrom,
       date_to: dateTo,

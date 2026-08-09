@@ -2,7 +2,7 @@
   <section class="base-report-filters">
     <div v-if="enableDateStart" class="filter-field">
       <label>{{ t('reportDateStart') }}</label>
-      <Calendar v-model="dateFrom" dateFormat="yy-mm-dd" showIcon />
+      <Calendar v-model="dateFrom" :dateFormat="monthly ? 'mm/yy' : 'yy-mm-dd'" :view="monthly ? 'month' : 'date'" showIcon />
     </div>
 
     <div v-if="enableDateEnd" class="filter-field">
@@ -125,6 +125,7 @@ const props = withDefaults(defineProps<{
   enableExportCsv?: boolean
   enablePdf?: boolean
   maxRangeDays?: number
+  monthly?: boolean
 }>(), {
   loading: false,
   hasRows: false,
@@ -143,6 +144,7 @@ const props = withDefaults(defineProps<{
   enableExportCsv: true,
   enablePdf: true,
   maxRangeDays: 0,
+  monthly: false,
 })
 
 const emit = defineEmits<{
