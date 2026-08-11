@@ -50,6 +50,7 @@ export default {
     applyAverage: 'Apply average',
     fuelChartPlate: 'Plate',
     fuelChartDuration: 'Duration',
+    fuelChartTime: 'Time',
     fuelChartPark: 'PARK',
     fuelChartIdle: 'IDLE',
     fuelChartRun: 'RUN',

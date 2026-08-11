@@ -78,6 +78,33 @@
         :class="['fuel-line', segment.status]"
       />
 
+      <rect
+        x="60"
+        :width="plotRight - 60"
+        :y="PLOT_TOP"
+        :height="PLOT_BOTTOM - PLOT_TOP"
+        class="chart-hover-area"
+        @mousemove="onChartMouseMove"
+        @mouseleave="clearChartHover"
+      />
+
+      <g v-if="hoverState" class="chart-hover-layer" pointer-events="none">
+        <line
+          :x1="hoverState.x"
+          :x2="hoverState.x"
+          :y1="PLOT_TOP"
+          :y2="PLOT_BOTTOM"
+          class="chart-hover-line"
+        />
+        <circle :cx="hoverState.x" :cy="PLOT_BOTTOM" r="4" class="chart-hover-dot" />
+        <g :transform="`translate(${hoverTooltipX}, 28)`">
+          <rect width="184" height="34" rx="7" class="chart-hover-tooltip" />
+          <text x="10" y="22" class="chart-hover-text">
+            {{ t('fuelChartTime') }}: {{ hoverState.time }}
+          </text>
+        </g>
+      </g>
+
     </svg>
 
     <div class="legend">
@@ -104,6 +131,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const chartSvg = ref<SVGSVGElement | null>(null)
+const hoverState = ref<{ x: number; time: string } | null>(null)
 const savingImage = ref(false)
 const averageMinutes = ref(5)
 const averageMinutesDraft = ref(5)
@@ -183,6 +211,8 @@ async function saveChartImage() {
     context.fillText(criteriaText(), 24, 58)
 
     const svg = chartSvg.value.cloneNode(true) as SVGSVGElement
+    svg.querySelector('.chart-hover-layer')?.remove()
+    svg.querySelector('.chart-hover-area')?.remove()
     svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
     svg.setAttribute('width', String(exportWidth))
     svg.setAttribute('height', '370')
@@ -378,6 +408,53 @@ function pad(value: number) {
   return String(value).padStart(2, '0')
 }
 
+function formatHoverTime(timestamp: number, fallback = '') {
+  if (!Number.isFinite(timestamp)) return fallback || '-'
+  const date = new Date(timestamp)
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+function onChartMouseMove(event: MouseEvent) {
+  const svg = chartSvg.value
+  if (!svg || points.value.length === 0) return
+
+  const rect = svg.getBoundingClientRect()
+  if (rect.width <= 0) return
+
+  const rawX = ((event.clientX - rect.left) / rect.width) * chartWidth.value
+  const x = Math.min(plotRight.value, Math.max(60, rawX))
+  const timeRange = lastTimestamp.value - firstTimestamp.value
+
+  if (Number.isFinite(firstTimestamp.value) && timeRange > 0) {
+    const ratio = (x - 60) / Math.max(plotRight.value - 60, 1)
+    const timestamp = firstTimestamp.value + ratio * timeRange
+    hoverState.value = { x, time: formatHoverTime(timestamp) }
+    return
+  }
+
+  const ratio = (x - 60) / Math.max(plotRight.value - 60, 1)
+  const index = Math.min(
+    points.value.length - 1,
+    Math.max(0, Math.round(ratio * (points.value.length - 1))),
+  )
+  const point = points.value[index]
+  hoverState.value = {
+    x: xFor(point.timestamp, index),
+    time: formatHoverTime(point.timestamp, point.label),
+  }
+}
+
+function clearChartHover() {
+  hoverState.value = null
+}
+
+const hoverTooltipX = computed(() => {
+  if (!hoverState.value) return 60
+  return hoverState.value.x + 194 > plotRight.value
+    ? hoverState.value.x - 194
+    : hoverState.value.x + 10
+})
+
 const xAxisTicks = computed(() => {
   return scaleTimestamps.value.map((timestamp, index) => {
     const date = new Date(timestamp)
@@ -518,6 +595,35 @@ svg {
 .legend i.idle {
   stroke: #eab308;
   background: #eab308;
+}
+
+.chart-hover-area {
+  fill: transparent;
+  cursor: crosshair;
+  pointer-events: all;
+}
+
+.chart-hover-line {
+  stroke: #475569;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.chart-hover-dot {
+  fill: #0f172a;
+  stroke: #f8fafc;
+  stroke-width: 2;
+}
+
+.chart-hover-tooltip {
+  fill: rgba(15, 23, 42, 0.94);
+  stroke: rgba(148, 163, 184, 0.45);
+}
+
+.chart-hover-text {
+  fill: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .legend {

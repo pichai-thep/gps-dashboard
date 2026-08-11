@@ -50,6 +50,7 @@ export default {
     applyAverage: 'ปรับค่าเฉลี่ย',
     fuelChartPlate: 'ทะเบียนรถ',
     fuelChartDuration: 'ช่วงเวลา',
+    fuelChartTime: 'เวลา',
     fuelChartPark: 'จอด',
     fuelChartIdle: 'ติดเครื่อง',
     fuelChartRun: 'วิ่ง',
