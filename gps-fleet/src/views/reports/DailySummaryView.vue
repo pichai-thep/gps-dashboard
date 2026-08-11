@@ -34,20 +34,7 @@
       @group-change="onGroupChange"
       @search="search"
       @reset="resetFilter"
-    >
-      <template #criteria>
-        <div class="custom-filter-field">
-          <label>{{ t('distanceFromKm') }}</label>
-          <InputNumber
-            v-model="distanceFromKm"
-            :min="0"
-            :minFractionDigits="0"
-            :maxFractionDigits="1"
-            suffix=" km"
-          />
-        </div>
-      </template>
-    </BaseReportFilters>
+    />
 
     <ReportSummaryCards :items="summaryItems" :columns="6" />
 
@@ -92,7 +79,6 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import Button from 'primevue/button'
-import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
 import ReportDataTable, { type ReportTableColumn } from '@/components/reports/ReportDataTable.vue'
@@ -114,7 +100,6 @@ const { t } = useI18n()
 
 const selectedGroups = ref<number[]>([])
 const selectedVehicles = ref<string[]>([])
-const distanceFromKm = ref<number | null>(null)
 
 const groupOptions = ref<any[]>([])
 const vehicleOptions = ref<any[]>([])
@@ -212,7 +197,6 @@ async function onSort(event: any) {
 async function resetFilter() {
   selectedGroups.value = []
   selectedVehicles.value = []
-  distanceFromKm.value = null
 
   const nowDate = new Date()
   const yesterdayDate = new Date()
@@ -314,7 +298,6 @@ async function loadData() {
       date_to: toDateString(dateTo.value),
       group_ids: selectedGroups.value,
       imeis: selectedVehicles.value,
-      distance_from_km: distanceFromKm.value,
       page: page.value,
       per_page: perPage.value,
       sort_by: sortField.value,
@@ -355,7 +338,6 @@ async function exportCsv() {
     date_to: toDateString(dateTo.value),
     group_ids: selectedGroups.value,
     imeis: selectedVehicles.value,
-    distance_from_km: distanceFromKm.value,
     page: 1,
     per_page: totalRows.value || 100000,
     sort_by: sortField.value,
@@ -403,7 +385,6 @@ async function savePdf() {
     date_to: toDateString(dateTo.value),
     group_ids: selectedGroups.value,
     imeis: selectedVehicles.value,
-    distance_from_km: distanceFromKm.value,
     page: 1,
     per_page: totalRows.value || 100000,
     sort_by: sortField.value,

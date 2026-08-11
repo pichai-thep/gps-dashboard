@@ -75,8 +75,17 @@
           :key="criterion.key"
           class="custom-filter-field"
         >
-          <label>{{ criterion.label }}</label>
+          <label>{{ typeof criterion.label === 'string' ? criterion.label : localized(criterion.label) }}</label>
+          <InputNumber
+            v-if="criterion.type === 'number'"
+            :modelValue="numberCriterionValue(criterion.key)"
+            :min="criterion.min"
+            :maxFractionDigits="criterion.maxFractionDigits"
+            :suffix="criterion.suffix"
+            @update:modelValue="criteria[criterion.key] = $event"
+          />
           <Dropdown
+            v-else
             v-model="criteria[criterion.key]"
             :options="criterion.options"
             optionLabel="label"
@@ -127,7 +136,10 @@
             {{ getRowValue(data, column) }}
             <i class="pi pi-map-marker"></i>
           </a>
-          <span v-else>{{ formatCell(data, column) }}</span>
+          <span
+            v-else
+            :class="{ 'cell-over-limit': isCellOverLimit(data, column) }"
+          >{{ formatCell(data, column) }}</span>
         </template>
       </ReportDataTable>
 
@@ -141,7 +153,11 @@
         </thead>
         <tbody>
           <tr v-for="(row, index) in rows" :key="index">
-            <td v-for="column in visibleColumns" :key="column.field">
+            <td
+              v-for="column in visibleColumns"
+              :key="column.field"
+              :class="{ 'cell-over-limit': isCellOverLimit(row, column) }"
+            >
               {{ formatCell(row, column) }}
             </td>
           </tr>
@@ -181,6 +197,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
+import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
@@ -222,7 +239,7 @@ const filters = reactive({
   imei: null as string | null,
 })
 
-const criteria = reactive<Record<string, string | number>>({})
+const criteria = reactive<Record<string, string | number | null>>({})
 const groupOptions = ref<ReportGroupOption[]>([])
 const vehicleOptions = ref<ReportVehicleOption[]>([])
 const rows = ref<Record<string, unknown>[]>([])
@@ -448,6 +465,23 @@ function formatCell(row: Record<string, unknown>, column: ReportColumn) {
   return value
 }
 
+function numberCriterionValue(key: string) {
+  const value = criteria[key]
+  return typeof value === 'number' ? value : null
+}
+
+function isCellOverLimit(row: Record<string, unknown>, column: ReportColumn) {
+  const criterionKey = definition.value.dailyDistanceLimitCriterionKey
+  if (!criterionKey || !/^d(?:[1-9]|[12]\d|3[01])$/i.test(column.field)) return false
+
+  const rawLimit = criteria[criterionKey]
+  if (typeof rawLimit !== 'number') return false
+
+  const limit = rawLimit
+  const distance = Number(getRowValue(row, column))
+  return Number.isFinite(limit) && limit >= 0 && Number.isFinite(distance) && distance > limit
+}
+
 function coordinate(row: Record<string, unknown>, names: string[]) {
   const key = Object.keys(row).find((item) =>
     names.includes(item.toLowerCase())
@@ -565,6 +599,17 @@ watch(() => props.definition.key, async () => {
   gap: 6px;
   color: #60a5fa;
   text-decoration: none;
+}
+
+.cell-over-limit {
+  display: inline-block;
+  min-width: 100%;
+  padding: 3px 7px;
+  color: #fecaca;
+  font-weight: 700;
+  background: rgba(220, 38, 38, 0.24);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  border-radius: 6px;
 }
 
 .empty-state {

@@ -2,7 +2,7 @@ export function reportFractionDigits(field: string, reportKey = '') {
   const normalizedField = field.toLowerCase()
 
   if (reportKey === 'monthly-distance' && (normalizedField === 'total_km' || /^d\d+$/.test(normalizedField))) {
-    return 1
+    return 0
   }
   if (reportKey === 'monthly-income' && (normalizedField === 'total_fare' || /^d\d+$/.test(normalizedField))) {
     return 2

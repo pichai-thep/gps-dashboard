@@ -156,15 +156,6 @@ class ReportController extends Controller
         $dateTo = $request->query('date_to', now()->toDateString());
         $sortField = $request->query('sort_by', 'data_date');
         $sortOrder = $request->query('sort_order', 'desc');
-        $distanceFromRaw = $request->query('distance_from_km');
-        $distanceFromKm = null;
-
-        if ($distanceFromRaw !== null && $distanceFromRaw !== '') {
-            abort_unless(is_numeric($distanceFromRaw), 422, 'Invalid distance_from_km');
-            $distanceFromKm = (float) $distanceFromRaw;
-            abort_if($distanceFromKm < 0, 422, 'distance_from_km must be at least 0');
-        }
-
         $isExport = filter_var($request->query('export', false), FILTER_VALIDATE_BOOLEAN);
 
         $page = max((int) $request->query('page', 1), 1);
@@ -189,13 +180,12 @@ class ReportController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_daily_summary(?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_daily_summary(?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $user->login,
             $dateFrom,
             $dateTo,
             $imeiCsv,
-            $distanceFromKm,
             $page,
             $perPage,
             $sortField,

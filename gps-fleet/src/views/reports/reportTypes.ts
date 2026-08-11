@@ -7,9 +7,13 @@ export interface ReportColumn {
 
 export interface ReportCriterion {
   key: string
-  label: string
-  options: Array<{ label: string; value: string | number }>
-  defaultValue: string | number
+  label: string | { th: string; en: string }
+  type?: 'select' | 'number'
+  options?: Array<{ label: string; value: string | number }>
+  defaultValue: string | number | null
+  min?: number
+  maxFractionDigits?: number
+  suffix?: string
 }
 
 export interface ReportDefinition {
@@ -27,6 +31,7 @@ export interface ReportDefinition {
   vehicleRequired?: boolean
   graph?: boolean | 'fuel' | 'speed'
   serverPagination?: boolean
+  dailyDistanceLimitCriterionKey?: string
   criteria?: ReportCriterion[]
   columns: ReportColumn[]
 }
@@ -38,7 +43,7 @@ export interface StoredProcedureReportParams {
   time_to?: string
   group_id?: number | null
   imei?: string | null
-  criteria?: Record<string, string | number>
+  criteria?: Record<string, string | number | null>
   offset?: number
   size?: number
 }

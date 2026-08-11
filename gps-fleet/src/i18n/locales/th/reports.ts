@@ -9,7 +9,6 @@ export default {
     selectVehicle: 'เลือกรถ',
     selectStation: 'เลือกสถานี',
     totalDistance: 'ระยะทางรวม',
-    distanceFromKm: 'ระยะทางตั้งแต่ (กม.)',
     totalStations: 'จำนวนสถานีทั้งหมด',
     urRateAvg: 'ค่าเฉลี่ย UR Rate',
     running: 'วิ่ง',

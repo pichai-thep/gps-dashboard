@@ -10,6 +10,16 @@ const definition: ReportDefinition = {
   subtitle: { th: 'สรุประยะทางรายวันแยกตามรถในแต่ละเดือน', en: 'Daily distance by vehicle for the selected month' },
   maxRangeDays: 0,
   monthly: true,
+  dailyDistanceLimitCriterionKey: 'daily_distance_limit_km',
+  criteria: [{
+    key: 'daily_distance_limit_km',
+    label: { th: 'วิ่งไม่เกิน (กม./วัน)', en: 'Maximum distance (km/day)' },
+    type: 'number',
+    defaultValue: null,
+    min: 0,
+    maxFractionDigits: 0,
+    suffix: ' km',
+  }],
   columns: [
     { field: 'plate_no', label: 'Plate no', aliases: ['Plate_no'] },
     { field: 'total_km', label: 'Total (km)', type: 'number' },
