@@ -72,6 +72,7 @@ export async function getDailySummary(params: {
     date_to: string
     group_ids?: number[]
     imeis?: string[]
+    distance_from_km?: number | null
     page?: number
     per_page?: number
     sort_by?: string

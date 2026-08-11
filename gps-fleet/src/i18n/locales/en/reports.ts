@@ -9,6 +9,7 @@ export default {
     selectVehicle: 'Select Vehicle',
     selectStation: 'Select Station',
     totalDistance: 'Total Distance',
+    distanceFromKm: 'Distance from (km)',
     totalStations: 'Total Stations',
     urRateAvg: 'UR Rate Avg',
     running: 'Running',
