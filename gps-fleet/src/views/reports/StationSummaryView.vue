@@ -141,7 +141,7 @@ const sortField = ref('data_date')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 
 const tableColumns = computed<ReportTableColumn[]>(() => [
-  { field: 'data_date', label: t('date'), width: '130px' },
+  { field: 'data_date', label: t('date'), width: '170px', minWidth: '170px', whiteSpace: 'nowrap' },
   { field: 'plate_no', label: t('plate') },
   { field: 'station_name', label: t('station'), width: '250px' },
   { field: 'start_time', label: t('start'), width: '200px' },

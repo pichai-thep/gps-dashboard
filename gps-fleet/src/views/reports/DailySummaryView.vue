@@ -129,7 +129,7 @@ const sortOrder = ref<'asc' | 'desc'>('desc')
 const durationFields = ['run_time_s', 'idle_time_s', 'park_time_s']
 
 const tableColumns = computed<ReportTableColumn[]>(() => [
-  { field: 'data_date', label: t('date'), width: '150px' },
+  { field: 'data_date', label: t('date'), width: '170px', minWidth: '170px', whiteSpace: 'nowrap' },
   { field: 'plate_no', label: t('plate') },
   { field: 'run_time_s', label: t('running'), width: '120px' },
   { field: 'idle_time_s', label: t('idle'), width: '120px' },
