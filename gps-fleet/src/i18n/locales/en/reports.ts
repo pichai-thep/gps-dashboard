@@ -17,6 +17,7 @@ export default {
     formula: 'Formula',
     urRate: 'UR Rate',
     updated: 'Updated',
+    reportMonth: 'Month',
     reportDateStart: 'Start date',
     reportDateEnd: 'End date',
     reportTimeStart: 'Start time',

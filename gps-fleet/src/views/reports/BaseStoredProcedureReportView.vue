@@ -1,12 +1,10 @@
 <template>
   <div class="report-page">
-    <div class="page-header">
-      <div>
-        <h1>{{ localized(definition.title) }}</h1>
-        <p>{{ localized(definition.subtitle) }}</p>
-      </div>
-
-      <div class="header-actions">
+    <ReportPageHeader
+      :title="localized(definition.title)"
+      :subtitle="localized(definition.subtitle)"
+    >
+      <template #actions>
         <Button
           v-if="definition.graph"
           :label="t('viewGraph')"
@@ -33,15 +31,16 @@
           display="chip"
           class="column-picker"
         />
-      </div>
-
-      <img
-        :src="reportLogoUrl"
-        class="report-print-logo"
-        alt="Brand logo"
-        @error="onReportLogoError"
-      />
-    </div>
+      </template>
+      <template #trailing>
+        <img
+          :src="reportLogoUrl"
+          class="report-print-logo"
+          alt="Brand logo"
+          @error="onReportLogoError"
+        />
+      </template>
+    </ReportPageHeader>
 
     <BaseReportFilters
       v-model:dateFrom="filters.dateFrom"
@@ -91,68 +90,48 @@
       {{ errorMessage }}
     </Message>
 
-    <div class="summary-grid report-summary">
-      <div class="summary-card">
-        <span>{{ t('totalRows') }}</span>
-        <strong>{{ (definition.serverPagination ? totalRows : rows.length).toLocaleString() }}</strong>
-      </div>
-      <div class="summary-card">
-        <span>{{ t('reportPeriod') }}</span>
-        <strong>{{ periodLabel }}</strong>
-      </div>
-      <div v-if="definition.maxRangeDays > 0" class="summary-card">
-        <span>{{ t('reportRangeLimit') }}</span>
-        <strong>{{ definition.maxRangeDays }} {{ t('days') }}</strong>
-      </div>
-    </div>
+    <ReportSummaryCards
+      class="report-summary"
+      :items="summaryItems"
+      :columns="3"
+    />
 
     <div class="table-card print-area">
-      <DataTable
+      <ReportDataTable
         class="screen-table"
-        :value="pagedRows"
+        :rows="pagedRows"
+        :columns="visibleColumns"
+        :reportKey="definition.key"
         :loading="loading"
-        stripedRows
-        responsiveLayout="scroll"
         paginator
-        :rows="perPage"
+        :pageSize="perPage"
         :rowsPerPageOptions="[20, 50, 100, 200]"
         :lazy="definition.serverPagination"
         :first="definition.serverPagination ? pageOffset : 0"
         :totalRecords="definition.serverPagination ? totalRows : rows.length"
+        :emptyLabel="t('reportNoData')"
         @page="onPage"
       >
-        <Column
-          v-for="column in visibleColumns"
-          :key="column.field"
-          :header="column.label"
-          sortable
-          :sortField="column.field"
-        >
-          <template #body="{ data }">
-            <span
-              v-if="isStatusColumn(column)"
-              :class="['status-badge', statusClass(getRowValue(data, column))]"
-            >
-              {{ statusLabel(getRowValue(data, column)) }}
-            </span>
-            <a
-              v-else-if="shouldLinkMap(data, column)"
-              :href="mapUrl(data, column)"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="map-link"
-            >
-              {{ getRowValue(data, column) }}
-              <i class="pi pi-map-marker"></i>
-            </a>
-            <span v-else>{{ formatCell(data, column) }}</span>
-          </template>
-        </Column>
-
-        <template #empty>
-          <div class="empty-state">{{ t('reportNoData') }}</div>
+        <template #cell="{ data, column }">
+          <span
+            v-if="isStatusColumn(column)"
+            :class="['status-badge', statusClass(getRowValue(data, column))]"
+          >
+            {{ statusLabel(getRowValue(data, column)) }}
+          </span>
+          <a
+            v-else-if="shouldLinkMap(data, column)"
+            :href="mapUrl(data, column)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="map-link"
+          >
+            {{ getRowValue(data, column) }}
+            <i class="pi pi-map-marker"></i>
+          </a>
+          <span v-else>{{ formatCell(data, column) }}</span>
         </template>
-      </DataTable>
+      </ReportDataTable>
 
       <table class="print-only print-table">
         <thead>
@@ -202,13 +181,14 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import Button from 'primevue/button'
-import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
+import ReportDataTable from '@/components/reports/ReportDataTable.vue'
+import ReportPageHeader from '@/components/reports/ReportPageHeader.vue'
+import ReportSummaryCards, { type ReportSummaryItem } from '@/components/reports/ReportSummaryCards.vue'
 import FuelReportChart from '@/components/reports/FuelReportChart.vue'
 import SpeedReportChart from '@/components/reports/SpeedReportChart.vue'
 import {
@@ -218,6 +198,10 @@ import {
   type ReportVehicleOption,
 } from '@/services/report'
 import { locale, useI18n } from '@/i18n'
+import { formatReportDuration, isReportDurationField } from '@/utils/reportDurationFormat'
+import { downloadReportCsv } from '@/utils/reportExport'
+import { formatReportNumber, reportFractionDigits } from '@/utils/reportNumberFormat'
+import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
 import type { ReportColumn, ReportDefinition, ReportLoader } from './reportTypes'
 
 const props = defineProps<{
@@ -267,6 +251,26 @@ const periodLabel = computed(() => definition.value.monthly && filters.dateFrom
   ? filters.dateFrom.toLocaleDateString(locale.value === 'th' ? 'th-TH' : 'en-US', { month: 'long', year: 'numeric' })
   : `${toDateString(filters.dateFrom)} – ${toDateString(filters.dateTo)}`
 )
+const summaryItems = computed<ReportSummaryItem[]>(() => {
+  const items: ReportSummaryItem[] = [
+    {
+      key: 'rows',
+      label: t('totalRows'),
+      value: (definition.value.serverPagination ? totalRows.value : rows.value.length).toLocaleString(),
+    },
+    { key: 'period', label: t('reportPeriod'), value: periodLabel.value },
+  ]
+
+  if (definition.value.maxRangeDays > 0) {
+    items.push({
+      key: 'range',
+      label: t('reportRangeLimit'),
+      value: `${definition.value.maxRangeDays} ${t('days')}`,
+    })
+  }
+
+  return items
+})
 const graphHeader = computed(() => definition.value.graph === 'speed'
   ? t('speedChart')
   : t(averageGraph.value ? 'averageFuelChart' : 'fuelChart'))
@@ -444,9 +448,13 @@ function formatCell(row: Record<string, unknown>, column: ReportColumn) {
 
   const value = getRowValue(row, column)
   if (value === '') return '-'
-  if (column.type === 'number') {
-    const number = Number(value)
-    return Number.isFinite(number) ? number.toLocaleString() : value
+  const durationFields = [column.field, ...(column.aliases ?? [])].filter(isReportDurationField)
+  const durationField = durationFields.find((field) => /_(?:s|mm|hhmm)$/.test(field.toLowerCase()))
+    ?? durationFields[0]
+  if (durationField) return formatReportDuration(value, durationField)
+  const fractionDigits = reportFractionDigits(column.field, definition.value.key)
+  if (column.type === 'number' || fractionDigits !== undefined) {
+    return formatReportNumber(value, column.field, definition.value.key)
   }
   return value
 }
@@ -499,30 +507,32 @@ function statusLabel(value: string) {
   return value || '-'
 }
 
-function csvCell(value: string) {
-  return `"${value.replace(/"/g, '""')}"`
-}
-
 function exportCsv() {
-  const header = visibleColumns.value.map((column) => csvCell(column.label)).join(',')
+  const header = visibleColumns.value.map((column) => column.label)
   const body = rows.value.map((row) =>
     visibleColumns.value
-      .map((column) => csvCell(formatCell(row, column)))
-      .join(',')
+      .map((column) => formatCell(row, column))
   )
-  const blob = new Blob(['\ufeff' + [header, ...body].join('\n')], {
-    type: 'text/csv;charset=utf-8',
-  })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `${definition.value.key}-${toDateString(filters.dateFrom)}-${toDateString(filters.dateTo)}.csv`
-  link.click()
-  URL.revokeObjectURL(url)
+  downloadReportCsv(
+    `${definition.value.key}-${toDateString(filters.dateFrom)}-${toDateString(filters.dateTo)}.csv`,
+    header,
+    body,
+  )
 }
 
 function savePdf() {
-  window.print()
+  const title = localized(definition.value.title)
+  const target = openReportPrintWindow(title)
+  if (!target) return
+
+  renderReportPrintWindow(target, {
+    title,
+    period: `${t('reportPeriod')}: ${periodLabel.value}`,
+    headers: visibleColumns.value.map((column) => column.label),
+    rows: rows.value.map((row) =>
+      visibleColumns.value.map((column) => formatCell(row, column))
+    ),
+  })
 }
 
 watch(() => props.definition.key, async () => {

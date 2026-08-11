@@ -17,6 +17,7 @@ export default {
     formula: 'สูตร',
     urRate: 'UR Rate',
     updated: 'อัปเดต',
+    reportMonth: 'เดือน',
     reportDateStart: 'วันที่เริ่มต้น',
     reportDateEnd: 'วันที่สิ้นสุด',
     reportTimeStart: 'เวลาเริ่มต้น',

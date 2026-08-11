@@ -1,12 +1,7 @@
 <template>
   <div class="report-page">
-    <div class="page-header">
-      <div>
-        <h1>{{ t('dailySummaryReport') }}</h1>
-        <p>{{ t('dailySummarySubtitle') }}</p>
-      </div>
-
-      <div class="header-actions">
+    <ReportPageHeader :title="t('dailySummaryReport')" :subtitle="t('dailySummarySubtitle')">
+      <template #actions>
         <Button
             :label="t('exportCsv')"
             icon="pi pi-download"
@@ -21,176 +16,62 @@
             :disabled="totalRows === 0"
             @click="savePdf"
         />
-      </div>
-    </div>
+      </template>
+    </ReportPageHeader>
 
-    <div class="filter-card">
-      <Calendar
-          v-model="dateFrom"
-          dateFormat="yy-mm-dd"
-          showIcon
-      />
+    <BaseReportFilters
+      v-model:dateFrom="dateFrom"
+      v-model:dateTo="dateTo"
+      v-model:groupIds="selectedGroups"
+      v-model:imeis="selectedVehicles"
+      :groupOptions="groupOptions"
+      :vehicleOptions="vehicleOptions"
+      :loading="loading"
+      :hasRows="totalRows > 0"
+      multiple
+      :enableExportCsv="false"
+      :enablePdf="false"
+      @group-change="onGroupChange"
+      @search="search"
+      @reset="resetFilter"
+    />
 
-      <Calendar
-          v-model="dateTo"
-          dateFormat="yy-mm-dd"
-          showIcon
-      />
-
-      <MultiSelect
-          v-model="selectedGroups"
-          :options="groupOptions"
-          optionLabel="group_name"
-          optionValue="group_id"
-          :placeholder="t('selectGroup')"
-          display="chip"
-          filter
-          @change="onGroupChange"
-      />
-
-      <MultiSelect
-          v-model="selectedVehicles"
-          :options="vehicleOptions"
-          optionLabel="plate_no"
-          optionValue="imei"
-          :placeholder="t('selectVehicle')"
-          display="chip"
-          filter
-          aria-multiline="true"
-      />
-
-      <Button
-          :label="t('search')"
-          icon="pi pi-search"
-          :loading="loading"
-          @click="search"
-      />
-
-      <Button
-          :label="t('reset')"
-          icon="pi pi-refresh"
-          severity="secondary"
-          outlined
-          @click="resetFilter"
-      />
-
-    </div>
-
-    <div class="summary-grid">
-      <div class="summary-card">
-        <span>{{ t('totalVehicles') }}</span>
-        <strong>{{ summary.total_vehicle }}</strong>
-      </div>
-
-      <div class="summary-card">
-        <span>{{ t('totalDistance') }}</span>
-        <strong>{{ formatKm(summary.distance_m) }}</strong>
-      </div>
-
-      <div class="summary-card ur-rate">
-        <span>{{ t('urRateAvg') }}</span>
-
-        <strong>
-          {{ formatPercent(avgUrRate) }}
-        </strong>
-      </div>
-
-      <div class="summary-card running">
-        <span>{{ t('running') }}</span>
-        <strong>{{ formatDuration(summary.run_time_s) }}</strong>
-      </div>
-
-      <div class="summary-card idle">
-        <span>{{ t('idle') }}</span>
-        <strong>{{ formatDuration(summary.idle_time_s) }}</strong>
-      </div>
-
-      <div class="summary-card parking">
-        <span>{{ t('parking') }}</span>
-        <strong>{{ formatDuration(summary.park_time_s) }}</strong>
-      </div>
-    </div>
+    <ReportSummaryCards :items="summaryItems" :columns="6" />
 
     <div class="table-card">
 
-      <DataTable
-          :value="rows"
+      <ReportDataTable
+          :rows="rows"
+          :columns="tableColumns"
           :loading="loading"
-          stripedRows
-          responsiveLayout="scroll"
-          class="summary-table"
+          paginator
+          lazy
+          :pageSize="perPage"
+          :rowsPerPageOptions="[10, 20, 50, 100, 200, 500]"
+          :first="(page - 1) * perPage"
+          :totalRecords="totalRows"
           :sortField="sortField"
           :sortOrder="sortOrder === 'asc' ? 1 : -1"
+          :emptyLabel="t('reportNoData')"
           @sort="onSort"
-      >
-        <Column field="data_date" :header="t('date')" sortable style="width: 150px" />
-
-<!--        <Column field="imei" header="IMEI" style="width: 180px" />-->
-        <Column field="plate_no" :header="t('plate')" sortable style="width: 180px" />
-
-        <Column field="run_time_s" :header="t('running')" sortable  style="width: 120px">
-          <template #body="{ data }">
-            <Tag
-                :value="formatDuration(data.run_time_s)"
-                severity="success"
-            />
-          </template>
-        </Column>
-
-        <Column field="idle_time_s" :header="t('idle')" sortable  style="width: 120px">
-          <template #body="{ data }">
-            <Tag
-                :value="formatDuration(data.idle_time_s)"
-                severity="warning"
-            />
-          </template>
-        </Column>
-
-        <Column field="park_time_s" :header="t('parking')" sortable  style="width: 120px">
-          <template #body="{ data }">
-            <Tag
-                :value="formatDuration(data.park_time_s)"
-                severity="info"
-            />
-          </template>
-        </Column>
-
-        <Column field="distance_m" :header="t('distance')" sortable  style="width: 150px">
-          <template #body="{ data }">
-            <b>{{ formatKm(data.distance_m) }}</b>
-          </template>
-        </Column>
-
-        <Column field="ur_formula" :header="t('formula')" style="width: 170px">
-          <template #body="{ data }">
-            <Tag
-                :value="data.ur_formula"
-                severity="secondary"
-            />
-          </template>
-        </Column>
-
-        <Column field="ur_rate" :header="t('urRate')" sortable  style="width: 120px">
-          <template #body="{ data }">
-            <Tag
-                :value="formatPercent(data.ur_rate)"
-                :severity="urRateSeverity(data.ur_rate)"
-            />
-          </template>
-        </Column>
-
-        <Column field="updated_at" :header="t('updated')" sortable  style="width: 200px" />
-      </DataTable>
-
-      <Paginator
-          :rows="perPage"
-          :totalRecords="totalRows"
-          :first="(page - 1) * perPage"
-          :rowsPerPageOptions="[10, 20, 50, 100, 200, 500]"
-          template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
-          currentPageReportTemplate="{first} - {last} / {totalRecords}"
           @page="onPage"
-      />
+      >
+        <template #cell="{ data, column, formattedValue }">
+          <Tag
+            v-if="durationFields.includes(column.field)"
+            :value="formatDuration(data[column.field])"
+            :severity="durationSeverity(column.field)"
+          />
+          <b v-else-if="column.field === 'distance_m'">{{ formatKm(data.distance_m) }}</b>
+          <Tag v-else-if="column.field === 'ur_formula'" :value="data.ur_formula" severity="secondary" />
+          <Tag
+            v-else-if="column.field === 'ur_rate'"
+            :value="formatPercent(data.ur_rate)"
+            :severity="urRateSeverity(data.ur_rate)"
+          />
+          <span v-else>{{ formattedValue }}</span>
+        </template>
+      </ReportDataTable>
     </div>
   </div>
 </template>
@@ -198,13 +79,11 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import Button from 'primevue/button'
-import Calendar from 'primevue/calendar'
-import InputText from 'primevue/inputtext'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import Paginator from 'primevue/paginator'
-import MultiSelect from 'primevue/multiselect'
+import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
+import ReportDataTable, { type ReportTableColumn } from '@/components/reports/ReportDataTable.vue'
+import ReportPageHeader from '@/components/reports/ReportPageHeader.vue'
+import ReportSummaryCards, { type ReportSummaryItem } from '@/components/reports/ReportSummaryCards.vue'
 import {
   getDailySummary,
   getReportGroups,
@@ -212,6 +91,9 @@ import {
   type DailySummaryRow,
 } from '@/services/report'
 import { useI18n } from '@/i18n'
+import { formatReportDuration } from '@/utils/reportDurationFormat'
+import { downloadReportCsv } from '@/utils/reportExport'
+import { formatDistanceKmFromMeters, formatReportInteger } from '@/utils/reportNumberFormat'
 import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
 
 const { t } = useI18n()
@@ -244,6 +126,19 @@ const totalRows = ref(0)
 const totalPages = ref(0)
 const sortField = ref('data_date')
 const sortOrder = ref<'asc' | 'desc'>('desc')
+const durationFields = ['run_time_s', 'idle_time_s', 'park_time_s']
+
+const tableColumns = computed<ReportTableColumn[]>(() => [
+  { field: 'data_date', label: t('date'), width: '150px' },
+  { field: 'plate_no', label: t('plate') },
+  { field: 'run_time_s', label: t('running'), width: '120px' },
+  { field: 'idle_time_s', label: t('idle'), width: '120px' },
+  { field: 'park_time_s', label: t('parking'), width: '120px' },
+  { field: 'distance_m', label: t('distance'), width: '150px' },
+  { field: 'ur_formula', label: t('formula'), sortable: false, width: '170px' },
+  { field: 'ur_rate', label: t('urRate'), width: '120px' },
+  { field: 'updated_at', label: t('updated'), width: '200px' },
+])
 
 const summary = ref({
   total_rows: 0,
@@ -270,6 +165,15 @@ const avgUrRate = computed(() => {
   if (count <= 0) return 0
   return total / count
 })
+
+const summaryItems = computed<ReportSummaryItem[]>(() => [
+  { key: 'vehicles', label: t('totalVehicles'), value: formatReportInteger(summary.value.total_vehicle) },
+  { key: 'distance', label: t('totalDistance'), value: formatKm(summary.value.distance_m) },
+  { key: 'ur-rate', label: t('urRateAvg'), value: formatPercent(avgUrRate.value), className: 'ur-rate' },
+  { key: 'running', label: t('running'), value: formatDuration(summary.value.run_time_s), className: 'running' },
+  { key: 'idle', label: t('idle'), value: formatDuration(summary.value.idle_time_s), className: 'idle' },
+  { key: 'parking', label: t('parking'), value: formatDuration(summary.value.park_time_s), className: 'parking' },
+])
 
 async function onPage(event: any) {
   perPage.value = event.rows
@@ -371,21 +275,17 @@ function toDateString(date: Date | null) {
 }
 
 function formatDuration(seconds: number) {
-  seconds = Number(seconds || 0)
-
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-
-  if (h <= 0) return `${m}m`
-  return `${h}h ${m}m`
+  return formatReportDuration(seconds, 'duration_s')
 }
 
 function formatKm(meter: number) {
-  const km = Number(meter || 0) / 1000
-  return `${km.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} km`
+  return formatDistanceKmFromMeters(meter)
+}
+
+function durationSeverity(field: string) {
+  if (field === 'run_time_s') return 'success'
+  if (field === 'idle_time_s') return 'warning'
+  return 'info'
 }
 
 async function loadData() {
@@ -467,13 +367,13 @@ async function exportCsv() {
     formatDuration(r.run_time_s),
     formatDuration(r.idle_time_s),
     formatDuration(r.park_time_s),
-    (Number(r.distance_m || 0) / 1000).toFixed(2),
+    formatDistanceKmFromMeters(r.distance_m, false),
     r.ur_formula,
     formatPercent(r.ur_rate),
     r.updated_at,
   ])
 
-  downloadCsv('daily-summary.csv', header, body)
+  downloadReportCsv('daily-summary.csv', header, body)
 }
 
 async function savePdf() {
@@ -499,7 +399,7 @@ async function savePdf() {
     formatDuration(row.run_time_s),
     formatDuration(row.idle_time_s),
     formatDuration(row.park_time_s),
-    (Number(row.distance_m || 0) / 1000).toFixed(2),
+    formatDistanceKmFromMeters(row.distance_m, false),
     row.ur_formula,
     formatPercent(row.ur_rate),
     row.updated_at,
@@ -522,28 +422,6 @@ async function savePdf() {
     ],
     rows: printRows,
   })
-}
-
-function downloadCsv(filename: string, header: string[], rows: Array<Array<string | number>>) {
-  const csv = [
-    header.join(','),
-    ...rows.map((row) =>
-        row
-            .map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`)
-            .join(',')
-    ),
-  ].join('\n')
-
-  const blob = new Blob(['\ufeff' + csv], {
-    type: 'text/csv;charset=utf-8;',
-  })
-
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = filename
-  link.click()
-
-  URL.revokeObjectURL(link.href)
 }
 
 onMounted(async () => {

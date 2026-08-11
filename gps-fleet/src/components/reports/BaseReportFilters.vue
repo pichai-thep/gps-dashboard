@@ -1,7 +1,7 @@
 <template>
   <section class="base-report-filters">
     <div v-if="enableDateStart" class="filter-field">
-      <label>{{ t('reportDateStart') }}</label>
+      <label>{{ t(monthly ? 'reportMonth' : 'reportDateStart') }}</label>
       <Calendar v-model="dateFrom" :dateFormat="monthly ? 'mm/yy' : 'yy-mm-dd'" :view="monthly ? 'month' : 'date'" showIcon />
     </div>
 
@@ -22,7 +22,19 @@
 
     <div v-if="enableGroup" class="filter-field">
       <label>{{ t('selectGroup') }}</label>
+      <MultiSelect
+        v-if="multiple"
+        v-model="groupIds"
+        :options="groupOptions"
+        optionLabel="group_name"
+        optionValue="group_id"
+        :placeholder="t('allGroups')"
+        display="chip"
+        filter
+        @change="$emit('group-change')"
+      />
       <Dropdown
+        v-else
         v-model="groupId"
         :options="groupOptions"
         optionLabel="group_name"
@@ -36,7 +48,19 @@
 
     <div v-if="enableVehicle" class="filter-field vehicle-field">
       <label>{{ t('selectVehicle') }}<span v-if="vehicleRequired" class="required-mark"> *</span></label>
+      <MultiSelect
+        v-if="multiple"
+        v-model="imeis"
+        :options="vehicleOptions"
+        optionLabel="plate_no"
+        optionValue="imei"
+        :placeholder="t('allVehicles')"
+        display="chip"
+        filter
+        :invalid="vehicleRequired && imeis.length === 0"
+      />
       <Dropdown
+        v-else
         v-model="imei"
         :options="vehicleOptions"
         optionLabel="plate_no"
@@ -102,6 +126,7 @@ import Calendar from 'primevue/calendar'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
+import MultiSelect from 'primevue/multiselect'
 import { useI18n } from '@/i18n'
 import type { ReportGroupOption, ReportVehicleOption } from '@/services/report'
 
@@ -126,6 +151,7 @@ const props = withDefaults(defineProps<{
   enablePdf?: boolean
   maxRangeDays?: number
   monthly?: boolean
+  multiple?: boolean
 }>(), {
   loading: false,
   hasRows: false,
@@ -145,6 +171,7 @@ const props = withDefaults(defineProps<{
   enablePdf: true,
   maxRangeDays: 0,
   monthly: false,
+  multiple: false,
 })
 
 const emit = defineEmits<{
@@ -161,6 +188,8 @@ const timeStart = defineModel<string>('timeStart', { default: '00:00' })
 const timeEnd = defineModel<string>('timeEnd', { default: '23:59' })
 const groupId = defineModel<number | null>('groupId', { default: null })
 const imei = defineModel<string | null>('imei', { default: null })
+const groupIds = defineModel<number[]>('groupIds', { default: () => [] })
+const imeis = defineModel<string[]>('imeis', { default: () => [] })
 
 const { t } = useI18n()
 const validationMessage = ref('')
@@ -185,7 +214,8 @@ function submit() {
     return
   }
 
-  if (props.enableVehicle && props.vehicleRequired && !imei.value) {
+  const vehicleMissing = props.multiple ? imeis.value.length === 0 : !imei.value
+  if (props.enableVehicle && props.vehicleRequired && vehicleMissing) {
     validationMessage.value = t('reportVehicleRequired')
     return
   }
@@ -245,6 +275,19 @@ function resetFilters() {
   min-width: 0;
   flex-direction: column;
   gap: 6px;
+}
+
+:slotted(.custom-filter-field) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+:slotted(.custom-filter-field) label {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .filter-field label {

@@ -1,12 +1,7 @@
 <template>
   <div class="report-page">
-    <div class="page-header">
-      <div>
-        <h1>{{ t('stationVisitReport') }}</h1>
-        <p>{{ t('stationVisitSubtitle') }}</p>
-      </div>
-
-      <div class="header-actions">
+    <ReportPageHeader :title="t('stationVisitReport')" :subtitle="t('stationVisitSubtitle')">
+      <template #actions>
         <Button
             :label="t('exportCsv')"
             icon="pi pi-download"
@@ -21,138 +16,89 @@
             :disabled="totalRows === 0"
             @click="savePdf"
         />
-      </div>
-    </div>
+      </template>
+    </ReportPageHeader>
 
-    <div class="filter-card">
-      <Calendar v-model="dateFrom" dateFormat="yy-mm-dd" showIcon />
-      <Calendar v-model="dateTo" dateFormat="yy-mm-dd" showIcon />
+    <BaseReportFilters
+      v-model:dateFrom="dateFrom"
+      v-model:dateTo="dateTo"
+      v-model:groupIds="selectedGroups"
+      v-model:imeis="selectedVehicles"
+      :groupOptions="groupOptions"
+      :vehicleOptions="vehicleOptions"
+      :loading="loading"
+      :hasRows="totalRows > 0"
+      multiple
+      :enableExportCsv="false"
+      :enablePdf="false"
+      @group-change="onGroupChange"
+      @search="search"
+      @reset="resetFilter"
+    >
+      <template #criteria>
+        <div class="custom-filter-field">
+          <label>{{ t('selectStation') }}</label>
+          <Dropdown
+            v-model="stationId"
+            :options="stationOptions"
+            optionLabel="station_name"
+            optionValue="station_id"
+            :placeholder="t('selectStation')"
+            showClear
+            filter
+          />
+        </div>
+      </template>
+    </BaseReportFilters>
 
-      <MultiSelect
-          v-model="selectedGroups"
-          :options="groupOptions"
-          optionLabel="group_name"
-          optionValue="group_id"
-          :placeholder="t('selectGroup')"
-          display="chip"
-          filter
-          @change="onGroupChange"
-      />
-
-      <MultiSelect
-          v-model="selectedVehicles"
-          :options="vehicleOptions"
-          optionLabel="plate_no"
-          optionValue="imei"
-          :placeholder="t('selectVehicle')"
-          display="chip"
-          filter
-      />
-
-      <Dropdown
-          v-model="stationId"
-          :options="stationOptions"
-          optionLabel="station_name"
-          optionValue="station_id"
-          :placeholder="t('selectStation')"
-          showClear
-          filter
-      />
-
-      <Button :label="t('search')" icon="pi pi-search" :loading="loading" @click="search" />
-      <Button
-          :label="t('reset')"
-          icon="pi pi-refresh"
-          severity="secondary"
-          outlined
-          @click="resetFilter"
-      />
-    </div>
-
-    <div class="summary-grid">
-      <div class="summary-card">
-        <span>{{ t('totalRows') }}</span>
-        <strong>{{ summary.total_rows }}</strong>
-      </div>
-
-      <div class="summary-card">
-        <span>{{ t('totalVehicles') }}</span>
-        <strong>{{ summary.total_vehicle }}</strong>
-      </div>
-
-      <div class="summary-card">
-        <span>{{ t('totalStations') }}</span>
-        <strong>{{ summary.total_station }}</strong>
-      </div>
-
-      <div class="summary-card">
-        <span>{{ t('totalDuration') }}</span>
-        <strong>{{ formatDuration(summary.duration_s) }}</strong>
-      </div>
-    </div>
+    <ReportSummaryCards :items="summaryItems" :columns="4" />
 
     <div class="table-card">
-      <DataTable
-          :value="rows"
+      <ReportDataTable
+          :rows="rows"
+          :columns="tableColumns"
           :loading="loading"
-          stripedRows
-          responsiveLayout="scroll"
+          paginator
           lazy
+          :pageSize="perPage"
+          :rowsPerPageOptions="[10, 20, 50, 100, 200, 500]"
+          :first="(page - 1) * perPage"
+          :totalRecords="totalRows"
           :sortField="sortField"
           :sortOrder="sortOrder === 'asc' ? 1 : -1"
+          :emptyLabel="t('reportNoData')"
           @sort="onSort"
+          @page="onPage"
       >
-
-        <Column field="data_date" :header="t('date')" sortable style="width: 130px" />
-        <Column field="plate_no" :header="t('plate')" sortable style="width: 200px" />
-<!--        <Column field="imei" header="IMEI" sortable style="width: 180px" />-->
-
-        <Column field="station_name" :header="t('station')" sortable style="width: 250px" >
-          <template #body="{ data }">
+        <template #cell="{ data, column, formattedValue }">
+          <template v-if="column.field === 'station_name'">
             <div class="station-cell">
               <b>{{ data.station_name || '-' }}</b>
-              <small>ID: {{ data.station_id }}</small>
+              <small>ID: {{ formatReportInteger(data.station_id) }}</small>
             </div>
           </template>
-        </Column>
-
-        <Column field="start_time" :header="t('start')" sortable style="width: 200px" />
-        <Column field="end_time" :header="t('end')" sortable style="width: 200px" />
-
-        <Column field="duration_s" :header="t('duration')" sortable style="width: 130px">
-          <template #body="{ data }">
-            <Tag :value="formatDuration(data.duration_s)" severity="info" />
-          </template>
-        </Column>
-
-        <Column field="updated_at" :header="t('updated')" sortable style="width: 200px" />
-      </DataTable>
-
-      <Paginator
-          :rows="perPage"
-          :totalRecords="totalRows"
-          :first="(page - 1) * perPage"
-          :rowsPerPageOptions="[10, 20, 50, 100, 200, 500]"
-          template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
-          currentPageReportTemplate="{first} - {last} / {totalRecords}"
-          @page="onPage"
-      />
+          <Tag
+            v-else-if="column.field === 'duration_s'"
+            :value="formatDuration(data.duration_s)"
+            severity="info"
+          />
+          <span v-else>{{ formattedValue }}</span>
+        </template>
+      </ReportDataTable>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import Button from 'primevue/button'
-import Calendar from 'primevue/calendar'
-import InputText from 'primevue/inputtext'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import Paginator from 'primevue/paginator'
 import Dropdown from 'primevue/dropdown'
-import MultiSelect from 'primevue/multiselect'
+import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
+import ReportDataTable, { type ReportTableColumn } from '@/components/reports/ReportDataTable.vue'
+import ReportPageHeader from '@/components/reports/ReportPageHeader.vue'
+import ReportSummaryCards, { type ReportSummaryItem } from '@/components/reports/ReportSummaryCards.vue'
 import {
   getStationSummary,
   getReportGroups,
@@ -161,6 +107,9 @@ import {
   type StationSummaryRow,
 } from '@/services/report'
 import { useI18n } from '@/i18n'
+import { formatReportDuration } from '@/utils/reportDurationFormat'
+import { downloadReportCsv } from '@/utils/reportExport'
+import { formatReportInteger } from '@/utils/reportNumberFormat'
 import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
 
 const { t } = useI18n()
@@ -191,12 +140,29 @@ const totalPages = ref(0)
 const sortField = ref('data_date')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 
+const tableColumns = computed<ReportTableColumn[]>(() => [
+  { field: 'data_date', label: t('date'), width: '130px' },
+  { field: 'plate_no', label: t('plate') },
+  { field: 'station_name', label: t('station'), width: '250px' },
+  { field: 'start_time', label: t('start'), width: '200px' },
+  { field: 'end_time', label: t('end'), width: '200px' },
+  { field: 'duration_s', label: t('duration'), width: '130px' },
+  { field: 'updated_at', label: t('updated'), width: '200px' },
+])
+
 const summary = ref({
   total_rows: 0,
   total_vehicle: 0,
   total_station: 0,
   duration_s: 0,
 })
+
+const summaryItems = computed<ReportSummaryItem[]>(() => [
+  { key: 'rows', label: t('totalRows'), value: formatReportInteger(summary.value.total_rows) },
+  { key: 'vehicles', label: t('totalVehicles'), value: formatReportInteger(summary.value.total_vehicle) },
+  { key: 'stations', label: t('totalStations'), value: formatReportInteger(summary.value.total_station) },
+  { key: 'duration', label: t('totalDuration'), value: formatDuration(summary.value.duration_s) },
+])
 
 function toDateString(date: Date | null) {
   if (!date) return ''
@@ -207,13 +173,7 @@ function toDateString(date: Date | null) {
 }
 
 function formatDuration(seconds: number) {
-  seconds = Number(seconds || 0)
-
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-
-  if (h <= 0) return `${m}m`
-  return `${h}h ${m}m`
+  return formatReportDuration(seconds, 'duration_s')
 }
 
 async function loadData() {
@@ -371,7 +331,7 @@ async function exportCsv() {
     r.updated_at,
   ])
 
-  downloadCsv(
+  downloadReportCsv(
       `station-summary-${toDateString(dateFrom.value)}-${toDateString(dateTo.value)}.csv`,
       header,
       body
@@ -421,34 +381,6 @@ async function savePdf() {
     ],
     rows: printRows,
   })
-}
-
-function downloadCsv(
-    filename: string,
-    header: string[],
-    rows: Array<Array<string | number>>
-) {
-  const csv = [
-    header.join(','),
-    ...rows.map((row) =>
-        row
-            .map((value) =>
-                `"${String(value ?? '').replace(/"/g, '""')}"`
-            )
-            .join(',')
-    ),
-  ].join('\n')
-
-  const blob = new Blob(['\ufeff' + csv], {
-    type: 'text/csv;charset=utf-8;',
-  })
-
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = filename
-  link.click()
-
-  URL.revokeObjectURL(link.href)
 }
 
 onMounted(async () => {
