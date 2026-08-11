@@ -17,22 +17,24 @@ CREATE PROCEDURE sp_webapi_history(
     DECLARE v_end DATETIME;
     DECLARE v_tracker_model VARCHAR(50);
     DECLARE v_report_table VARCHAR(100);
+    DECLARE v_dlt_synch tinyint;
+    DECLARE v_dlt_card_reader tinyint;
     DECLARE v_event_codes VARCHAR(100);
     DECLARE v_sql TEXT;
 	DECLARE v_page INT DEFAULT 1;
 	DECLARE v_per_page INT DEFAULT 1000;
 	DECLARE v_offset BIGINT DEFAULT 0;
-        
+
     SET v_start = STR_TO_DATE(CONCAT(p_start_date, ' ', p_start_time, ':00'), '%Y-%m-%d %H:%i:%s') - INTERVAL 7 HOUR;
 	SET v_end = STR_TO_DATE(CONCAT(p_end_date, ' ', p_end_time, ':59'), '%Y-%m-%d %H:%i:%s') - INTERVAL 7 HOUR;
-    
+
     SET v_page = IFNULL(p_page, 1);
 	SET v_per_page = IFNULL(p_per_page, 1000);
-	
+
     IF v_page < 1 THEN
 		SET v_page = 1;
 END IF;
-    
+
 	IF v_per_page < 1 THEN
 		SET v_per_page = 1000;
 END IF;
@@ -43,11 +45,11 @@ END IF;
 
 	SET v_offset = (v_page-1) * v_per_page;
 
-SELECT tracker_model, report_table
-INTO v_tracker_model, v_report_table
-FROM tracker
-WHERE imei = p_imei
-    LIMIT 1;
+SELECT 	tracker_model, report_table, dlt_synch, dlt_card_reader
+INTO 	v_tracker_model, v_report_table, v_dlt_synch, v_dlt_card_reader
+FROM 	tracker
+WHERE 	imei = p_imei
+    LIMIT 	1;
 
 SET v_event_codes = CASE
         WHEN v_tracker_model IN ('T1', 'T333') THEN '35,3,11'
@@ -55,7 +57,7 @@ SET v_event_codes = CASE
         WHEN v_tracker_model = 'Ruptela' THEN '7,8'
         WHEN v_tracker_model = 'Concox' THEN '12,16'
         WHEN v_tracker_model = 'FiFoTrack' THEN 'A01,4,5'
-        WHEN v_tracker_model = 'iStartek' THEN '0'
+        WHEN v_tracker_model = 'iStartek' THEN '0,3,4'
         ELSE NULL
 END;
 
@@ -363,6 +365,7 @@ SELECT
     v_tracker_model AS tracker_model,
     v_report_table AS report_table,
     v_event_codes AS event_code_filter,
+    v_dlt_synch, v_dlt_card_reader,
     COUNT(*) AS total_rows
 FROM tmp_state1;
 
@@ -397,7 +400,9 @@ SELECT gpsdata_id,
        input1,
        input2,
        car_status,
-       address, track1, track3
+       address, track1, track3,
+       v_dlt_synch AS dlt_synch,
+       v_dlt_card_reader AS dlt_card_reader
 FROM tmp_state1
 ORDER BY data_date ASC, gpsdata_id ASC
     LIMIT v_offset, v_per_page;

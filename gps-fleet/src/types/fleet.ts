@@ -25,6 +25,7 @@ export type Vehicle = {
 
     icon?: string
     dlt_synch: boolean
+    dlt_card_reader?: boolean | number | null
     driver_name?: string | null
     driver_phone?: string | null
 

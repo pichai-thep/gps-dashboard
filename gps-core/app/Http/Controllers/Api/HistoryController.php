@@ -80,6 +80,14 @@ class HistoryController extends Controller
         }
         $stmt->closeCursor();
 
+        $dltSynch = (int) ($summary['dlt_synch'] ?? $summary['v_dlt_synch'] ?? 0);
+        $dltCardReader = (int) ($summary['dlt_card_reader'] ?? $summary['v_dlt_card_reader'] ?? 0);
+        $rows = array_map(static function (array $row) use ($dltSynch, $dltCardReader): array {
+            $row['dlt_synch'] = (int) ($row['dlt_synch'] ?? $dltSynch);
+            $row['dlt_card_reader'] = (int) ($row['dlt_card_reader'] ?? $dltCardReader);
+            return $row;
+        }, $rows);
+
         return response()->json([
             'success' => true,
             'summary' => $summary,

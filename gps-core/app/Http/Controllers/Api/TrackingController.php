@@ -291,6 +291,7 @@ class TrackingController extends Controller
             'input2' => $row->input2 ?? null,
             'sequen_no' => isset($row->sequen_no) ? (int) $row->sequen_no : null,
             'dlt_synch' => $row->dlt_synch,
+            'dlt_card_reader' => isset($row->dlt_card_reader) ? (int) $row->dlt_card_reader : 0,
             'track1' => $row->track1 ?? null,
             'track3' => $row->track3 ?? null,
             'address' => $row->address ?? null,
@@ -346,27 +347,20 @@ class TrackingController extends Controller
     private function resolveDriverStatus($row): string
     {
         $dltSynch = (int) ($row->dlt_synch ?? 0);
-        $track1 = trim((string) ($row->track1 ?? ''));
+        $dltCardReader = (int) ($row->dlt_card_reader ?? 0);
         $track3 = trim((string) ($row->track3 ?? ''));
 
-        if ($dltSynch === 0) {
+        if ($dltSynch !== 1 || $dltCardReader !== 1) {
             return 'hide';
         }
 
-        if ($track1 !== '' && $track3 === '') {
-            return 'no_license';
-        }
-
-        if ($track3 !== '') {
-            return 'ok';
-        }
-
-        return 'missing';
+        return $track3 !== '' ? 'ok' : 'missing';
     }
 
     private function isNoDriverCard(array $vehicle): bool
     {
         return (int) ($vehicle['dlt_synch'] ?? 0) === 1
+            && (int) ($vehicle['dlt_card_reader'] ?? 0) === 1
             && (float) ($vehicle['speed'] ?? 0) > 5
             && trim((string) ($vehicle['track3'] ?? '')) === '';
     }

@@ -13,7 +13,7 @@ export default {
     totalStations: 'จำนวนสถานีทั้งหมด',
     urRateAvg: 'ค่าเฉลี่ย UR Rate',
     running: 'วิ่ง',
-    idle: 'Idle',
+    idle: 'ติดเครื่อง',
     parking: 'จอด',
     formula: 'สูตร',
     urRate: 'UR Rate',

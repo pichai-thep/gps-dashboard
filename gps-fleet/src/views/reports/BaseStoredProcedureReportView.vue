@@ -113,12 +113,10 @@
         @page="onPage"
       >
         <template #cell="{ data, column }">
-          <span
+          <VehicleStatusBadge
             v-if="isStatusColumn(column)"
-            :class="['status-badge', statusClass(getRowValue(data, column))]"
-          >
-            {{ statusLabel(getRowValue(data, column)) }}
-          </span>
+            :status="reportVehicleStatus(data, column)"
+          />
           <a
             v-else-if="shouldLinkMap(data, column)"
             :href="mapUrl(data, column)"
@@ -186,6 +184,7 @@ import Dropdown from 'primevue/dropdown'
 import Message from 'primevue/message'
 import MultiSelect from 'primevue/multiselect'
 import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
+import VehicleStatusBadge from '@/components/VehicleStatusBadge.vue'
 import ReportDataTable from '@/components/reports/ReportDataTable.vue'
 import ReportPageHeader from '@/components/reports/ReportPageHeader.vue'
 import ReportSummaryCards, { type ReportSummaryItem } from '@/components/reports/ReportSummaryCards.vue'
@@ -202,6 +201,7 @@ import { formatReportDuration, isReportDurationField } from '@/utils/reportDurat
 import { downloadReportCsv } from '@/utils/reportExport'
 import { formatReportNumber, reportFractionDigits } from '@/utils/reportNumberFormat'
 import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
+import { normalizeVehicleStatus, vehicleStatusLabel } from '@/utils/vehicleStatus'
 import type { ReportColumn, ReportDefinition, ReportLoader } from './reportTypes'
 
 const props = defineProps<{
@@ -432,18 +432,7 @@ function getRowValue(row: Record<string, unknown>, column: ReportColumn) {
 
 function formatCell(row: Record<string, unknown>, column: ReportColumn) {
   if (isStatusColumn(column)) {
-    return statusLabel(getRowValue(row, column))
-  }
-
-  if (definition.value.key === 'fuel' && column.field === 'vehicle_status') {
-    const speed = Number(coordinate(row, ['speed']) || 0)
-    const state = coordinate(row, ['state', 'status', 'vehicle_status']).toLowerCase()
-
-    if (speed > 0) return t('running')
-    if (['1', 'on', 'true', 'start', 'idle'].some((value) => state.includes(value))) {
-      return t('idle')
-    }
-    return t('parking')
+    return vehicleStatusLabel(reportVehicleStatus(row, column), locale.value)
   }
 
   const value = getRowValue(row, column)
@@ -484,27 +473,28 @@ function shouldLinkMap(row: Record<string, unknown>, column: ReportColumn) {
 }
 
 function isStatusColumn(column: ReportColumn) {
-  return definition.value.key === 'status-detail' && column.field === 'status'
+  return (definition.value.key === 'status-detail' && column.field === 'status')
+    || (definition.value.key === 'fuel' && column.field === 'vehicle_status')
 }
 
-function normalizedStatus(value: string) {
-  return value.trim().toLowerCase()
-}
+function reportVehicleStatus(row: Record<string, unknown>, column: ReportColumn) {
+  const rawStatus = getRowValue(row, column)
+  if (definition.value.key !== 'fuel' || column.field !== 'vehicle_status') {
+    return normalizeVehicleStatus(rawStatus) ?? rawStatus
+  }
 
-function statusClass(value: string) {
-  const status = normalizedStatus(value)
-  if (status === 'run') return 'status-run'
-  if (status === 'park') return 'status-park'
-  if (status === 'start' || status === 'idle') return 'status-start'
-  return 'status-unknown'
-}
+  const normalized = normalizeVehicleStatus(rawStatus)
+  if (normalized === 'no_gps' || normalized === 'offline') return normalized
 
-function statusLabel(value: string) {
-  const status = normalizedStatus(value)
-  if (status === 'run') return 'RUN'
-  if (status === 'park') return 'PARK'
-  if (status === 'start' || status === 'idle') return 'IDLE'
-  return value || '-'
+  const speed = Number(coordinate(row, ['speed']) || 0)
+  if (speed > 0) return 'run'
+  if (normalized) return normalized
+
+  const state = coordinate(row, ['state', 'status', 'vehicle_status']).toLowerCase()
+  if (['1', 'on', 'true', 'start', 'idle'].some((value) => state.includes(value))) {
+    return 'idle'
+  }
+  return 'park'
 }
 
 function exportCsv() {
@@ -575,42 +565,6 @@ watch(() => props.definition.key, async () => {
   gap: 6px;
   color: #60a5fa;
   text-decoration: none;
-}
-
-.status-badge {
-  display: inline-flex;
-  min-width: 64px;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.status-run {
-  color: #86efac;
-  background: rgb(34 197 94 / 16%);
-  border-color: rgb(34 197 94 / 35%);
-}
-
-.status-park {
-  color: #fca5a5;
-  background: rgb(239 68 68 / 16%);
-  border-color: rgb(239 68 68 / 35%);
-}
-
-.status-start {
-  color: #fde047;
-  background: rgb(234 179 8 / 16%);
-  border-color: rgb(234 179 8 / 35%);
-}
-
-.status-unknown {
-  color: #cbd5e1;
-  background: rgb(148 163 184 / 12%);
-  border-color: rgb(148 163 184 / 25%);
 }
 
 .empty-state {

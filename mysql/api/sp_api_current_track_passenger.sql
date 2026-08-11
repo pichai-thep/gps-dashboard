@@ -113,6 +113,7 @@ BEGIN
         track1 varchar(50),                
         ic_status tinyint,		-- 0=null, 1:off-line, 2=gps-v, 3=park, 4=acc-on, 5=start, 6=run
         dlt_synch tinyint,
+        dlt_card_reader tinyint,
 		num_sats tinyint,
         passenger_num int,
         primary key(id)
@@ -143,7 +144,7 @@ BEGIN
                                         , lat, lng, heading, state, speed, running, speed_limited
 										, fuel_left, fuel_full_at, temperature, temp_a_max, temp_a_min, temp_b_max, temp_b_min, input1, input2, output_engine_cut
                                         , driver_name, driver_phone, fuel_price, fuel_kmpl, icon_path, address, track3, track1
-                                        , ic_status, dlt_synch, num_sats, passenger_num)
+                                        , ic_status, dlt_synch, dlt_card_reader, num_sats, passenger_num)
 				select g.gpsdata_id, t.sequen_no, t.imei, t.sim_no, t.tracker_model, t.plate_no, DATE_ADD(g.data_date, INTERVAL 7 HOUR), received_date
 						,g.event_code, t.engine_volt, g.ext_power, ifnull(g.ext_power_status,1) as ext_power_status, g.gps_status                        
 						, st_x(g.g_point), st_y(g.g_point), g.heading, fn_acc_state(t.tracker_model, t.input_acc, g.state, g.speed), g.speed, 
@@ -157,7 +158,7 @@ BEGIN
                         , fn_engine_cut_status(t.tracker_model,g.state,g.output_state) AS output_engine_cut											
 						,t.driver_name, t.driver_phone, fuel_price, fuel_kmpl, t.icon_path, g.address, g.track3, g.track1
 						,fn_ic_status(g.data_date,g.received_date,g.gps_status,g.state,t.input_acc,t.engine_volt,g.ext_power,g.speed) AS ic_status
-						, t.dlt_synch, g.num_sats
+						, t.dlt_synch, t.dlt_card_reader, g.num_sats
                         , ps.passenger_num
 					from 	tracker t 	
 							left join gps_data g on t.imei=g.box_imei 									
@@ -180,7 +181,7 @@ BEGIN
 				imei, sim_no, model, plate_no, tmp.lat, tmp.lng, gps_status, running, heading, speed, speed_limited, fuel_left,
 				temperature, temp_a_min, temp_a_max, temp_b_min, temp_b_max, 
 				input1, input2, output_engine_cut,
-				driver_name, driver_phone, fuel_full_at, fuel_price, fuel_kmpl, icon_path, gac.address, track3, track1, ic_status, dlt_synch
+				driver_name, driver_phone, fuel_full_at, fuel_price, fuel_kmpl, icon_path, gac.address, track3, track1, ic_status, dlt_synch, dlt_card_reader
 				,num_sats, passenger_num
 			from tmp_Current_Track tmp left join gps_address_cache gac on tmp.imei=gac.box_imei
 		where ic_status=', if(_status=-1,'ic_status',_status), 

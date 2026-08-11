@@ -71,10 +71,9 @@
           @page="onPage"
       >
         <template #cell="{ data, column, formattedValue }">
-          <Tag
+          <VehicleStatusBadge
             v-if="column.field === 'gps_status'"
-            :value="data.gps_status"
-            :severity="statusSeverity(data.gps_status)"
+            :status="data.gps_status"
           />
           <b v-else-if="column.field === 'duration_s'">{{ formatDuration(data.duration_s) }}</b>
           <span v-else>{{ formattedValue }}</span>
@@ -89,8 +88,8 @@ import { computed, onMounted, ref } from 'vue'
 
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
-import Tag from 'primevue/tag'
 import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
+import VehicleStatusBadge from '@/components/VehicleStatusBadge.vue'
 import ReportDataTable, { type ReportTableColumn } from '@/components/reports/ReportDataTable.vue'
 import ReportPageHeader from '@/components/reports/ReportPageHeader.vue'
 import ReportSummaryCards, { type ReportSummaryItem } from '@/components/reports/ReportSummaryCards.vue'
@@ -105,8 +104,9 @@ import { formatReportDuration } from '@/utils/reportDurationFormat'
 import { downloadReportCsv } from '@/utils/reportExport'
 import { formatReportInteger } from '@/utils/reportNumberFormat'
 import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
+import { vehicleStatusLabel } from '@/utils/vehicleStatus'
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 
 const loading = ref(false)
 
@@ -151,6 +151,8 @@ const statusOptions = computed(() => [
   { label: t('run'), value: 'run' },
   { label: t('idle'), value: 'idle' },
   { label: t('park'), value: 'park' },
+  { label: t('noGps'), value: 'no_gps' },
+  { label: t('offline'), value: 'offline' },
 ])
 
 const summaryItems = computed<ReportSummaryItem[]>(() => [
@@ -192,20 +194,6 @@ function toDateString(date: Date | null) {
 
 function formatDuration(seconds: number) {
   return formatReportDuration(seconds, 'duration_s')
-}
-
-function statusSeverity(value: string) {
-  const v = String(value || '')
-      .trim()
-      .toLowerCase()
-
-  if (v === 'run') return 'success'
-  if (v === 'idle') return 'warn'
-  if (v === 'park') return 'info'
-  if (v === 'offline') return 'danger'
-  if (v === 'no_gps') return 'secondary'
-
-  return 'contrast'
 }
 
 async function resetFilter() {
@@ -326,7 +314,7 @@ async function exportCsv() {
     r.data_date,
     r.imei,
     r.plate_no,
-    r.gps_status,
+    vehicleStatusLabel(r.gps_status, locale.value),
     r.start_time,
     r.end_time,
     formatDuration(r.duration_s),
@@ -356,7 +344,7 @@ async function savePdf() {
     row.data_date,
     row.imei,
     row.plate_no,
-    row.gps_status,
+    vehicleStatusLabel(row.gps_status, locale.value),
     row.start_time,
     row.end_time,
     formatDuration(row.duration_s),

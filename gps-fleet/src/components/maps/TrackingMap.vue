@@ -55,7 +55,7 @@
 
         <div class="popup-row">
           <span>{{ t('status') }}</span>
-          <strong>{{ popupVehicle.status }}</strong>
+          <VehicleStatusBadge :status="popupVehicle.status" />
         </div>
 
         <div class="popup-row">
@@ -304,6 +304,7 @@ import VectorSource from 'ol/source/Vector'
 import { fromLonLat } from 'ol/proj'
 import { boundingExtent } from 'ol/extent'
 import CustomerLayerMap from '@/components/maps/CustomerLayerMap.vue'
+import VehicleStatusBadge from '@/components/VehicleStatusBadge.vue'
 
 import {
   Fill,

@@ -11,7 +11,7 @@ export default {
     errorVehiclesLoadFailed: 'Failed to load vehicles',
     historySubtitle: 'Vehicle history playback',
     historyFallback: 'History',
-    idle: 'Idle',
+    idle: 'IDLE',
     idleTime: 'Idle-time',
     loadHistory: 'Load History',
     parkTime: 'Park-time',

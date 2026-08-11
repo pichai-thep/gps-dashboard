@@ -47,6 +47,8 @@ export interface HistoryPoint {
     address?: string
     track1?: string
     track3?: string
+    dlt_synch?: boolean | number | null
+    dlt_card_reader?: boolean | number | null
     input1?: string | number | boolean | null
     input2?: string | number | boolean | null
 }

@@ -304,6 +304,7 @@ import Card from 'primevue/card'
 import api from "@/services/api";
 import {useRouter} from "vue-router";
 import { useI18n } from '@/i18n'
+import { vehicleStatusLabel } from '@/utils/vehicleStatus'
 
 type DashboardSummary = {
   total: number
@@ -392,14 +393,7 @@ function percent(value: number) {
 }
 
 function formatStatus(status?: string | null) {
-  return {
-    run: t('run'),
-    idle: t('idle'),
-    acc_on: 'Acc-on',
-    park: t('park'),
-    no_gps: t('noGps'),
-    offline: t('offline'),
-  }[String(status ?? '')] || '-'
+  return vehicleStatusLabel(status, locale.value)
 }
 
 function formatDateTime() {

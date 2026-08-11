@@ -41,7 +41,7 @@
 
         <div class="popup-row">
           <span>{{ t('status') }}</span>
-          <strong>{{ popupData.status }}</strong>
+          <VehicleStatusBadge :status="popupData.status" />
         </div>
 
         <div class="popup-row">
@@ -175,8 +175,10 @@ import {
   Text,
 } from 'ol/style'
 import CustomerLayerMap from "@/components/maps/CustomerLayerMap.vue";
+import VehicleStatusBadge from '@/components/VehicleStatusBadge.vue'
 import { useI18n } from '@/i18n'
 import type { MapLocationOption } from '@/services/mapLocations'
+import { normalizeVehicleStatus, vehicleStatusMap } from '@/utils/vehicleStatus'
 
 type HistoryPoint = {
   lat?: number | string
@@ -194,6 +196,7 @@ type HistoryPoint = {
   course?: number | string
 
   state?: number | string
+  status?: string | number
   gps_status?: string
 
   gps_time?: string
@@ -223,7 +226,7 @@ const baseMapRef = ref()
 
 const map = ref<Map | null>(null)
 const auth = useAuthStore()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const router = useRouter()
 const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
@@ -561,36 +564,19 @@ function resolveStatus(
           point.gps_status ?? ''
       ).toUpperCase()
 
-  if (gpsStatus === 'V') {
-    return {
-      label: 'No GPS',
-      color: '#3b82f6',
-    }
-  }
-
-  if (
-      state === 1 &&
-      speed > 0
-  ) {
-    return {
-      label: 'Running',
-      color: '#22c55e',
-    }
-  }
-
-  if (
-      state === 1 &&
-      speed <= 0
-  ) {
-    return {
-      label: 'Start',
-      color: '#eab308',
-    }
-  }
+  const status = normalizeVehicleStatus(point.status)
+      ?? (gpsStatus === 'V'
+          ? 'no_gps'
+          : state === 1 && speed > 0
+              ? 'run'
+              : state === 1
+                  ? 'idle'
+                  : 'park')
+  const meta = vehicleStatusMap[status]
 
   return {
-    label: 'Parking',
-    color: '#ef4444',
+    label: meta.label[locale.value === 'th' ? 'th' : 'en'],
+    color: meta.color,
   }
 }
 

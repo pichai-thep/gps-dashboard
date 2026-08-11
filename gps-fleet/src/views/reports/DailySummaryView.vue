@@ -461,7 +461,7 @@ onMounted(async () => {
 }
 
 .summary-card.parking {
-  border-color: rgba(59, 130, 246, 0.35);
+  border-color: rgba(239, 68, 68, 0.35);
 }
 
 .summary-card.ur-rate {

@@ -89,6 +89,7 @@ proc: BEGIN
         track1 varchar(50),                
         ic_status tinyint,		-- 0=null, 1:off-line, 2=gps-v, 3=park, 4=acc-on, 5=start, 6=run
         dlt_synch tinyint,
+        dlt_card_reader tinyint,
 		num_sats tinyint,
         station_count int,
         primary key(id)
@@ -119,7 +120,7 @@ proc: BEGIN
                                         , lat, lng, heading, state, speed, running, speed_limited
 										, fuel_left, fuel_full_at, input1, input2, output_engine_cut
                                         , driver_name, driver_phone, fuel_price, fuel_kmpl, icon_path, track3, track1
-                                        , ic_status, dlt_synch, num_sats, station_count)
+                                        , ic_status, dlt_synch, dlt_card_reader, num_sats, station_count)
 				select g.gpsdata_id, t.sequen_no, t.imei, t.sim_no, t.tracker_model, t.plate_no, DATE_ADD(g.data_date, INTERVAL 7 HOUR), received_date
 						,g.event_code, t.engine_volt, g.ext_power, ifnull(g.ext_power_status,1) as ext_power_status, g.gps_status                        
 						, st_x(g.g_point), st_y(g.g_point), g.heading, fn_acc_state(t.tracker_model, t.input_acc, g.state, g.speed), g.speed, 
@@ -131,7 +132,7 @@ proc: BEGIN
                         , fn_engine_cut_status(t.tracker_model,g.state,g.output_state) AS output_engine_cut											
 						,t.driver_name, t.driver_phone, fuel_price, fuel_kmpl, t.icon_path, g.track3, g.track1
 						,fn_ic_status(g.data_date,g.received_date,g.gps_status,g.state,t.input_acc,t.engine_volt,g.ext_power,g.speed) AS ic_status
-						, t.dlt_synch, g.num_sats
+						, t.dlt_synch, t.dlt_card_reader, g.num_sats
                         , fn_station_inside(v_cust_id, st_x(g.g_point), st_y(g.g_point))                                                					
 					from 	tracker t 	
 							left join gps_data g on t.imei=g.box_imei 									
@@ -153,7 +154,7 @@ proc: BEGIN
 				imei, sim_no, model, plate_no, tmp.lat, tmp.lng, gps_status, running, heading, speed, speed_limited, fuel_left,
 				temperature, temp_a_min, temp_a_max, temp_b_min, temp_b_max, 
 				input1, input2, output_engine_cut,
-				driver_name, driver_phone, fuel_full_at, fuel_price, fuel_kmpl, icon_path, track3, track1, ic_status, dlt_synch
+				driver_name, driver_phone, fuel_full_at, fuel_price, fuel_kmpl, icon_path, track3, track1, ic_status, dlt_synch, dlt_card_reader
 				,num_sats, station_count
 			from tmp_Current_Track tmp 
 		where ic_status=', if(_status=-1,'ic_status',_status), 

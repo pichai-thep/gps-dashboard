@@ -168,7 +168,7 @@
                   <div class="main-line">
                     <span
                         class="status-pill"
-                        :class="getStatusClass(data.state, data.speed, data.gps_status)"
+                        :class="getStatusClass(data.state, data.speed, data.gps_status, data.status)"
                     >
                       <span
                           class="status-arrow"
@@ -176,7 +176,7 @@
                       >
                         ➤
                       </span>
-                        {{ getStatusLabel(data.state, data.speed, data.gps_status) }}
+                        {{ getStatusLabel(data.state, data.speed, data.gps_status, data.status) }}
                     </span>
 
                     <div class="gps-time">
@@ -208,7 +208,7 @@
 
                   <div
                       v-if="
-                          data.track3 ||
+                          getHistoryDriverStatus(data) !== 'hide' ||
                           data.fuel_left !== null ||
                           data.temperature !== null ||
                           showInputColumn
@@ -237,9 +237,16 @@
                       </span>
                     </div>
 
-                    <div v-if="data.track3" class="track3-text">
-                      <i class="pi pi-id-card" />
-                      {{ data.track3 }}
+                    <div
+                        v-if="getHistoryDriverStatus(data) !== 'hide'"
+                        class="track3-text"
+                        :class="`driver-${getHistoryDriverStatus(data)}`"
+                    >
+                      <i
+                          class="pi pi-id-card"
+                          v-tooltip="getHistoryDriverTooltip(data)"
+                      />
+                      <span v-if="data.track3">{{ data.track3 }}</span>
                     </div>
 
                     <div
@@ -342,6 +349,8 @@ import Select from 'primevue/select'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { useI18n } from '@/i18n'
+import type { VehicleStatus } from '@/types/fleet'
+import { normalizeVehicleStatus, vehicleStatusLabel } from '@/utils/vehicleStatus'
 
 type GroupItem = {
   group_id: number | string
@@ -357,7 +366,7 @@ type VehicleItem = {
 }
 
 const auth = useAuthStore()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 
 const customerId = computed(() => {
   return (
@@ -502,7 +511,11 @@ function normalizeStatus(
     state: any,
     speed: any,
     gpsStatus: any,
-): string {
+    rawStatus?: any,
+): VehicleStatus {
+
+  const explicitStatus = normalizeVehicleStatus(rawStatus)
+  if (explicitStatus) return explicitStatus
 
   const stateValue = Number(state ?? 0)
   const speedValue = Number(speed ?? 0)
@@ -535,16 +548,10 @@ function getStatusLabel(
     state: any,
     speed: any,
     gpsStatus: any,
+    rawStatus?: any,
 ): string {
 
-  return {
-    run: t('run'),
-    idle: t('idle'),
-    park: t('park'),
-    no_gps: t('noGps'),
-  }[
-      normalizeStatus(state, speed, gpsStatus)
-      ] ?? '-'
+  return vehicleStatusLabel(normalizeStatus(state, speed, gpsStatus, rawStatus), locale.value)
 }
 
 function formatDate(d: Date) {
@@ -558,12 +565,14 @@ function getStatusClass(
     state: any,
     speed: any,
     gpsStatus: any,
+    rawStatus?: any,
 ): string {
 
   return `status-${normalizeStatus(
       state,
       speed,
       gpsStatus,
+      rawStatus,
   )}`
 }
 
@@ -771,7 +780,12 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
         item.speed_limit ??
         null,
     heading: item.heading ?? item.course ?? item.direction ?? item.angle ?? 0,
-    status: item.status ?? item.status_name ?? item.vehicle_status ?? item.gps_status ?? '-',
+    status: normalizeVehicleStatus(item.status_name ?? item.vehicle_status ?? item.status)
+        ?? normalizeStatus(
+            item.state ?? item.acc_state ?? item.acc ?? item.engine_state ?? item.status,
+            item.speed ?? item.vspeed ?? item.gps_speed ?? 0,
+            item.gps_status ?? item.gpsStatus ?? item.valid ?? item.valid_status,
+        ),
 
     state:
         item.state ??
@@ -812,6 +826,8 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
 
     track1: item.track1 ?? null,
     track3: item.track3 ?? null,
+    dlt_synch: Number(item.dlt_synch ?? item.dltSynch ?? 0),
+    dlt_card_reader: Number(item.dlt_card_reader ?? item.dltCardReader ?? 0),
     input1: item.input1 ?? null,
     input2: item.input2 ?? null,
 
@@ -820,6 +836,20 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
         null,
   }
 
+}
+
+function getHistoryDriverStatus(data: any): 'ok' | 'missing' | 'hide' {
+  const dltSynch = Number(data.dltSynch ?? data.dlt_synch ?? 0)
+  const dltCardReader = Number(data.dltCardReader ?? data.dlt_card_reader ?? 0)
+
+  if (dltSynch !== 1 || dltCardReader !== 1) return 'hide'
+  return String(data.track3 ?? '').trim() ? 'ok' : 'missing'
+}
+
+function getHistoryDriverTooltip(data: any): string {
+  return getHistoryDriverStatus(data) === 'ok'
+      ? t('driverCardOk')
+      : t('driverCardMissing')
 }
 
 function selectHistoryRow(index: number) {
@@ -1337,12 +1367,17 @@ watch(datetime1, (newValue) => {
 }
 
 .status-park {
-  background: #64748b;
+  background: #ef4444;
   color: #fff;
 }
 
 .status-no_gps {
   background: #3b82f6;
+  color: #fff;
+}
+
+.status-offline {
+  background: #64748b;
   color: #fff;
 }
 
@@ -1450,6 +1485,12 @@ watch(datetime1, (newValue) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.track3-text.driver-missing {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.22);
+  color: #ef4444;
 }
 
 .sensor-chip {

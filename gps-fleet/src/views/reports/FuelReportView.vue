@@ -2,11 +2,14 @@
   <BaseStoredProcedureReportView :definition="definition" :loadReport="getFuelReport"/>
 </template>
 <script setup lang="ts">
+import { computed } from 'vue'
 import BaseStoredProcedureReportView from './BaseStoredProcedureReportView.vue'
 import {getFuelReport} from '@/services/reports/fuel'
 import type {ReportDefinition} from './reportTypes'
+import { locale } from '@/i18n'
+import { vehicleStatusLabel } from '@/utils/vehicleStatus'
 
-const definition: ReportDefinition = {
+const definition = computed<ReportDefinition>(() => ({
   key: 'fuel',
   title: {th: 'รายงานน้ำมัน/เชื้อเพลิง', en: 'Fuel Report'},
   subtitle: {th: 'สถานะรถ ความเร็ว และระดับเชื้อเพลิงตามเวลา', en: 'Vehicle status, speed and fuel timeline'},
@@ -22,10 +25,10 @@ const definition: ReportDefinition = {
     label: 'สถานะ / Status',
     defaultValue: '',
     options: [
-      {label: 'ทั้งหมด / All', value: ''},
-      {label: 'Park', value: 'park'},
-      {label: 'Idle', value: 'idle'},
-      {label: 'Run', value: 'run'},
+      {label: locale.value === 'th' ? 'ทั้งหมด' : 'All', value: ''},
+      {label: vehicleStatusLabel('park', locale.value), value: 'park'},
+      {label: vehicleStatusLabel('idle', locale.value), value: 'idle'},
+      {label: vehicleStatusLabel('run', locale.value), value: 'run'},
     ],
   }],
   columns: [{field: 'data_date', label: 'Date/time', type: 'datetime'}, {
@@ -38,5 +41,5 @@ const definition: ReportDefinition = {
     aliases: ['Fuel', 'fuel_left'],
     type: 'number'
   }]
-}
+}))
 </script>

@@ -393,6 +393,11 @@ import { useAuthStore } from '../stores/auth'
 import type { Vehicle, VehicleStatus } from '../types/fleet'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from '@/i18n'
+import {
+  normalizeVehicleStatus as normalizeCanonicalStatus,
+  vehicleStatusLabel,
+  vehicleStatusMap,
+} from '@/utils/vehicleStatus'
 
 const route = useRoute()
 const router = useRouter()
@@ -405,7 +410,7 @@ type StatusCount = {
   offline: number
 }
 
-type DriverStatus = 'ok' | 'missing' | 'no_license' | 'hide'
+type DriverStatus = 'ok' | 'missing' | 'hide'
 
 const showFilters = ref(false)
 const auth = useAuthStore()
@@ -793,48 +798,22 @@ function getRowClass(vehicle: Vehicle) {
 function isNoDriverCard(vehicle: any): boolean {
   return (
       Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0) === 1 &&
+      Number(vehicle.dltCardReader ?? vehicle.dlt_card_reader ?? 0) === 1 &&
       Number(vehicle.speed ?? 0) > 5 &&
       !String(vehicle.track3 ?? '').trim()
   )
 }
 
 function getStatusIcon(status: VehicleStatus) {
-  return {
-    run: 'pi pi-arrow-circle-up',
-    idle: 'pi pi-arrow-circle-up',
-    park: 'pi pi-stop-circle',
-    no_gps: 'pi pi-exclamation-circle',
-    offline: 'pi pi-exclamation-triangle',
-  }[status] || 'pi pi-circle'
+  return vehicleStatusMap[status]?.icon || 'pi pi-circle'
 }
 
 function normalizeVehicleStatus(status: unknown): VehicleStatus {
-  const value = String(status ?? '').trim().toLowerCase()
-  const statusMap: Record<string, VehicleStatus> = {
-    run: 'run',
-    running: 'run',
-    moving: 'run',
-    idle: 'idle',
-    park: 'park',
-    parking: 'park',
-    no_gps: 'no_gps',
-    nogps: 'no_gps',
-    offline: 'offline',
-  }
-
-  return statusMap[value] || 'offline'
+  return normalizeCanonicalStatus(status) ?? 'offline'
 }
 
 function formatVehicleStatus(status: unknown): string {
-  const normalizedStatus = normalizeVehicleStatus(status)
-
-  return {
-    run: t('run'),
-    idle: t('idle'),
-    park: t('park'),
-    no_gps: t('noGps'),
-    offline: t('offline'),
-  }[normalizedStatus] || String(status ?? '')
+  return vehicleStatusLabel(normalizeVehicleStatus(status), locale.value)
 }
 
 function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
@@ -850,10 +829,10 @@ function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
 
 function getDriverStatus(vehicle: any): DriverStatus {
   const dltSynch = Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0)
-  const speed = Number(vehicle.speed ?? 0)
+  const dltCardReader = Number(vehicle.dltCardReader ?? vehicle.dlt_card_reader ?? 0)
   const track3 = String(vehicle.track3 ?? '').trim()
 
-  if (dltSynch !== 1 || speed <= 5) {
+  if (dltSynch !== 1 || dltCardReader !== 1) {
     return 'hide'
   }
 
@@ -864,7 +843,6 @@ function getDriverIcon(status: DriverStatus): string {
   return {
     ok: 'pi-id-card',
     missing: 'pi-id-card',
-    no_license: 'pi-exclamation-circle',
     hide: '',
   }[status]
 }
@@ -873,7 +851,6 @@ function getDriverClass(status: DriverStatus): string {
   return {
     ok: 'driver-ok',
     missing: 'driver-missing',
-    no_license: 'driver-no-license',
     hide: '',
   }[status]
 }
@@ -882,7 +859,6 @@ function getDriverTooltip(status: DriverStatus): string {
   return {
     ok: t('driverCardOk'),
     missing: t('driverCardMissing'),
-    no_license: t('noDriverLicense'),
     hide: '',
   }[status]
 }
@@ -1618,10 +1594,6 @@ onBeforeUnmount(() => {
 
 .driver-missing {
   color: #ef4444;
-}
-
-.driver-no-license {
-  color: #f59e0b;
 }
 
 /* map */
