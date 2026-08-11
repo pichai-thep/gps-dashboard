@@ -1,4 +1,8 @@
 export type ReportPrintCell = string | number | null | undefined
+export interface StyledReportPrintCell {
+    value: ReportPrintCell
+    highlighted?: boolean
+}
 
 export function openReportPrintWindow(title: string) {
     const target = window.open('', '_blank')
@@ -26,7 +30,8 @@ export function renderReportPrintWindow(
         title: string
         period: string
         headers: string[]
-        rows: ReportPrintCell[][]
+        rows: Array<Array<ReportPrintCell | StyledReportPrintCell>>
+        wide?: boolean
     }
 ) {
     const logoUrl = new URL(
@@ -40,7 +45,11 @@ export function renderReportPrintWindow(
     const rowHtml = options.rows
         .map((row) => `
             <tr>
-              ${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}
+              ${row.map((cell) => {
+                  const styled = typeof cell === 'object' && cell !== null
+                  const value = styled ? cell.value : cell
+                  return `<td${styled && cell.highlighted ? ' class="over-limit"' : ''}>${escapeHtml(value)}</td>`
+              }).join('')}
             </tr>
         `)
         .join('')
@@ -53,8 +62,8 @@ export function renderReportPrintWindow(
             <meta charset="utf-8">
             <title>${escapeHtml(options.title)}</title>
             <style>
-              @page { size: landscape; margin: 12mm; }
-              body { color: #111827; font-family: Arial, sans-serif; font-size: 10px; }
+              @page { size: ${options.wide ? 'A2 landscape' : 'landscape'}; margin: ${options.wide ? '8mm' : '12mm'}; }
+              body { color: #111827; font-family: Arial, sans-serif; font-size: ${options.wide ? '9px' : '10px'}; }
               .report-header {
                 display: flex;
                 align-items: flex-start;
@@ -67,8 +76,9 @@ export function renderReportPrintWindow(
               h1 { margin: 0 0 4px; font-size: 20px; }
               .period { color: #475569; font-size: 11px; }
               table { width: 100%; border-collapse: collapse; }
+              thead { display: table-header-group; }
               th, td {
-                padding: 5px 6px;
+                padding: ${options.wide ? '4px 5px' : '5px 6px'};
                 border: 1px solid #94a3b8;
                 text-align: left;
                 vertical-align: top;
@@ -76,6 +86,12 @@ export function renderReportPrintWindow(
               }
               th { background: #e2e8f0; font-weight: 700; }
               tr:nth-child(even) td { background: #f8fafc; }
+              td.over-limit {
+                color: #7f1d1d;
+                font-weight: 700;
+                background: #fca5a5 !important;
+                border: 2px solid #dc2626;
+              }
             </style>
           </head>
           <body>

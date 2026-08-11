@@ -552,9 +552,13 @@ function savePdf() {
   renderReportPrintWindow(target, {
     title,
     period: `${t('reportPeriod')}: ${periodLabel.value}`,
+    wide: definition.value.key === 'monthly-distance',
     headers: visibleColumns.value.map((column) => column.label),
     rows: rows.value.map((row) =>
-      visibleColumns.value.map((column) => formatCell(row, column))
+      visibleColumns.value.map((column) => ({
+        value: formatCell(row, column),
+        highlighted: isCellOverLimit(row, column),
+      }))
     ),
   })
 }
