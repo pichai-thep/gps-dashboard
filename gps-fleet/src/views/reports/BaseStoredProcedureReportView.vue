@@ -52,6 +52,7 @@
       :groupOptions="groupOptions"
       :vehicleOptions="vehicleOptions"
       :loading="loading"
+      :filtersLoading="filtersLoading"
       :hasRows="rows.length > 0"
       :enableTimeStart="definition.enableTimeStart"
       :enableTimeEnd="definition.enableTimeEnd"
@@ -126,6 +127,10 @@
             v-if="isStatusColumn(column)"
             :status="reportVehicleStatus(data, column)"
           />
+          <span
+            v-else-if="isTemperatureStatusColumn(column)"
+            :class="['temperature-status', temperatureStatus(data, column)]"
+          >{{ getRowValue(data, column) || '-' }}</span>
           <a
             v-else-if="shouldLinkMap(data, column)"
             :href="mapUrl(data, column)"
@@ -138,7 +143,7 @@
           </a>
           <span
             v-else
-            :class="{ 'cell-over-limit': isCellOverLimit(data, column) }"
+            :class="{ 'cell-over-limit': isCellHighlighted(data, column) }"
           >{{ formatCell(data, column) }}</span>
         </template>
       </ReportDataTable>
@@ -156,7 +161,7 @@
             <td
               v-for="column in visibleColumns"
               :key="column.field"
-              :class="{ 'cell-over-limit': isCellOverLimit(row, column) }"
+              :class="{ 'cell-over-limit': isCellHighlighted(row, column) }"
             >
               {{ formatCell(row, column) }}
             </td>
@@ -173,6 +178,21 @@
       class="fuel-dialog"
       :style="{ width: '90vw' }"
     >
+      <div v-if="definition.graph === 'temperature'" class="temperature-chart-toolbar">
+        <label>{{ t('temperatureChartSensor') }}</label>
+        <Dropdown
+          v-model="temperatureSensorNo"
+          :options="temperatureSensorOptions"
+          optionLabel="label"
+          optionValue="value"
+          :disabled="graphLoading"
+          @change="loadTemperatureChart"
+        />
+      </div>
+      <div v-if="graphLoading" class="graph-loading">
+        <i class="pi pi-spin pi-spinner"></i>
+        {{ t('loading') }}
+      </div>
       <FuelReportChart
         v-if="definition.graph === true || definition.graph === 'fuel'"
         :rows="rows"
@@ -184,6 +204,13 @@
       <SpeedReportChart
         v-else-if="definition.graph === 'speed'"
         :rows="rows"
+        :plateNo="graphCriteria.plateNo"
+        :rangeStart="graphCriteria.rangeStart"
+        :rangeEnd="graphCriteria.rangeEnd"
+      />
+      <TemperatureReportChart
+        v-else-if="definition.graph === 'temperature'"
+        :rows="graphRows"
         :plateNo="graphCriteria.plateNo"
         :rangeStart="graphCriteria.rangeStart"
         :rangeEnd="graphCriteria.rangeEnd"
@@ -207,6 +234,7 @@ import ReportPageHeader from '@/components/reports/ReportPageHeader.vue'
 import ReportSummaryCards, { type ReportSummaryItem } from '@/components/reports/ReportSummaryCards.vue'
 import FuelReportChart from '@/components/reports/FuelReportChart.vue'
 import SpeedReportChart from '@/components/reports/SpeedReportChart.vue'
+import TemperatureReportChart from '@/components/reports/TemperatureReportChart.vue'
 import {
   getReportGroups,
   getReportVehicles,
@@ -219,11 +247,13 @@ import { downloadReportCsv } from '@/utils/reportExport'
 import { formatReportNumber, reportFractionDigits } from '@/utils/reportNumberFormat'
 import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
 import { normalizeVehicleStatus, vehicleStatusLabel } from '@/utils/vehicleStatus'
-import type { ReportColumn, ReportDefinition, ReportLoader } from './reportTypes'
+import type { ReportChartLoader, ReportColumn, ReportDefinition, ReportLoader } from './reportTypes'
+import type { TemperatureSensorConfig } from './reportTypes'
 
 const props = defineProps<{
   definition: ReportDefinition
   loadReport: ReportLoader
+  loadChart?: ReportChartLoader
 }>()
 const { t } = useI18n()
 
@@ -243,9 +273,17 @@ const criteria = reactive<Record<string, string | number | null>>({})
 const groupOptions = ref<ReportGroupOption[]>([])
 const vehicleOptions = ref<ReportVehicleOption[]>([])
 const rows = ref<Record<string, unknown>[]>([])
+const graphRows = ref<Record<string, unknown>[]>([])
 const loading = ref(false)
+const filtersLoading = ref(false)
 const errorMessage = ref('')
 const graphVisible = ref(false)
+const graphLoading = ref(false)
+const temperatureSensorNo = ref(1)
+const temperatureSensorOptions = [
+  { label: 'Sensor A', value: 1 },
+  { label: 'Sensor B', value: 2 },
+]
 const averageGraph = ref(false)
 const graphCriteria = reactive({
   plateNo: '',
@@ -255,6 +293,7 @@ const graphCriteria = reactive({
 const perPage = ref(50)
 const pageOffset = ref(0)
 const totalRows = ref(0)
+const temperatureConfig = ref<{ sensor_a?: TemperatureSensorConfig; sensor_b?: TemperatureSensorConfig }>({})
 const visibleFields = ref<string[]>([])
 
 const columnOptions = computed(() =>
@@ -286,11 +325,20 @@ const summaryItems = computed<ReportSummaryItem[]>(() => {
     })
   }
 
+  if (definition.value.key === 'temperature') {
+    items.push(
+      { key: 'sensor-a', label: 'Sensor A', value: sensorConfigText(temperatureConfig.value.sensor_a) },
+      { key: 'sensor-b', label: 'Sensor B', value: sensorConfigText(temperatureConfig.value.sensor_b) },
+    )
+  }
+
   return items
 })
-const graphHeader = computed(() => definition.value.graph === 'speed'
-  ? t('speedChart')
-  : t(averageGraph.value ? 'averageFuelChart' : 'fuelChart'))
+const graphHeader = computed(() => {
+  if (definition.value.graph === 'speed') return t('speedChart')
+  if (definition.value.graph === 'temperature') return t('temperatureChart')
+  return t(averageGraph.value ? 'averageFuelChart' : 'fuelChart')
+})
 
 function onReportLogoError(event: Event) {
   const image = event.currentTarget as HTMLImageElement
@@ -300,6 +348,11 @@ function onReportLogoError(event: Event) {
 
 function localized(value: { th: string; en: string }) {
   return value[locale.value]
+}
+
+function sensorConfigText(config?: TemperatureSensorConfig) {
+  const display = (value: number | null | undefined) => value == null ? '-' : Number(value).toFixed(1)
+  return `min: ${display(config?.min)} | max: ${display(config?.max)} | average: ${display(config?.average)}`
 }
 
 function yesterday() {
@@ -321,12 +374,14 @@ function initializeDefinition() {
   rows.value = []
   errorMessage.value = ''
   graphVisible.value = false
+  temperatureSensorNo.value = 1
   averageGraph.value = false
   graphCriteria.plateNo = ''
   graphCriteria.rangeStart = ''
   graphCriteria.rangeEnd = ''
   pageOffset.value = 0
   totalRows.value = 0
+  temperatureConfig.value = {}
   visibleFields.value = definition.value.columns.map((column) => column.field)
 
   for (const key of Object.keys(criteria)) delete criteria[key]
@@ -335,25 +390,58 @@ function initializeDefinition() {
   }
 }
 
-function openGraph(average: boolean) {
+async function openGraph(average: boolean) {
   averageGraph.value = average
+  graphRows.value = rows.value
   graphVisible.value = true
+  if (props.loadChart) await loadTemperatureChart()
+}
+
+async function loadTemperatureChart() {
+  if (!props.loadChart) return
+  graphLoading.value = true
+  try {
+    const response = await props.loadChart({
+      date_from: toDateString(filters.dateFrom),
+      date_to: toDateString(filters.dateTo),
+      time_from: filters.timeStart,
+      time_to: filters.timeEnd,
+      imei: filters.imei,
+      sensor_no: temperatureSensorNo.value,
+    })
+    graphRows.value = response.data ?? []
+  } catch (error: any) {
+    graphRows.value = []
+    errorMessage.value = error?.response?.data?.message || error?.message || t('reportLoadFailed')
+  } finally {
+    graphLoading.value = false
+  }
 }
 
 async function loadOptions() {
-  const [groups, vehicles] = await Promise.all([
-    getReportGroups(),
-    getReportVehicles(),
-  ])
-  groupOptions.value = groups
-  vehicleOptions.value = vehicles
+  filtersLoading.value = true
+  try {
+    const [groups, vehicles] = await Promise.all([
+      getReportGroups(),
+      getReportVehicles(),
+    ])
+    groupOptions.value = groups
+    vehicleOptions.value = vehicles
+  } finally {
+    filtersLoading.value = false
+  }
 }
 
 async function loadVehicles() {
   filters.imei = null
-  vehicleOptions.value = await getReportVehicles({
-    group_ids: filters.groupId ? [filters.groupId] : [],
-  })
+  filtersLoading.value = true
+  try {
+    vehicleOptions.value = await getReportVehicles({
+      group_ids: filters.groupId ? [filters.groupId] : [],
+    })
+  } finally {
+    filtersLoading.value = false
+  }
 }
 
 async function search(resetPage = true) {
@@ -383,6 +471,7 @@ async function search(resetPage = true) {
       size: definition.value.serverPagination ? perPage.value : undefined,
     })
     rows.value = response.data ?? []
+    temperatureConfig.value = response.config ?? {}
     totalRows.value = response.meta?.total_rows ?? rows.value.length
     graphCriteria.plateNo = vehicleOptions.value.find(
       (vehicle) => vehicle.imei === filters.imei
@@ -391,6 +480,7 @@ async function search(resetPage = true) {
     graphCriteria.rangeEnd = `${dateTo} ${filters.timeEnd}`
   } catch (error: any) {
     rows.value = []
+    temperatureConfig.value = {}
     errorMessage.value =
       error?.response?.data?.message || error?.message || t('reportLoadFailed')
   } finally {
@@ -482,6 +572,23 @@ function isCellOverLimit(row: Record<string, unknown>, column: ReportColumn) {
   return Number.isFinite(limit) && limit >= 0 && Number.isFinite(distance) && distance > limit
 }
 
+function isTemperatureOutOfRange(row: Record<string, unknown>, column: ReportColumn) {
+  if (definition.value.key !== 'temperature') return false
+  const sensor = column.field === 'temp_a'
+    ? temperatureConfig.value.sensor_a
+    : column.field === 'temp_b'
+      ? temperatureConfig.value.sensor_b
+      : undefined
+  if (!sensor || sensor.min == null || sensor.max == null) return false
+
+  const value = Number(getRowValue(row, column))
+  return Number.isFinite(value) && (value < sensor.min || value > sensor.max)
+}
+
+function isCellHighlighted(row: Record<string, unknown>, column: ReportColumn) {
+  return isCellOverLimit(row, column) || isTemperatureOutOfRange(row, column)
+}
+
 function coordinate(row: Record<string, unknown>, names: string[]) {
   const key = Object.keys(row).find((item) =>
     names.includes(item.toLowerCase())
@@ -509,6 +616,16 @@ function shouldLinkMap(row: Record<string, unknown>, column: ReportColumn) {
 function isStatusColumn(column: ReportColumn) {
   return (definition.value.key === 'status-detail' && column.field === 'status')
     || (definition.value.key === 'fuel' && column.field === 'vehicle_status')
+}
+
+function isTemperatureStatusColumn(column: ReportColumn) {
+  return definition.value.key === 'temperature'
+    && (column.field === 'temp_a_status' || column.field === 'temp_b_status')
+}
+
+function temperatureStatus(row: Record<string, unknown>, column: ReportColumn) {
+  const status = getRowValue(row, column).trim().toLowerCase()
+  return ['green', 'yellow', 'red'].includes(status) ? status : 'unknown'
 }
 
 function reportVehicleStatus(row: Record<string, unknown>, column: ReportColumn) {
@@ -557,7 +674,7 @@ function savePdf() {
     rows: rows.value.map((row) =>
       visibleColumns.value.map((column) => ({
         value: formatCell(row, column),
-        highlighted: isCellOverLimit(row, column),
+      highlighted: isCellHighlighted(row, column),
       }))
     ),
   })
@@ -574,6 +691,29 @@ watch(() => props.definition.key, async () => {
 
 .column-picker {
   width: min(440px, 45vw);
+}
+
+.temperature-chart-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.temperature-chart-toolbar .p-dropdown {
+  min-width: 150px;
+}
+
+.graph-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 80px;
+  color: #94a3b8;
 }
 
 .custom-filter-field {
@@ -615,6 +755,23 @@ watch(() => props.definition.key, async () => {
   border: 1px solid rgba(248, 113, 113, 0.5);
   border-radius: 6px;
 }
+
+.temperature-status {
+  display: inline-flex;
+  min-width: 64px;
+  justify-content: center;
+  padding: 3px 8px;
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 999px;
+}
+
+.temperature-status.green { background: #16a34a; }
+.temperature-status.yellow { color: #422006; background: #facc15; }
+.temperature-status.red { background: #dc2626; }
+.temperature-status.unknown { background: #64748b; }
 
 .empty-state {
   padding: 30px;

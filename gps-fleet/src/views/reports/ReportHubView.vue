@@ -68,6 +68,7 @@ const iconByKey: Record<string, string> = {
   speed: 'pi pi-chart-line',
   event: 'pi pi-bell',
   fuel: 'pi pi-chart-line',
+  temperature: 'pi pi-chart-line',
   swipe: 'pi pi-id-card',
   drive4h: 'pi pi-stopwatch',
   passenger: 'pi pi-users',

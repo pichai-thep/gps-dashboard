@@ -168,6 +168,7 @@ const router = createRouter({
                 { path: '/reports/speed', name: 'SpeedReport', component: () => import('@/views/reports/SpeedReportView.vue'), meta: { requiresAuth: true, title: 'Speed Report' } },
                 { path: '/reports/events', name: 'EventReport', component: () => import('@/views/reports/EventReportView.vue'), meta: { requiresAuth: true, title: 'Important Event Report' } },
                 { path: '/reports/fuel', name: 'FuelReport', component: () => import('@/views/reports/FuelReportView.vue'), meta: { requiresAuth: true, title: 'Fuel Report' } },
+                { path: '/reports/temperature', name: 'TemperatureReport', component: () => import('@/views/reports/TemperatureReportView.vue'), meta: { requiresAuth: true, title: 'Temperature Report' } },
                 { path: '/reports/swipe', name: 'SwipeReport', component: () => import('@/views/reports/SwipeReportView.vue'), meta: { requiresAuth: true, title: 'Card Swipe Report' } },
                 { path: '/reports/drive4h', name: 'Drive4hReport', component: () => import('@/views/reports/Drive4hView.vue'), meta: { requiresAuth: true, title: 'Drive Over 4 Hours Report' } },
                 { path: '/reports/passenger', name: 'PassengerReport', component: () => import('@/views/reports/PassengerReportView.vue'), meta: { requiresAuth: true, title: 'Passenger Report' } },

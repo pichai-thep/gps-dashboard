@@ -29,7 +29,7 @@ export interface ReportDefinition {
   enableExportCsv?: boolean
   enablePdf?: boolean
   vehicleRequired?: boolean
-  graph?: boolean | 'fuel' | 'speed'
+  graph?: boolean | 'fuel' | 'speed' | 'temperature'
   serverPagination?: boolean
   dailyDistanceLimitCriterionKey?: string
   criteria?: ReportCriterion[]
@@ -46,6 +46,7 @@ export interface StoredProcedureReportParams {
   criteria?: Record<string, string | number | null>
   offset?: number
   size?: number
+  sensor_no?: number
 }
 
 export interface StoredProcedureReportResponse {
@@ -53,6 +54,10 @@ export interface StoredProcedureReportResponse {
   report: string
   data: Record<string, unknown>[]
   summary?: Record<string, unknown>
+  config?: {
+    sensor_a?: TemperatureSensorConfig
+    sensor_b?: TemperatureSensorConfig
+  }
   pagination?: {
     current_page: number
     per_page: number
@@ -63,6 +68,14 @@ export interface StoredProcedureReportResponse {
   meta: { total_rows: number; max_range_days: number; offset?: number; size?: number }
 }
 
+export interface TemperatureSensorConfig {
+  min: number | null
+  max: number | null
+  average: number | null
+}
+
 export type ReportLoader = (
   params: StoredProcedureReportParams,
 ) => Promise<StoredProcedureReportResponse>
+
+export type ReportChartLoader = ReportLoader

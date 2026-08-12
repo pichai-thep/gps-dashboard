@@ -88,29 +88,26 @@ class ReportController extends Controller
         $query = DB::connection($dbConnection)
             ->table('customer_tracker as ct')
             ->join('tracker as t', 't.imei', '=', 'ct.tracker_imei')
-            ->leftJoin('customer_group_tracker as cgt', function ($join) use ($customerId) {
-                $join->on('cgt.imei', '=', 'ct.tracker_imei')
-                    ->whereExists(function ($query) use ($customerId) {
-                        $query->select(DB::raw(1))
-                            ->from('customer_group as cg')
-                            ->whereColumn('cg.customer_group_id', 'cgt.customer_group_id')
-                            ->where('cg.customer_id', $customerId);
-                    });
-            })
             ->where('ct.customer_customer_id', $customerId)
             ->select([
                 't.imei',
-                't.plate_no',
-                'cgt.customer_group_id as group_id',
-            ]);
+                DB::raw("COALESCE(NULLIF(TRIM(t.plate_no), ''), t.imei) as plate_no"),
+            ])
+            ->distinct();
 
         if (! empty($groupIds)) {
-            $query->whereIn('cgt.customer_group_id', $groupIds);
+            $query->whereExists(function ($groupQuery) use ($groupIds, $customerId) {
+                $groupQuery->select(DB::raw(1))
+                    ->from('customer_group_tracker as cgt')
+                    ->join('customer_group as cg', 'cg.customer_group_id', '=', 'cgt.customer_group_id')
+                    ->whereColumn('cgt.imei', 'ct.tracker_imei')
+                    ->where('cg.customer_id', $customerId)
+                    ->whereIn('cgt.customer_group_id', $groupIds);
+            });
         }
 
         $rows = $query
-            ->orderBy('t.plate_no')
-            ->limit(5000)
+            ->orderBy('plate_no')
             ->get();
 
         return response()->json([

@@ -27,6 +27,7 @@
       :groupOptions="groupOptions"
       :vehicleOptions="vehicleOptions"
       :loading="loading"
+      :filtersLoading="filtersLoading"
       :hasRows="totalRows > 0"
       multiple
       :enableExportCsv="false"
@@ -109,6 +110,7 @@ import { vehicleStatusLabel } from '@/utils/vehicleStatus'
 const { locale, t } = useI18n()
 
 const loading = ref(false)
+const filtersLoading = ref(false)
 
 const now = new Date()
 const yesterday = new Date()
@@ -168,21 +170,26 @@ function normalizeOptions(res: any) {
 }
 
 async function loadOptions() {
-  const groupsRes = await getReportGroups()
-  const vehiclesRes = await getReportVehicles()
-
-  groupOptions.value = normalizeOptions(groupsRes)
-  vehicleOptions.value = normalizeOptions(vehiclesRes)
+  filtersLoading.value = true
+  try {
+    const [groupsRes, vehiclesRes] = await Promise.all([getReportGroups(), getReportVehicles()])
+    groupOptions.value = normalizeOptions(groupsRes)
+    vehicleOptions.value = normalizeOptions(vehiclesRes)
+  } finally {
+    filtersLoading.value = false
+  }
 }
 
 async function onGroupChange() {
   selectedVehicles.value = []
 
-  const vehiclesRes = await getReportVehicles({
-    group_ids: selectedGroups.value,
-  })
-
-  vehicleOptions.value = normalizeOptions(vehiclesRes)
+  filtersLoading.value = true
+  try {
+    const vehiclesRes = await getReportVehicles({ group_ids: selectedGroups.value })
+    vehicleOptions.value = normalizeOptions(vehiclesRes)
+  } finally {
+    filtersLoading.value = false
+  }
 }
 function toDateString(date: Date | null) {
   if (!date) return ''

@@ -26,6 +26,8 @@ use App\Http\Controllers\Api\Reports\SpeedOverSummaryController;
 use App\Http\Controllers\Api\Reports\SpeedReportController;
 use App\Http\Controllers\Api\Reports\StatusDetailController;
 use App\Http\Controllers\Api\Reports\SwipeReportController;
+use App\Http\Controllers\Api\Reports\TemperatureChartController;
+use App\Http\Controllers\Api\Reports\TemperatureReportController;
 // mobile
 use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\TrackingController;
@@ -109,6 +111,8 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
         Route::get('/speed', SpeedReportController::class);
         Route::get('/events', EventReportController::class);
         Route::get('/fuel', FuelReportController::class);
+        Route::get('/temperature', TemperatureReportController::class);
+        Route::get('/temperature/chart', TemperatureChartController::class);
         Route::get('/swipe', SwipeReportController::class);
         Route::get('/drive4h', Drive4hController::class);
         Route::get('/passenger', PassengerReportController::class);

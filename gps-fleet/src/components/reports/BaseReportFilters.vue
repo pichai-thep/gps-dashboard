@@ -31,6 +31,7 @@
         :placeholder="t('allGroups')"
         display="chip"
         filter
+        :disabled="filtersLoading"
         @change="$emit('group-change')"
       />
       <Dropdown
@@ -42,6 +43,7 @@
         :placeholder="t('allGroups')"
         showClear
         filter
+        :disabled="filtersLoading"
         @change="$emit('group-change')"
       />
     </div>
@@ -57,6 +59,7 @@
         :placeholder="t('allVehicles')"
         display="chip"
         filter
+        :disabled="filtersLoading"
         :invalid="vehicleRequired && imeis.length === 0"
       />
       <Dropdown
@@ -68,6 +71,7 @@
         :placeholder="t('allVehicles')"
         showClear
         filter
+        :disabled="filtersLoading"
         :invalid="vehicleRequired && !imei"
       />
     </div>
@@ -134,6 +138,7 @@ const props = withDefaults(defineProps<{
   groupOptions: ReportGroupOption[]
   vehicleOptions: ReportVehicleOption[]
   loading?: boolean
+  filtersLoading?: boolean
   hasRows?: boolean
   enableTime?: boolean
   enableTimeStart?: boolean
@@ -154,6 +159,7 @@ const props = withDefaults(defineProps<{
   multiple?: boolean
 }>(), {
   loading: false,
+  filtersLoading: false,
   hasRows: false,
   enableTime: false,
   enableTimeStart: undefined,
