@@ -44,6 +44,29 @@ class ReportController extends Controller
         return $request->attributes->get('gps_connection');
     }
 
+    private function queryCsv(Request $request, string $key, bool $positiveIntegers = false): string
+    {
+        $values = $request->query($key, []);
+
+        if (! is_array($values)) {
+            $values = [$values];
+        }
+
+        if ($positiveIntegers) {
+            $values = array_filter(
+                array_map('intval', $values),
+                fn (int $value) => $value > 0
+            );
+        } else {
+            $values = array_filter(
+                array_map(fn ($value) => trim((string) $value), $values),
+                fn (string $value) => $value !== ''
+            );
+        }
+
+        return implode(',', array_values(array_unique($values)));
+    }
+
     public function groupOptions(Request $request)
     {
         $dbConnection = $this->dbConnection($request);
@@ -163,26 +186,18 @@ class ReportController extends Controller
             $perPage = min(max((int) $request->query('per_page', 50), 10), 500);
         }
 
-        $imeis = $request->query('imeis', []);
-
-        if (! is_array($imeis)) {
-            $imeis = [$imeis];
-        }
-
-        $imeis = array_values(array_filter($imeis, function ($v) {
-            return trim((string) $v) !== '';
-        }));
-
-        $imeiCsv = implode(',', $imeis);
+        $imeiCsv = $this->queryCsv($request, 'imeis');
+        $groupIdCsv = $this->queryCsv($request, 'group_ids', true);
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_daily_summary(?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_daily_summary(?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $user->login,
             $dateFrom,
             $dateTo,
             $imeiCsv,
+            $groupIdCsv,
             $page,
             $perPage,
             $sortField,
@@ -255,27 +270,19 @@ class ReportController extends Controller
             $perPage = min(max((int) $request->query('per_page', 50), 10), 500);
         }
 
-        $imeis = $request->query('imeis', []);
-
-        if (! is_array($imeis)) {
-            $imeis = [$imeis];
-        }
-
-        $imeis = array_values(array_filter($imeis, function ($v) {
-            return trim((string) $v) !== '';
-        }));
-
-        $imeiCsv = implode(',', $imeis);
+        $imeiCsv = $this->queryCsv($request, 'imeis');
+        $groupIdCsv = $this->queryCsv($request, 'group_ids', true);
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_status_summary(?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_status_summary(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $user->login,
             $dateFrom,
             $dateTo,
             $status,
             $imeiCsv,
+            $groupIdCsv,
             $page,
             $perPage,
             $sortField,
@@ -345,27 +352,19 @@ class ReportController extends Controller
             $perPage = min(max((int) $request->query('per_page', 50), 10), 500);
         }
 
-        $imeis = $request->query('imeis', []);
-
-        if (! is_array($imeis)) {
-            $imeis = [$imeis];
-        }
-
-        $imeis = array_values(array_filter($imeis, function ($v) {
-            return trim((string) $v) !== '';
-        }));
-
-        $imeiCsv = implode(',', $imeis);
+        $imeiCsv = $this->queryCsv($request, 'imeis');
+        $groupIdCsv = $this->queryCsv($request, 'group_ids', true);
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_station_summary(?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_station_summary(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $user->login,
             $dateFrom,
             $dateTo,
             $stationId,
             $imeiCsv,
+            $groupIdCsv,
             $page,
             $perPage,
             $sortField,

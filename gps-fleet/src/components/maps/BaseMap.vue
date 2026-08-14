@@ -553,8 +553,9 @@ defineExpose({
 }
 
 .map-popup {
-  min-width: 250px;
-  padding: 12px;
+  box-sizing: border-box;
+  width: min(270px, calc(100vw - 32px));
+  padding: 10px;
 
   border-radius: 12px;
 

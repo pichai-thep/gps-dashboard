@@ -20,6 +20,7 @@ export default {
     input2: 'Input 2',
     language: 'Language',
     latLon: 'Lat/Lon',
+    justNow: 'Just now',
     licenseName: 'License-name',
     licenseNo: 'License-no',
     loading: 'Loading...',

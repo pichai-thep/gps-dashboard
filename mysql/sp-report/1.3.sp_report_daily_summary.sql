@@ -7,6 +7,7 @@ CREATE PROCEDURE sp_report_daily_summary(
     IN p_date_from DATE,
     IN p_date_to DATE,
     IN p_imeis TEXT,
+    IN p_group_ids TEXT,
     IN p_page INT,
     IN p_per_page INT,
     IN p_sort_field VARCHAR(50),
@@ -138,6 +139,27 @@ BEGIN
              p_imeis IS NULL
           OR TRIM(p_imeis) = ''
           OR FIND_IN_SET(s.imei, p_imeis) > 0
+      )
+
+      AND (
+             p_group_ids IS NULL
+          OR TRIM(p_group_ids) = ''
+          OR EXISTS (
+              SELECT 1
+              FROM customer_group_tracker cgt
+              INNER JOIN customer_group cg
+                  ON cg.customer_group_id = cgt.customer_group_id
+              INNER JOIN customer_user cu
+                  ON cu.customer_customer_id = cg.customer_id
+              INNER JOIN user gu
+                  ON gu.user_id = cu.user_user_id
+              WHERE cgt.imei = s.imei
+                AND TRIM(gu.login) = TRIM(p_login)
+                AND FIND_IN_SET(
+                    CAST(cgt.customer_group_id AS CHAR),
+                    REPLACE(p_group_ids, ' ', '')
+                ) > 0
+          )
       );
 
     /* Result set 1: summary */

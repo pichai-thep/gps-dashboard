@@ -20,6 +20,7 @@ export default {
     input2: 'อินพุต 2',
     language: 'ภาษา',
     latLon: 'พิกัด',
+    justNow: 'เมื่อสักครู่',
     licenseName: 'ชื่อใบขับขี่',
     licenseNo: 'เลขใบขับขี่',
     loading: 'กำลังโหลด...',

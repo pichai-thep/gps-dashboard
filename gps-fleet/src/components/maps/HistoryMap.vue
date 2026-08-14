@@ -59,7 +59,7 @@
           <strong>{{ getInputText(popupData.input2) }}</strong>
         </div>
 
-        <div class="popup-row">
+        <div class="popup-row coordinate-row">
           <span>{{ t('latLon') }}</span>
           <strong>{{ popupData.lat }}, {{ popupData.lng }}</strong>
         </div>
@@ -108,31 +108,34 @@
         </div>
 
         <div class="location-actions">
+          <span class="location-action-prefix">{{ t('create') }} ::</span>
           <div class="location-action-buttons">
-            <Button
+            <button
                 type="button"
-                :label="t('createStationFromLocation')"
-                icon="pi pi-map"
-                size="small"
-                severity="secondary"
+                class="location-action-link"
                 @click.stop="createFromHistoryLocation('stations')"
-            />
-            <Button
+            >
+              <i class="pi pi-map" aria-hidden="true"></i>
+              <span>{{ t('station') }}</span>
+            </button>
+            <span class="location-action-separator" aria-hidden="true">|</span>
+            <button
                 type="button"
-                :label="t('createPoiFromLocation')"
-                icon="pi pi-map-marker"
-                size="small"
-                severity="secondary"
+                class="location-action-link"
                 @click.stop="createFromHistoryLocation('pois')"
-            />
-            <Button
+            >
+              <i class="pi pi-map-marker" aria-hidden="true"></i>
+              <span>{{ t('pois') }}</span>
+            </button>
+            <span class="location-action-separator" aria-hidden="true">|</span>
+            <button
                 type="button"
-                :label="t('createForbiddenZoneFromLocation')"
-                icon="pi pi-ban"
-                size="small"
-                severity="secondary"
+                class="location-action-link"
                 @click.stop="createFromHistoryLocation('forbidden-zones')"
-            />
+            >
+              <i class="pi pi-ban" aria-hidden="true"></i>
+              <span>{{ t('forbiddenZonesLayer') }}</span>
+            </button>
           </div>
         </div>
 
@@ -151,7 +154,6 @@ import {
 } from 'vue'
 
 import BaseMap from './BaseMap.vue'
-import Button from 'primevue/button'
 import { useRouter } from 'vue-router'
 
 import Map from 'ol/Map'
@@ -993,20 +995,30 @@ watch(
 
 <style scoped>
 .popup-title {
-  font-size: large;
+  font-size: 15px;
   font-weight: 800;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .popup-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  padding: 4px 0;
+  gap: 8px;
+  padding: 2px 0;
 }
 
 .popup-row span {
   color: #cbd5e1;
+}
+
+.popup-row strong {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.coordinate-row strong {
+  white-space: nowrap;
 }
 
 .address-link {
@@ -1032,19 +1044,47 @@ watch(
 }
 
 .location-actions {
-  margin-top: 12px;
-  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.location-action-prefix {
+  color: #cbd5e1;
 }
 
 .location-action-buttons {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
 }
 
-.location-action-buttons :deep(.p-button) {
-  flex: 1 1 auto;
-  justify-content: center;
-  white-space: nowrap;
+.location-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  padding: 1px 0;
+  background: transparent;
+  color: #60a5fa;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.location-action-separator {
+  color: #64748b;
+}
+
+.location-action-link:hover,
+.location-action-link:focus-visible {
+  color: #bfdbfe;
+  text-decoration: underline;
 }
 </style>
