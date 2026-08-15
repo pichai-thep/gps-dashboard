@@ -10,6 +10,7 @@ export default {
     currentTracking: 'ติดตามรถปัจจุบัน',
     driverCardMissing: 'ยังไม่รูดบัตร',
     driverCardOk: 'รูดบัตรแล้ว',
+    cardReaderInstalled: 'เครื่องรูด',
     engineCut: 'ดับเครื่อง',
     engineCutCancel: 'ยกเลิกดับเครื่อง',
     errorTrackingLoadFailed: 'โหลดข้อมูลไม่ได้',

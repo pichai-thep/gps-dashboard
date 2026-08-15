@@ -103,6 +103,10 @@ class TrackingController extends Controller
             ->filter(fn ($vehicle) => $this->isDltSynched($vehicle))
             ->count();
 
+        $cardReaderCount = $allVehicles
+            ->filter(fn ($vehicle) => $this->hasCardReader($vehicle))
+            ->count();
+
         $filteredVehicles = $allVehicles;
 
         if ($statusQuery !== null && $statusQuery !== '') {
@@ -124,6 +128,14 @@ class TrackingController extends Controller
         if ($dltSynch === 1) {
             $filteredVehicles = $filteredVehicles
                 ->filter(fn ($vehicle) => $this->isDltSynched($vehicle))
+                ->values();
+        }
+
+        $cardReader = (int) $request->query('dlt_card_reader', 0);
+
+        if ($cardReader === 1) {
+            $filteredVehicles = $filteredVehicles
+                ->filter(fn ($vehicle) => $this->hasCardReader($vehicle))
                 ->values();
         }
 
@@ -149,6 +161,7 @@ class TrackingController extends Controller
                 'status_counts' => $statusCounts,
                 'no_driver_card_count' => $noDriverCardCount,
                 'dlt_synch_count' => $dltSynchCount,
+                'card_reader_count' => $cardReaderCount,
             ],
         ]);
     }
@@ -359,10 +372,12 @@ class TrackingController extends Controller
 
     private function isNoDriverCard(array $vehicle): bool
     {
-        return (int) ($vehicle['dlt_synch'] ?? 0) === 1
-            && (int) ($vehicle['dlt_card_reader'] ?? 0) === 1
-            && (float) ($vehicle['speed'] ?? 0) > 5
-            && trim((string) ($vehicle['track3'] ?? '')) === '';
+        return trim((string) ($vehicle['track3'] ?? '')) === '';
+    }
+
+    private function hasCardReader(array $vehicle): bool
+    {
+        return (int) ($vehicle['dlt_card_reader'] ?? 0) === 1;
     }
 
     private function isDltSynched(array $vehicle): bool

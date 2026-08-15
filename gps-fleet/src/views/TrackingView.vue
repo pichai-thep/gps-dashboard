@@ -73,6 +73,16 @@
           >
             {{ t('dlt') }} {{ dltSynchCount }}
           </button>
+
+          <button
+              type="button"
+              class="summary-item card-reader"
+              :class="{ active: cardReaderFilter }"
+              @click="toggleCardReaderFilter"
+          >
+            <i class="pi pi-id-card"></i>
+            {{ t('cardReaderInstalled') }} {{ cardReaderCount }}
+          </button>
         </div>
 
         <div class="control-bar">
@@ -469,6 +479,7 @@ const selectedGroupId = ref<number | string>(-1)
 const statusFilter = ref<VehicleStatus | null>(null)
 const noDriverCardFilter = ref(false)
 const dltSynchFilter = ref(false)
+const cardReaderFilter = ref(false)
 
 const refreshInterval = ref(30_000)
 const search = ref('')
@@ -487,6 +498,7 @@ const error = ref<string | null>(null)
 const statusCount = ref<StatusCount>({ ...defaultStatusCount })
 const noDriverCardTotal = ref(0)
 const dltSynchTotal = ref(0)
+const cardReaderTotal = ref(0)
 const hiddenVehicleKeys = ref<Set<string>>(new Set())
 
 let pollingTimer: number | null = null
@@ -501,6 +513,7 @@ const mapVehicles = computed(() => {
 
 const noDriverCardCount = computed(() => noDriverCardTotal.value)
 const dltSynchCount = computed(() => dltSynchTotal.value)
+const cardReaderCount = computed(() => cardReaderTotal.value)
 const showPassenger = computed(() => Boolean(auth.features?.passenger))
 const showTemperature = computed(() => Boolean(auth.features?.temperature))
 const showInput1 = computed(() => Boolean(auth.features?.input1))
@@ -515,6 +528,7 @@ onMounted(async () => {
   statusFilter.value = getStatusFromQuery()
   noDriverCardFilter.value = getNoDriverCardFromQuery()
   dltSynchFilter.value = getDltSynchFromQuery()
+  cardReaderFilter.value = getCardReaderFromQuery()
 })
 
 watch(
@@ -556,6 +570,19 @@ watch(
     }
 )
 
+watch(
+    () => route.query.dlt_card_reader,
+    () => {
+      const nextCardReader = getCardReaderFromQuery()
+
+      if (cardReaderFilter.value === nextCardReader) return
+
+      cardReaderFilter.value = nextCardReader
+      resetListState()
+      loadVehicles()
+    }
+)
+
 function getStatusFromQuery(): VehicleStatus | null {
   const status = route.query.status
 
@@ -584,6 +611,14 @@ function getDltSynchFromQuery(): boolean {
       : value === '1'
 }
 
+function getCardReaderFromQuery(): boolean {
+  const value = route.query.dlt_card_reader
+
+  return Array.isArray(value)
+      ? value.includes('1')
+      : value === '1'
+}
+
 async function loadVehicles() {
   if (isLoading) return
 
@@ -599,6 +634,7 @@ async function loadVehicles() {
       status: statusFilter.value,
       no_driver_card: noDriverCardFilter.value ? 1 : null,
       dlt_synch: dltSynchFilter.value ? 1 : null,
+      dlt_card_reader: cardReaderFilter.value ? 1 : null,
       search: search.value,
       sort_by: sortBy.value,
       sort_dir: sortDir.value,
@@ -609,6 +645,7 @@ async function loadVehicles() {
     statusCount.value = response.meta.status_counts ?? { ...defaultStatusCount }
     noDriverCardTotal.value = response.meta.no_driver_card_count ?? 0
     dltSynchTotal.value = response.meta.dlt_synch_count ?? 0
+    cardReaderTotal.value = response.meta.card_reader_count ?? 0
   } catch (e: any) {
     error.value = e?.response?.data?.message || t('errorTrackingLoadFailed')
     vehicles.value = []
@@ -616,6 +653,7 @@ async function loadVehicles() {
     statusCount.value = { ...defaultStatusCount }
     noDriverCardTotal.value = 0
     dltSynchTotal.value = 0
+    cardReaderTotal.value = 0
   } finally {
     isLoading = false
     loading.value = false
@@ -724,6 +762,20 @@ function toggleDltSynchFilter() {
   loadVehicles()
 }
 
+function toggleCardReaderFilter() {
+  cardReaderFilter.value = !cardReaderFilter.value
+  resetListState()
+
+  router.replace({
+    query: {
+      ...route.query,
+      dlt_card_reader: cardReaderFilter.value ? 1 : undefined,
+    },
+  })
+
+  loadVehicles()
+}
+
 function stopPolling() {
   if (!pollingTimer) return
 
@@ -796,12 +848,7 @@ function getRowClass(vehicle: Vehicle) {
 }
 
 function isNoDriverCard(vehicle: any): boolean {
-  return (
-      Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0) === 1 &&
-      Number(vehicle.dltCardReader ?? vehicle.dlt_card_reader ?? 0) === 1 &&
-      Number(vehicle.speed ?? 0) > 5 &&
-      !String(vehicle.track3 ?? '').trim()
-  )
+  return !String(vehicle.track3 ?? '').trim()
 }
 
 function getStatusIcon(status: VehicleStatus) {
@@ -830,13 +877,12 @@ function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
 function getDriverStatus(vehicle: any): DriverStatus {
   const dltSynch = Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0)
   const dltCardReader = Number(vehicle.dltCardReader ?? vehicle.dlt_card_reader ?? 0)
-  const track3 = String(vehicle.track3 ?? '').trim()
 
   if (dltSynch !== 1 || dltCardReader !== 1) {
     return 'hide'
   }
 
-  return track3 ? 'ok' : 'missing'
+  return isNoDriverCard(vehicle) ? 'missing' : 'ok'
 }
 
 function getDriverIcon(status: DriverStatus): string {
@@ -1161,6 +1207,10 @@ onBeforeUnmount(() => {
 
 .summary-item.dlt-synched {
   background: #0ea5e9;
+}
+
+.summary-item.card-reader {
+  background: #7c3aed;
 }
 
 .summary-item.active {

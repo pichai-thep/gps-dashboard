@@ -10,6 +10,7 @@ export default {
     currentTracking: 'Current Tracking',
     driverCardMissing: 'Driver card not swiped',
     driverCardOk: 'Driver card swiped',
+    cardReaderInstalled: 'Card reader',
     engineCut: 'Engine cut',
     engineCutCancel: 'Cancel engine cut',
     errorTrackingLoadFailed: 'Failed to load tracking data',
