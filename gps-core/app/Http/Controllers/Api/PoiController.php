@@ -32,7 +32,9 @@ class PoiController extends Controller
                 icon,
                 st_X(g_poi) AS lng,
                 st_Y(g_poi) AS lat,
-                customer_customer_id
+                customer_customer_id,
+                created_at,
+                modified_at
             FROM pois
             WHERE customer_customer_id = ?
             ORDER BY poi_id DESC
@@ -61,9 +63,11 @@ class PoiController extends Controller
                 poi_name,
                 icon,
                 g_poi,
-                customer_customer_id
+                customer_customer_id,
+                created_at,
+                modified_at
             )
-            VALUES (?, ?, ST_GeomFromText(?), ?)
+            VALUES (?, ?, ST_GeomFromText(?), ?, NOW(), NOW())
         ", [
             $request->poi_name,
             $request->icon,
@@ -108,7 +112,8 @@ class PoiController extends Controller
             SET
                 poi_name = ?,
                 icon = ?,
-                g_poi = ST_GeomFromText(?)
+                g_poi = ST_GeomFromText(?),
+                modified_at = NOW()
             WHERE poi_id = ?
               AND customer_customer_id = ?
         ", [

@@ -11,6 +11,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/i18n'
+import { formatDateTime } from '@/utils/dateTime'
 
 import BaseMap from '@/components/maps/BaseMap.vue'
 import Map from 'ol/Map'
@@ -23,7 +24,7 @@ import Point from 'ol/geom/Point'
 import Polygon from 'ol/geom/Polygon'
 import CircleGeom from 'ol/geom/Circle'
 import { fromLonLat, toLonLat, transform } from 'ol/proj'
-import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style'
+import { Style, Fill, Stroke, Circle as CircleStyle, Text } from 'ol/style'
 import { isEmpty } from 'ol/extent'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -39,7 +40,7 @@ import {
 
 const confirm = useConfirm()
 const toast = useToast()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -66,20 +67,29 @@ const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null)
 
 const stationLayer = new VectorLayer({
   source: stationSource,
-  style: new Style({
-    stroke: new Stroke({
-      color: '#2563eb',
-      width: 2,
+  style: (feature) => new Style({
+      stroke: new Stroke({
+        color: '#2563eb',
+        width: 2,
+      }),
+      fill: new Fill({
+        color: 'rgba(37, 99, 235, 0.15)',
+      }),
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: '#ef4444' }),
+        stroke: new Stroke({ color: '#ffffff', width: 2 }),
+      }),
+      text: feature.get('name')
+        ? new Text({
+            text: feature.get('name'),
+            offsetY: feature.getGeometry() instanceof Point ? 20 : 0,
+            font: '600 12px sans-serif',
+            fill: new Fill({ color: '#1e3a8a' }),
+            stroke: new Stroke({ color: '#ffffff', width: 3 }),
+          })
+        : undefined,
     }),
-    fill: new Fill({
-      color: 'rgba(37, 99, 235, 0.15)',
-    }),
-    image: new CircleStyle({
-      radius: 7,
-      fill: new Fill({ color: '#ef4444' }),
-      stroke: new Stroke({ color: '#ffffff', width: 2 }),
-    }),
-  }),
 })
 
 const previewLayer = new VectorLayer({
@@ -99,6 +109,9 @@ const previewLayer = new VectorLayer({
     }),
   }),
 })
+
+stationLayer.setZIndex(10)
+previewLayer.setZIndex(20)
 
 const typeOptions = computed(() => [
   { label: t('circleRadius'), value: 'circle' },
@@ -184,6 +197,8 @@ function focusToCurrentShape(retry = 0) {
 function onMapReady(payload: { map: Map }) {
   map = payload.map
 
+  renderExistingStations()
+
   if (!map.getLayers().getArray().includes(stationLayer)) {
     map.addLayer(stationLayer)
   }
@@ -216,6 +231,7 @@ async function loadStations() {
 
   try {
     stations.value = await getStations()
+    renderExistingStations()
   } finally {
     loading.value = false
   }
@@ -224,6 +240,7 @@ async function loadStations() {
 async function openCreate(location?: { lat: number; lng: number }) {
   editingId.value = null
   resetForm()
+  renderExistingStations()
 
   if (location) {
     form.lat = location.lat
@@ -284,6 +301,7 @@ function safeFitExtent(extent: any, retry = 0) {
 async function openEdit(row: Station) {
   editingId.value = row.station_id
   shouldFocusAfterMapReady.value = true
+  renderExistingStations()
 
   form.station_name = row.station_name
   form.station_type = row.station_type || 'circle'
@@ -335,6 +353,8 @@ function initMap() {
   map = baseMapRef.value?.getMap() || null
 
   if (!map) return
+
+  renderExistingStations()
 
   if (!map.getLayers().getArray().includes(stationLayer)) {
     map.addLayer(stationLayer)
@@ -606,6 +626,46 @@ function renderPreview() {
   }
 }
 
+function renderExistingStations() {
+  stationSource.clear()
+
+  for (const station of stations.value) {
+    if (station.station_id === editingId.value) continue
+
+    if (station.station_type === 'circle' && isValidLatLng(station.lat, station.lng)) {
+      const radius = Number(station.radius)
+
+      if (!Number.isFinite(radius) || radius <= 0) continue
+
+      const center = fromLonLat([Number(station.lng), Number(station.lat)])
+      const centerFeature = new Feature(new Point(center))
+      centerFeature.set('name', station.station_name)
+
+      stationSource.addFeatures([
+        new Feature(new CircleGeom(center, radius)),
+        centerFeature,
+      ])
+      continue
+    }
+
+    const points = parsePolygonWkt(station.polygon_wkt)
+
+    if (points.length < 3) continue
+
+    const coordinates = points.map((point) => fromLonLat([point.lng, point.lat]))
+    const first = coordinates[0]
+    const last = coordinates[coordinates.length - 1]
+
+    if (first[0] !== last[0] || first[1] !== last[1]) {
+      coordinates.push(first)
+    }
+
+    const feature = new Feature(new Polygon([coordinates]))
+    feature.set('name', station.station_name)
+    stationSource.addFeature(feature)
+  }
+}
+
 async function saveStation() {
   if (!form.station_name.trim()) {
     toast.add({
@@ -786,6 +846,16 @@ function onTypeChange() {
             {{ Number(data.lng).toFixed(6) }}
           </span>
           <span v-else>-</span>
+        </template>
+      </Column>
+      <Column field="created_at" :header="t('createdAt')" style="min-width: 170px">
+        <template #body="{ data }">
+          {{ formatDateTime(data.created_at, locale) }}
+        </template>
+      </Column>
+      <Column field="modified_at" :header="t('modifiedAt')" style="min-width: 170px">
+        <template #body="{ data }">
+          {{ formatDateTime(data.modified_at, locale) }}
         </template>
       </Column>
       <Column :header="t('actions')" style="width: 160px">

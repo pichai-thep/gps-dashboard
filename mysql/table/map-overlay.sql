@@ -4,6 +4,8 @@ CREATE TABLE `pois` (
   `icon` varchar(255) DEFAULT NULL,
   `g_poi` point NOT NULL,
   `customer_customer_id` int NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `modified_at` datetime DEFAULT NULL,
   PRIMARY KEY (`poi_id`),
   KEY `fk_poi_customer1_idx` (`customer_customer_id`) USING BTREE
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb3;
@@ -29,7 +31,7 @@ CREATE TABLE `forbidden_zones` (
   `customer_id` int NOT NULL,
   `login` varchar(20) DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
+  `modified_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
-
 

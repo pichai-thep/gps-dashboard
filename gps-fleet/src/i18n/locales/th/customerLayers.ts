@@ -57,4 +57,6 @@ export default {
     customerLayerTitle: 'ชั้นข้อมูล POI, สถานี และเขตห้ามเข้า',
     followVehicle: 'ติดตามรถ',
     showPopup: 'แสดง Popup',
+    createdAt: 'สร้างเมื่อ',
+    modifiedAt: 'แก้ไขเมื่อ',
 }

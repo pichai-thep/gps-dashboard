@@ -57,4 +57,6 @@ export default {
     customerLayerTitle: 'POIs, stations, and forbidden zones',
     followVehicle: 'Follow Vehicle',
     showPopup: 'Show Popup',
+    createdAt: 'Created At',
+    modifiedAt: 'Modified At',
 }

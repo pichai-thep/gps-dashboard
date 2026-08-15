@@ -5,6 +5,8 @@ export interface ForbiddenZone {
     zone_name: string
     polygon_wkt?: string | null
     customer_id?: number
+    created_at?: string | null
+    modified_at?: string | null
 }
 
 export interface ForbiddenZonePayload {

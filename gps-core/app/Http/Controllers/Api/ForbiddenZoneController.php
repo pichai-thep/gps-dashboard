@@ -31,7 +31,9 @@ class ForbiddenZoneController extends Controller
                 id,
                 zone_name,
                 ST_AsText(polygon) AS polygon_wkt,
-                customer_id
+                customer_id,
+                created_at,
+                modified_at
             FROM forbidden_zones
             WHERE customer_id = ?
             ORDER BY id DESC
@@ -61,9 +63,9 @@ class ForbiddenZoneController extends Controller
 
         DB::connection($dbConnection)->insert("
             INSERT INTO forbidden_zones
-                (zone_name, polygon, customer_id)
+                (zone_name, polygon, customer_id, created_at, modified_at)
             VALUES
-                (?, ST_GeomFromText(?), ?)
+                (?, ST_GeomFromText(?), ?, NOW(), NOW())
         ", [
             $data['zone_name'],
             $wkt,
@@ -93,7 +95,8 @@ class ForbiddenZoneController extends Controller
             UPDATE forbidden_zones
             SET
                 zone_name = ?,
-                polygon = ST_GeomFromText(?)
+                polygon = ST_GeomFromText(?),
+                modified_at = NOW()
             WHERE id = ?
               AND customer_id = ?
         ", [

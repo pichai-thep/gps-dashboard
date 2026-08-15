@@ -10,6 +10,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from '@/i18n'
+import { formatDateTime } from '@/utils/dateTime'
 
 import BaseMap from '@/components/maps/BaseMap.vue'
 import Map from 'ol/Map'
@@ -19,7 +20,7 @@ import Draw from 'ol/interaction/Draw'
 import Feature from 'ol/Feature'
 import Polygon from 'ol/geom/Polygon'
 import { fromLonLat, transform } from 'ol/proj'
-import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style'
+import { Style, Fill, Stroke, Circle as CircleStyle, Text } from 'ol/style'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
@@ -33,7 +34,7 @@ import {
 
 const confirm = useConfirm()
 const toast = useToast()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -52,7 +53,27 @@ const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null)
 let map: Map | null = null
 let draw: Draw | null = null
 
+const existingSource = new VectorSource()
 const previewSource = new VectorSource()
+
+const existingLayer = new VectorLayer({
+  source: existingSource,
+  style: (feature) => new Style({
+    stroke: new Stroke({
+      color: '#2563eb',
+      width: 2,
+    }),
+    fill: new Fill({
+      color: 'rgba(37, 99, 235, 0.12)',
+    }),
+    text: new Text({
+      text: feature.get('name') || '',
+      font: '600 12px sans-serif',
+      fill: new Fill({ color: '#1e3a8a' }),
+      stroke: new Stroke({ color: '#ffffff', width: 3 }),
+    }),
+  }),
+})
 
 const previewLayer = new VectorLayer({
   source: previewSource,
@@ -71,6 +92,9 @@ const previewLayer = new VectorLayer({
     }),
   }),
 })
+
+existingLayer.setZIndex(10)
+previewLayer.setZIndex(20)
 
 const form = reactive<{
   zone_name: string
@@ -106,6 +130,7 @@ async function loadForbiddenZones() {
 
   try {
     zones.value = await getForbiddenZones()
+    renderExistingZones()
   } finally {
     loading.value = false
   }
@@ -113,12 +138,17 @@ async function loadForbiddenZones() {
 
 function onMapReady(payload: { map: Map }) {
   map = payload.map
-  ensurePreviewLayer()
+  ensureOverlayLayers()
+  renderExistingZones()
   fitCurrentZone()
 }
 
-function ensurePreviewLayer() {
+function ensureOverlayLayers() {
   if (!map) return
+
+  if (!map.getLayers().getArray().includes(existingLayer)) {
+    map.addLayer(existingLayer)
+  }
 
   if (!map.getLayers().getArray().includes(previewLayer)) {
     map.addLayer(previewLayer)
@@ -128,6 +158,7 @@ function ensurePreviewLayer() {
 async function openCreate(location?: { lat: number; lng: number }) {
   editingId.value = null
   resetForm()
+  renderExistingZones()
 
   createCenter.value = location
       ? [location.lng, location.lat]
@@ -209,6 +240,7 @@ function focusCurrentZone(retry = 0) {
 async function openEdit(row: ForbiddenZone) {
   editingId.value = Number(row.id)
   resetForm()
+  renderExistingZones()
 
   form.zone_name = row.zone_name
   form.polygon = parsePolygonWkt(row.polygon_wkt)
@@ -235,7 +267,8 @@ function initMap() {
 
   if (!map) return
 
-  ensurePreviewLayer()
+  ensureOverlayLayers()
+  renderExistingZones()
   setTimeout(() => map?.updateSize(), 100)
 }
 
@@ -394,6 +427,23 @@ function renderPreview(fit = false) {
   }
 }
 
+function renderExistingZones() {
+  existingSource.clear()
+
+  for (const zone of zones.value) {
+    if (Number(zone.id) === editingId.value) continue
+
+    const points = parsePolygonWkt(zone.polygon_wkt)
+
+    if (points.length < 3) continue
+
+    const coordinates = points.map((point) => fromLonLat([point.lng, point.lat]))
+    const feature = new Feature(new Polygon([closeRing(coordinates)]))
+    feature.set('name', zone.zone_name)
+    existingSource.addFeature(feature)
+  }
+}
+
 async function saveForbiddenZone() {
   if (!form.zone_name.trim()) {
     toast.add({
@@ -541,6 +591,17 @@ function closeRing(coords: number[][]) {
       class="station-table p-datatable-sm"
     >
       <Column field="zone_name" :header="t('zoneName')" />
+
+      <Column field="created_at" :header="t('createdAt')" style="min-width: 170px">
+        <template #body="{ data }">
+          {{ formatDateTime(data.created_at, locale) }}
+        </template>
+      </Column>
+      <Column field="modified_at" :header="t('modifiedAt')" style="min-width: 170px">
+        <template #body="{ data }">
+          {{ formatDateTime(data.modified_at, locale) }}
+        </template>
+      </Column>
 
 <!--      <Column header="Type">-->
 <!--        <template #body>-->

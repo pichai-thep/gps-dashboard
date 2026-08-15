@@ -6,6 +6,8 @@ export interface Poi {
     icon?: string | null
     lat: number | null
     lng: number | null
+    created_at?: string | null
+    modified_at?: string | null
 }
 
 export interface PoiPayload {

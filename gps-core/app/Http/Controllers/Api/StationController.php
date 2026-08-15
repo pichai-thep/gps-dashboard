@@ -35,8 +35,8 @@ class StationController extends Controller
                 station_type,
                 ST_AsText(station_polygon) AS polygon_wkt,
                 customer_customer_id,
-                created_date,
-                modified_date
+                created_date AS created_at,
+                modified_date AS modified_at
             FROM stations
             WHERE customer_customer_id = ?
             ORDER BY station_id DESC

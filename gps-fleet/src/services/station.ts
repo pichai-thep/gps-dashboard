@@ -10,6 +10,8 @@ export interface Station {
     lng?: number | null
     radius?: number | null
     polygon_wkt?: string | null
+    created_at?: string | null
+    modified_at?: string | null
 }
 
 export interface StationPayload {

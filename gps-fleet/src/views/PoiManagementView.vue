@@ -12,6 +12,7 @@ import Dropdown from 'primevue/dropdown'
 import {useConfirm} from 'primevue/useconfirm'
 import {useToast} from 'primevue/usetoast'
 import { useI18n } from '@/i18n'
+import { formatDateTime } from '@/utils/dateTime'
 import BaseMap from '@/components/maps/BaseMap.vue'
 import Map from 'ol/Map'
 import VectorLayer from 'ol/layer/Vector'
@@ -36,7 +37,7 @@ import {
 
 const confirm = useConfirm()
 const toast = useToast()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -59,7 +60,35 @@ const poiIconOptions = Object.entries(poiIconRegistry).map(
 let map: Map | null = null
 let pointModify: Modify | null = null
 
+const existingSource = new VectorSource()
 const previewSource = new VectorSource()
+
+const existingLayer = new VectorLayer({
+  source: existingSource,
+  style: (feature) => [
+    new Style({
+      image: new CircleStyle({
+        radius: 15,
+        fill: new Fill({ color: '#f8fafc' }),
+        stroke: new Stroke({ color: '#64748b', width: 2 }),
+      }),
+    }),
+    new Style({
+      image: new Icon({
+        src: getPoiMapIcon(feature.get('icon')),
+        scale: 0.75,
+        anchor: [0.5, 0.5],
+      }),
+      text: new Text({
+        text: feature.get('name') || '',
+        offsetY: 26,
+        font: '12px sans-serif',
+        fill: new Fill({ color: '#334155' }),
+        stroke: new Stroke({ color: '#ffffff', width: 3 }),
+      }),
+    }),
+  ],
+})
 
 const previewLayer = new VectorLayer({
   source: previewSource,
@@ -83,6 +112,9 @@ const previewLayer = new VectorLayer({
     }),
   ],
 })
+
+existingLayer.setZIndex(10)
+previewLayer.setZIndex(20)
 
 const form = reactive<{
   poi_name: string
@@ -144,6 +176,7 @@ async function loadPois() {
   loading.value = true
   try {
     pois.value = await getPois()
+    renderExistingPois()
   } finally {
     loading.value = false
   }
@@ -152,6 +185,7 @@ async function loadPois() {
 async function openCreate(location?: { lat: number; lng: number }) {
   editingId.value = null
   resetForm()
+  renderExistingPois()
 
   if (location) {
     form.lat = location.lat
@@ -188,6 +222,7 @@ function focusCurrentPoi(retry = 0) {
 }
 async function openEdit(row: Poi) {
   editingId.value = row.poi_id
+  renderExistingPois()
   form.poi_name = row.poi_name
   form.icon = row.icon || null
   form.lat = row.lat !== null && row.lat !== undefined
@@ -218,6 +253,10 @@ function initMap() {
 
   if (!map) return
 
+  if (!map.getLayers().getArray().includes(existingLayer)) {
+    map.addLayer(existingLayer)
+  }
+
   if (!map.getLayers().getArray().includes(previewLayer)) {
     map.addLayer(previewLayer)
   }
@@ -230,11 +269,16 @@ function initMap() {
 function onMapReady(payload: { map: Map }) {
   map = payload.map
 
+  if (!map.getLayers().getArray().includes(existingLayer)) {
+    map.addLayer(existingLayer)
+  }
+
   if (!map.getLayers().getArray().includes(previewLayer)) {
     map.addLayer(previewLayer)
   }
 
   initPointModify()
+  renderExistingPois()
 
   map.on('click', (event) => {
     const [lng, lat] = toLonLat(event.coordinate)
@@ -306,6 +350,23 @@ function renderPreview() {
         Number(form.lat),
       ]))),
   )
+}
+
+function renderExistingPois() {
+  existingSource.clear()
+
+  for (const poi of pois.value) {
+    if (poi.poi_id === editingId.value || !isValidPoiLocation(poi.lat, poi.lng)) {
+      continue
+    }
+
+    const feature = new Feature(new Point(fromLonLat([
+      Number(poi.lng),
+      Number(poi.lat),
+    ])))
+    feature.setProperties({ icon: poi.icon, name: poi.poi_name })
+    existingSource.addFeature(feature)
+  }
 }
 
 function isValidPoiLocation(lat: unknown, lng: unknown) {
@@ -528,6 +589,17 @@ function findPoiLabel(value?: string | null) {
             {{ Number(data.lng).toFixed(6) }}
           </span>
           <span v-else>-</span>
+        </template>
+      </Column>
+
+      <Column field="created_at" :header="t('createdAt')" style="min-width: 170px">
+        <template #body="{ data }">
+          {{ formatDateTime(data.created_at, locale) }}
+        </template>
+      </Column>
+      <Column field="modified_at" :header="t('modifiedAt')" style="min-width: 170px">
+        <template #body="{ data }">
+          {{ formatDateTime(data.modified_at, locale) }}
         </template>
       </Column>
 
