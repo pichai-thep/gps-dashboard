@@ -534,7 +534,9 @@ function hasValue(value: unknown): boolean {
 onMounted(async () => {
   statusFilters.value = getStatusesFromQuery()
   noDriverCardFilter.value = getNoDriverCardFromQuery()
-  dltSynchFilter.value = getDltSynchFromQuery()
+  dltSynchFilter.value = noDriverCardFilter.value
+      ? false
+      : getDltSynchFromQuery()
 })
 
 watch(
@@ -552,26 +554,17 @@ watch(
 )
 
 watch(
-    () => route.query.no_driver_card,
+    () => [route.query.no_driver_card, route.query.dlt_synch],
     () => {
       const nextNoDriverCard = getNoDriverCardFromQuery()
+      const nextDltSynch = nextNoDriverCard ? false : getDltSynchFromQuery()
 
-      if (noDriverCardFilter.value === nextNoDriverCard) return
+      if (
+        noDriverCardFilter.value === nextNoDriverCard
+        && dltSynchFilter.value === nextDltSynch
+      ) return
 
       noDriverCardFilter.value = nextNoDriverCard
-      if (isClearingFilters) return
-      resetListState()
-      loadVehicles()
-    }
-)
-
-watch(
-    () => route.query.dlt_synch,
-    () => {
-      const nextDltSynch = getDltSynchFromQuery()
-
-      if (dltSynchFilter.value === nextDltSynch) return
-
       dltSynchFilter.value = nextDltSynch
       if (isClearingFilters) return
       resetListState()
@@ -746,12 +739,16 @@ function loadByStatus(status: VehicleStatus) {
 
 function toggleNoDriverCardFilter() {
   noDriverCardFilter.value = !noDriverCardFilter.value
+  if (noDriverCardFilter.value) {
+    dltSynchFilter.value = false
+  }
   resetListState()
 
   router.replace({
     query: {
       ...route.query,
       no_driver_card: noDriverCardFilter.value ? 1 : undefined,
+      dlt_synch: undefined,
     },
   })
 
@@ -760,12 +757,16 @@ function toggleNoDriverCardFilter() {
 
 function toggleDltSynchFilter() {
   dltSynchFilter.value = !dltSynchFilter.value
+  if (dltSynchFilter.value) {
+    noDriverCardFilter.value = false
+  }
   resetListState()
 
   router.replace({
     query: {
       ...route.query,
       dlt_synch: dltSynchFilter.value ? 1 : undefined,
+      no_driver_card: undefined,
     },
   })
 
