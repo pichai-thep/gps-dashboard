@@ -46,23 +46,23 @@
       <div v-show="showFilters" class="tracking-filters">
         <div class="summary-row">
           <button
+              type="button"
+              class="summary-item all-vehicles"
+              :class="{ active: !hasActiveVehicleFilters }"
+              @click="clearAllFilters"
+          >
+            {{ t('allVehicles') }}
+          </button>
+
+          <button
               v-for="item in statusSummaryItems"
               :key="item.value"
               type="button"
               class="summary-item"
-              :class="[item.value, { active: statusFilter === item.value }]"
+              :class="[item.value, { active: statusFilters.includes(item.value) }]"
               @click="loadByStatus(item.value)"
           >
             {{ item.label }} {{ statusCount[item.value] }}
-          </button>
-
-          <button
-              type="button"
-              class="summary-item no-driver-card"
-              :class="{ active: noDriverCardFilter }"
-              @click="toggleNoDriverCardFilter"
-          >
-            {{ t('noDriverCard') }} {{ noDriverCardCount }}
           </button>
 
           <button
@@ -76,12 +76,11 @@
 
           <button
               type="button"
-              class="summary-item card-reader"
-              :class="{ active: cardReaderFilter }"
-              @click="toggleCardReaderFilter"
+              class="summary-item no-driver-card"
+              :class="{ active: noDriverCardFilter }"
+              @click="toggleNoDriverCardFilter"
           >
-            <i class="pi pi-id-card"></i>
-            {{ t('cardReaderInstalled') }} {{ cardReaderCount }}
+            {{ t('noDriverCard') }} {{ noDriverCardCount }}
           </button>
         </div>
 
@@ -110,14 +109,14 @@
           <div class="filter-field status-filter">
             <i class="pi pi-flag"></i>
 
-            <Dropdown
-                :modelValue="statusFilter"
+            <MultiSelect
+                :modelValue="statusFilters"
                 :options="statusOptions"
                 optionLabel="label"
                 optionValue="value"
                 :placeholder="t('status')"
-                showClear
-                @update:modelValue="setStatusAndLoad"
+                display="chip"
+                @update:modelValue="setStatusesAndLoad"
             />
           </div>
 
@@ -387,6 +386,7 @@ import DataTable from 'primevue/datatable'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
+import MultiSelect from 'primevue/multiselect'
 
 import TrackingMap from '@/components/maps/TrackingMap.vue'
 import {
@@ -476,10 +476,9 @@ const mapLocations = ref<MapLocationOption[]>([])
 const selectedVehicleId = ref<string | null>(null)
 const selectedMapLocation = ref<MapLocationOption | null>(null)
 const selectedGroupId = ref<number | string>(-1)
-const statusFilter = ref<VehicleStatus | null>(null)
+const statusFilters = ref<VehicleStatus[]>([])
 const noDriverCardFilter = ref(false)
 const dltSynchFilter = ref(false)
-const cardReaderFilter = ref(false)
 
 const refreshInterval = ref(30_000)
 const search = ref('')
@@ -498,12 +497,14 @@ const error = ref<string | null>(null)
 const statusCount = ref<StatusCount>({ ...defaultStatusCount })
 const noDriverCardTotal = ref(0)
 const dltSynchTotal = ref(0)
-const cardReaderTotal = ref(0)
 const hiddenVehicleKeys = ref<Set<string>>(new Set())
 
 let pollingTimer: number | null = null
 let searchTimer: number | null = null
 let isLoading = false
+let reloadRequested = false
+let isClearingFilters = false
+let pollingBackoffMs = 0
 
 const mapVehicles = computed(() => {
   return vehicles.value.filter((vehicle) => {
@@ -513,7 +514,13 @@ const mapVehicles = computed(() => {
 
 const noDriverCardCount = computed(() => noDriverCardTotal.value)
 const dltSynchCount = computed(() => dltSynchTotal.value)
-const cardReaderCount = computed(() => cardReaderTotal.value)
+const hasActiveVehicleFilters = computed(() =>
+    statusFilters.value.length > 0
+    || noDriverCardFilter.value
+    || dltSynchFilter.value
+    || String(selectedGroupId.value) !== '-1'
+    || search.value.trim() !== ''
+)
 const showPassenger = computed(() => Boolean(auth.features?.passenger))
 const showTemperature = computed(() => Boolean(auth.features?.temperature))
 const showInput1 = computed(() => Boolean(auth.features?.input1))
@@ -525,20 +532,20 @@ function hasValue(value: unknown): boolean {
 }
 
 onMounted(async () => {
-  statusFilter.value = getStatusFromQuery()
+  statusFilters.value = getStatusesFromQuery()
   noDriverCardFilter.value = getNoDriverCardFromQuery()
   dltSynchFilter.value = getDltSynchFromQuery()
-  cardReaderFilter.value = getCardReaderFromQuery()
 })
 
 watch(
     () => route.query.status,
     () => {
-      const nextStatus = getStatusFromQuery()
+      const nextStatuses = getStatusesFromQuery()
 
-      if (statusFilter.value === nextStatus) return
+      if (sameStatuses(statusFilters.value, nextStatuses)) return
 
-      statusFilter.value = nextStatus
+      statusFilters.value = nextStatuses
+      if (isClearingFilters) return
       resetListState()
       loadVehicles()
     }
@@ -552,6 +559,7 @@ watch(
       if (noDriverCardFilter.value === nextNoDriverCard) return
 
       noDriverCardFilter.value = nextNoDriverCard
+      if (isClearingFilters) return
       resetListState()
       loadVehicles()
     }
@@ -565,34 +573,25 @@ watch(
       if (dltSynchFilter.value === nextDltSynch) return
 
       dltSynchFilter.value = nextDltSynch
+      if (isClearingFilters) return
       resetListState()
       loadVehicles()
     }
 )
 
-watch(
-    () => route.query.dlt_card_reader,
-    () => {
-      const nextCardReader = getCardReaderFromQuery()
-
-      if (cardReaderFilter.value === nextCardReader) return
-
-      cardReaderFilter.value = nextCardReader
-      resetListState()
-      loadVehicles()
-    }
-)
-
-function getStatusFromQuery(): VehicleStatus | null {
+function getStatusesFromQuery(): VehicleStatus[] {
   const status = route.query.status
+  const values = (Array.isArray(status) ? status : [status])
+      .flatMap((value) => typeof value === 'string' ? value.split(',') : [])
+  const allowedStatuses = new Set(statusOptions.value.map((item) => item.value))
 
-  if (typeof status !== 'string') return null
+  return [...new Set(values.filter((value): value is VehicleStatus =>
+      allowedStatuses.has(value as VehicleStatus)
+  ))]
+}
 
-  const allowStatuses = statusOptions.value.map((item) => item.value)
-
-  return allowStatuses.includes(status as VehicleStatus)
-      ? status as VehicleStatus
-      : null
+function sameStatuses(left: VehicleStatus[], right: VehicleStatus[]) {
+  return left.length === right.length && left.every((status) => right.includes(status))
 }
 
 function getNoDriverCardFromQuery(): boolean {
@@ -611,16 +610,11 @@ function getDltSynchFromQuery(): boolean {
       : value === '1'
 }
 
-function getCardReaderFromQuery(): boolean {
-  const value = route.query.dlt_card_reader
-
-  return Array.isArray(value)
-      ? value.includes('1')
-      : value === '1'
-}
-
-async function loadVehicles() {
-  if (isLoading) return
+async function loadVehicles(options: { preserveDataOnError?: boolean } = {}) {
+  if (isLoading) {
+    reloadRequested = true
+    return
+  }
 
   try {
     isLoading = true
@@ -631,10 +625,9 @@ async function loadVehicles() {
       page: page.value,
       per_page: perPage.value,
       group_id: selectedGroupId.value,
-      status: statusFilter.value,
+      status: statusFilters.value.length ? statusFilters.value.join(',') : null,
       no_driver_card: noDriverCardFilter.value ? 1 : null,
       dlt_synch: dltSynchFilter.value ? 1 : null,
-      dlt_card_reader: cardReaderFilter.value ? 1 : null,
       search: search.value,
       sort_by: sortBy.value,
       sort_dir: sortDir.value,
@@ -645,18 +638,32 @@ async function loadVehicles() {
     statusCount.value = response.meta.status_counts ?? { ...defaultStatusCount }
     noDriverCardTotal.value = response.meta.no_driver_card_count ?? 0
     dltSynchTotal.value = response.meta.dlt_synch_count ?? 0
-    cardReaderTotal.value = response.meta.card_reader_count ?? 0
+    pollingBackoffMs = 0
   } catch (e: any) {
-    error.value = e?.response?.data?.message || t('errorTrackingLoadFailed')
-    vehicles.value = []
-    totalRecords.value = 0
-    statusCount.value = { ...defaultStatusCount }
-    noDriverCardTotal.value = 0
-    dltSynchTotal.value = 0
-    cardReaderTotal.value = 0
+    const isRateLimited = e?.response?.status === 429
+    if (isRateLimited) {
+      const retryAfterSeconds = Number(e?.response?.headers?.['retry-after'] ?? 0)
+      pollingBackoffMs = Math.max(60_000, retryAfterSeconds * 1000 || 0)
+      error.value = t('trackingRateLimited')
+      startPolling()
+    } else {
+      error.value = e?.response?.data?.message || t('errorTrackingLoadFailed')
+    }
+
+    if (!options.preserveDataOnError && !isRateLimited) {
+      vehicles.value = []
+      totalRecords.value = 0
+      statusCount.value = { ...defaultStatusCount }
+      noDriverCardTotal.value = 0
+      dltSynchTotal.value = 0
+    }
   } finally {
     isLoading = false
     loading.value = false
+    if (reloadRequested) {
+      reloadRequested = false
+      void loadVehicles()
+    }
   }
 }
 
@@ -716,14 +723,14 @@ function resetListState() {
   selectedVehicleId.value = null
 }
 
-function setStatusAndLoad(status: VehicleStatus | null) {
-  statusFilter.value = status
+function setStatusesAndLoad(statuses: VehicleStatus[]) {
+  statusFilters.value = statuses
   resetListState()
 
   router.replace({
     query: {
       ...route.query,
-      status: status || undefined,
+      status: statuses.length ? statuses.join(',') : undefined,
     },
   })
 
@@ -731,7 +738,10 @@ function setStatusAndLoad(status: VehicleStatus | null) {
 }
 
 function loadByStatus(status: VehicleStatus) {
-  setStatusAndLoad(statusFilter.value === status ? null : status)
+  const statuses = statusFilters.value.includes(status)
+      ? statusFilters.value.filter((item) => item !== status)
+      : [...statusFilters.value, status]
+  setStatusesAndLoad(statuses)
 }
 
 function toggleNoDriverCardFilter() {
@@ -762,33 +772,54 @@ function toggleDltSynchFilter() {
   loadVehicles()
 }
 
-function toggleCardReaderFilter() {
-  cardReaderFilter.value = !cardReaderFilter.value
+async function clearAllFilters() {
+  isClearingFilters = true
+  if (searchTimer) {
+    window.clearTimeout(searchTimer)
+    searchTimer = null
+  }
+  statusFilters.value = []
+  noDriverCardFilter.value = false
+  dltSynchFilter.value = false
+  selectedGroupId.value = -1
+  search.value = ''
+  hiddenVehicleKeys.value = new Set()
   resetListState()
 
-  router.replace({
+  await router.replace({
     query: {
       ...route.query,
-      dlt_card_reader: cardReaderFilter.value ? 1 : undefined,
+      status: undefined,
+      no_driver_card: undefined,
+      dlt_synch: undefined,
     },
   })
 
+  isClearingFilters = false
   loadVehicles()
 }
 
 function stopPolling() {
   if (!pollingTimer) return
 
-  window.clearInterval(pollingTimer)
+  window.clearTimeout(pollingTimer)
   pollingTimer = null
 }
 
 function startPolling() {
   stopPolling()
+  if (document.hidden) return
 
-  pollingTimer = window.setInterval(() => {
-    loadVehicles()
-  }, refreshInterval.value)
+  const delay = Math.max(refreshInterval.value, pollingBackoffMs)
+  pollingTimer = window.setTimeout(async () => {
+    pollingTimer = null
+
+    if (!document.hidden && !isLoading) {
+      await loadVehicles({ preserveDataOnError: true })
+    }
+
+    startPolling()
+  }, delay)
 }
 
 function handleVisibilityChange() {
@@ -848,7 +879,10 @@ function getRowClass(vehicle: Vehicle) {
 }
 
 function isNoDriverCard(vehicle: any): boolean {
-  return !String(vehicle.track3 ?? '').trim()
+  const dltSynch = Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0)
+  return dltSynch === 1
+      && vehicle.acc_state === true
+      && !String(vehicle.track3 ?? '').trim()
 }
 
 function getStatusIcon(status: VehicleStatus) {
@@ -876,13 +910,13 @@ function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
 
 function getDriverStatus(vehicle: any): DriverStatus {
   const dltSynch = Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0)
-  const dltCardReader = Number(vehicle.dltCardReader ?? vehicle.dlt_card_reader ?? 0)
 
-  if (dltSynch !== 1 || dltCardReader !== 1) {
+  if (dltSynch !== 1) {
     return 'hide'
   }
 
-  return isNoDriverCard(vehicle) ? 'missing' : 'ok'
+  if (String(vehicle.track3 ?? '').trim()) return 'ok'
+  return vehicle.acc_state === true ? 'missing' : 'hide'
 }
 
 function getDriverIcon(status: DriverStatus): string {
@@ -957,6 +991,7 @@ function getInputClass(value?: string | number | boolean | null) {
 }
 
 watch([selectedGroupId, sortBy, sortDir], () => {
+  if (isClearingFilters) return
   resetListState()
   loadVehicles()
 })
@@ -970,6 +1005,7 @@ watch(locale, () => {
 })
 
 watch(search, () => {
+  if (isClearingFilters) return
   if (searchTimer) {
     window.clearTimeout(searchTimer)
   }
@@ -1205,12 +1241,13 @@ onBeforeUnmount(() => {
   background: #b91c1c;
 }
 
-.summary-item.dlt-synched {
-  background: #0ea5e9;
+.summary-item.all-vehicles {
+  color: #e2e8f0;
+  background: #475569;
 }
 
-.summary-item.card-reader {
-  background: #7c3aed;
+.summary-item.dlt-synched {
+  background: #0ea5e9;
 }
 
 .summary-item.active {
@@ -1267,6 +1304,7 @@ onBeforeUnmount(() => {
 
 .filter-field :deep(.p-dropdown),
 .filter-field :deep(.p-select),
+.filter-field :deep(.p-multiselect),
 .filter-field :deep(.p-inputtext) {
   flex: 1;
   width: 100%;
@@ -1281,6 +1319,7 @@ onBeforeUnmount(() => {
 
 .filter-field :deep(.p-dropdown-label),
 .filter-field :deep(.p-select-label),
+.filter-field :deep(.p-multiselect-label),
 .filter-field :deep(.p-inputtext) {
   padding: 0 !important;
   color: #e5e7eb !important;

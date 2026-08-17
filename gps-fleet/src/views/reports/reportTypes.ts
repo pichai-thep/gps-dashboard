@@ -27,6 +27,7 @@ export interface ReportDefinition {
   timeStartRequired?: boolean
   timeEndRequired?: boolean
   enableExportCsv?: boolean
+  exportFormat?: 'csv' | 'excel'
   enablePdf?: boolean
   vehicleRequired?: boolean
   graph?: boolean | 'fuel' | 'speed' | 'temperature'

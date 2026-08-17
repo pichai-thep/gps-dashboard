@@ -12,6 +12,20 @@ export type NotificationItem = {
     created_at: string
 }
 
+export type NotificationSnapshot = {
+    items: NotificationItem[]
+    unreadCount: number
+}
+
+export async function getNotificationSnapshot(): Promise<NotificationSnapshot> {
+    const res = await api.get('/notifications/recent')
+
+    return {
+        items: res.data?.data ?? [],
+        unreadCount: Number(res.data?.unread_count ?? 0),
+    }
+}
+
 export async function getRecentNotifications(): Promise<NotificationItem[]> {
 
     const res = await api.get('/notifications/recent')

@@ -97,7 +97,7 @@
       />
       <Button
         v-if="enableExportCsv"
-        :label="t('exportCsv')"
+        :label="exportLabel || t('exportCsv')"
         icon="pi pi-download"
         severity="secondary"
         :disabled="!hasRows || loading"
@@ -153,6 +153,7 @@ const props = withDefaults(defineProps<{
   enableSearch?: boolean
   enableReset?: boolean
   enableExportCsv?: boolean
+  exportLabel?: string
   enablePdf?: boolean
   maxRangeDays?: number
   monthly?: boolean

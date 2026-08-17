@@ -37,7 +37,7 @@ class TrackingController extends Controller
         $groupId = (int) $request->query('group_id', -1);
         $keyword = $request->query('search');
         $dltSynch = $this->resolveDltSynchFilter($request);
-        $statusQuery = $request->query('status');
+        $statusFilters = $this->resolveStatusFilters($request);
 
         $sortBy = (string) $request->query('sort_by', 'plate_no');
         $sortDir = strtolower((string) $request->query('sort_dir', 'asc')) === 'desc'
@@ -103,15 +103,11 @@ class TrackingController extends Controller
             ->filter(fn ($vehicle) => $this->isDltSynched($vehicle))
             ->count();
 
-        $cardReaderCount = $allVehicles
-            ->filter(fn ($vehicle) => $this->hasCardReader($vehicle))
-            ->count();
-
         $filteredVehicles = $allVehicles;
 
-        if ($statusQuery !== null && $statusQuery !== '') {
+        if ($statusFilters !== []) {
             $filteredVehicles = $allVehicles
-                ->filter(fn ($vehicle) => $vehicle['status'] === $statusQuery)
+                ->filter(fn ($vehicle) => in_array($vehicle['status'], $statusFilters, true))
                 ->values();
         }
 
@@ -123,19 +119,9 @@ class TrackingController extends Controller
                 ->values();
         }
 
-        $dltSynch = (int) $request->query('dlt_synch', 0);
-
         if ($dltSynch === 1) {
             $filteredVehicles = $filteredVehicles
                 ->filter(fn ($vehicle) => $this->isDltSynched($vehicle))
-                ->values();
-        }
-
-        $cardReader = (int) $request->query('dlt_card_reader', 0);
-
-        if ($cardReader === 1) {
-            $filteredVehicles = $filteredVehicles
-                ->filter(fn ($vehicle) => $this->hasCardReader($vehicle))
                 ->values();
         }
 
@@ -156,12 +142,11 @@ class TrackingController extends Controller
                 'sort_by' => $sortBy,
                 'sort_dir' => $sortDir,
                 'group_id' => $groupId,
-                'status' => $statusQuery,
+                'status' => $statusFilters,
                 'search' => $keyword,
                 'status_counts' => $statusCounts,
                 'no_driver_card_count' => $noDriverCardCount,
                 'dlt_synch_count' => $dltSynchCount,
-                'card_reader_count' => $cardReaderCount,
             ],
         ]);
     }
@@ -304,7 +289,6 @@ class TrackingController extends Controller
             'input2' => $row->input2 ?? null,
             'sequen_no' => isset($row->sequen_no) ? (int) $row->sequen_no : null,
             'dlt_synch' => $row->dlt_synch,
-            'dlt_card_reader' => isset($row->dlt_card_reader) ? (int) $row->dlt_card_reader : 0,
             'track1' => $row->track1 ?? null,
             'track3' => $row->track3 ?? null,
             'address' => $row->address ?? null,
@@ -342,6 +326,21 @@ class TrackingController extends Controller
         return (int) $value === 1 ? 1 : null;
     }
 
+    private function resolveStatusFilters(Request $request): array
+    {
+        $value = $request->query('status', []);
+        $values = is_array($value) ? $value : explode(',', (string) $value);
+        $allowed = array_keys(self::DEFAULT_STATUS_COUNTS);
+
+        return array_values(array_unique(array_filter(
+            array_map(
+                static fn ($status) => str_replace('-', '_', strtolower(trim((string) $status))),
+                $values
+            ),
+            static fn ($status) => in_array($status, $allowed, true)
+        )));
+    }
+
     private function resolveAcc($row): bool
     {
         $state = $row->state ?? null;
@@ -360,24 +359,24 @@ class TrackingController extends Controller
     private function resolveDriverStatus($row): string
     {
         $dltSynch = (int) ($row->dlt_synch ?? 0);
-        $dltCardReader = (int) ($row->dlt_card_reader ?? 0);
         $track3 = trim((string) ($row->track3 ?? ''));
 
-        if ($dltSynch !== 1 || $dltCardReader !== 1) {
+        if ($dltSynch !== 1) {
             return 'hide';
         }
 
-        return $track3 !== '' ? 'ok' : 'missing';
+        if ($track3 !== '') {
+            return 'ok';
+        }
+
+        return $this->resolveAcc($row) ? 'missing' : 'hide';
     }
 
     private function isNoDriverCard(array $vehicle): bool
     {
-        return trim((string) ($vehicle['track3'] ?? '')) === '';
-    }
-
-    private function hasCardReader(array $vehicle): bool
-    {
-        return (int) ($vehicle['dlt_card_reader'] ?? 0) === 1;
+        return $this->isDltSynched($vehicle)
+            && ($vehicle['acc_state'] ?? false) === true
+            && trim((string) ($vehicle['track3'] ?? '')) === '';
     }
 
     private function isDltSynched(array $vehicle): bool

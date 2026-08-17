@@ -42,6 +42,7 @@ export default {
     reset: 'Reset',
     save: 'Save',
     exportCsv: 'Export CSV',
+    exportExcel: 'Save Excel',
     showAddress: 'Show address',
     showFilters: 'Show Filters',
     sortBy: 'Sort by',

@@ -42,6 +42,7 @@ export default {
     reset: 'รีเซ็ต',
     save: 'บันทึก',
     exportCsv: 'ส่งออก CSV',
+    exportExcel: 'บันทึก Excel',
     showAddress: 'แสดงที่อยู่',
     showFilters: 'แสดงตัวกรอง',
     sortBy: 'เรียงตาม',

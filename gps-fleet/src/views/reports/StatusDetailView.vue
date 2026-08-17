@@ -12,6 +12,7 @@ const definition: ReportDefinition = {
   subtitle: {th: 'รายละเอียดสถานะและช่วงเวลาการเดินทางของรถ', en: 'Vehicle travel status and duration details'},
   maxRangeDays: 7,
   vehicleRequired: true,
+  exportFormat: 'excel',
   criteria: [
     {
       key: 'status',

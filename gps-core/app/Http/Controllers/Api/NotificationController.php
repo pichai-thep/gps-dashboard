@@ -33,6 +33,8 @@ class NotificationController extends Controller
             'success' => true,
             'server_name' => $serverName,
             'count' => count($items),
+            'unread_count' => $this->notificationService
+                ->getUnreadCount($connection, $login),
             'data' => $items,
         ]);
     }

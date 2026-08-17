@@ -4,8 +4,7 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 
 import {
-  getRecentNotifications,
-  getNotificationUnreadCount,
+  getNotificationSnapshot,
   markNotificationsRead,
   type NotificationItem,
 } from '@/services/notification'
@@ -20,14 +19,16 @@ const initialized = ref(false)
 
 let timer: number | undefined
 let isLoading = false
+let pollingDelay = 15_000
 
 async function loadNotifications() {
   if (isLoading) return
 
   try {
     isLoading = true
-    const items = await getRecentNotifications()
-    const count = await getNotificationUnreadCount()
+    const snapshot = await getNotificationSnapshot()
+    const items = snapshot.items
+    const count = snapshot.unreadCount
 
     const newestId = Number(items[0]?.id ?? 0)
     const oldLatestId = latestId.value
@@ -56,11 +57,27 @@ async function loadNotifications() {
     }
 
     initialized.value = true
-  } catch (err) {
+    pollingDelay = 15_000
+  } catch (err: any) {
+    if (err?.response?.status === 429) {
+      pollingDelay = Math.max(
+        60_000,
+        Number(err?.response?.headers?.['retry-after'] ?? 0) * 1000,
+      )
+    }
     console.error('loadNotifications error', err)
   } finally {
     isLoading = false
   }
+}
+
+function scheduleNotifications() {
+  if (timer) window.clearTimeout(timer)
+
+  timer = window.setTimeout(async () => {
+    await loadNotifications()
+    scheduleNotifications()
+  }, pollingDelay)
 }
 
 async function goNotifications() {
@@ -71,15 +88,12 @@ async function goNotifications() {
 
 onMounted(async () => {
   await loadNotifications()
-
-  timer = window.setInterval(() => {
-    void loadNotifications()
-  }, 5000)
+  scheduleNotifications()
 })
 
 onUnmounted(() => {
   if (timer) {
-    clearInterval(timer)
+    clearTimeout(timer)
   }
 })
 </script>

@@ -60,6 +60,7 @@
       :timeEndRequired="definition.timeEndRequired"
       :vehicleRequired="definition.vehicleRequired"
       :enableExportCsv="definition.enableExportCsv"
+      :exportLabel="definition.exportFormat === 'excel' ? t('exportExcel') : t('exportCsv')"
       :enablePdf="definition.enablePdf"
       :maxRangeDays="definition.maxRangeDays"
       :monthly="definition.monthly"
@@ -157,7 +158,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(row, index) in rows" :key="index">
+          <tr
+            v-for="(row, index) in rows"
+            :key="index"
+            :class="reportRowClass(row)"
+          >
             <td
               v-for="column in visibleColumns"
               :key="column.field"
@@ -243,7 +248,7 @@ import {
 } from '@/services/report'
 import { locale, useI18n } from '@/i18n'
 import { formatReportDuration, isReportDurationField } from '@/utils/reportDurationFormat'
-import { downloadReportCsv } from '@/utils/reportExport'
+import { downloadReportCsv, downloadReportExcel } from '@/utils/reportExport'
 import { formatReportNumber, reportFractionDigits } from '@/utils/reportNumberFormat'
 import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
 import { normalizeVehicleStatus, vehicleStatusLabel } from '@/utils/vehicleStatus'
@@ -648,17 +653,53 @@ function reportVehicleStatus(row: Record<string, unknown>, column: ReportColumn)
   return 'park'
 }
 
-function exportCsv() {
+async function exportCsv() {
   const header = visibleColumns.value.map((column) => column.label)
   const body = rows.value.map((row) =>
     visibleColumns.value
       .map((column) => formatCell(row, column))
   )
+
+  if (definition.value.exportFormat === 'excel') {
+    await downloadReportExcel(
+      `${definition.value.key}-${toDateString(filters.dateFrom)}-${toDateString(filters.dateTo)}.xlsx`,
+      localized(definition.value.title),
+      header,
+      rows.value.map((row, index) => ({
+        cells: body[index],
+        fill: statusRowExcelFill(row),
+      })),
+    )
+    return
+  }
+
   downloadReportCsv(
     `${definition.value.key}-${toDateString(filters.dateFrom)}-${toDateString(filters.dateTo)}.csv`,
     header,
     body,
   )
+}
+
+function reportRowStatus(row: Record<string, unknown>) {
+  if (definition.value.key !== 'status-detail') return null
+  const statusColumn = definition.value.columns.find((column) => column.field === 'status')
+  if (!statusColumn) return null
+  return normalizeVehicleStatus(getRowValue(row, statusColumn))
+}
+
+function reportRowClass(row: Record<string, unknown>) {
+  const status = reportRowStatus(row)
+  return status === 'park' || status === 'idle' || status === 'run'
+    ? `status-row-${status}`
+    : ''
+}
+
+function statusRowExcelFill(row: Record<string, unknown>) {
+  const status = reportRowStatus(row)
+  if (status === 'park') return 'FFFFC7CE'
+  if (status === 'idle') return 'FFFFEB9C'
+  if (status === 'run') return 'FFC6EFCE'
+  return undefined
 }
 
 function savePdf() {
@@ -772,6 +813,19 @@ watch(() => props.definition.key, async () => {
 .temperature-status.yellow { color: #422006; background: #facc15; }
 .temperature-status.red { background: #dc2626; }
 .temperature-status.unknown { background: #64748b; }
+
+.print-table tr.status-row-park > td {
+  background: rgba(239, 68, 68, 0.28) !important;
+}
+
+.print-table tr.status-row-idle > td {
+  color: #422006;
+  background: rgba(250, 204, 21, 0.72) !important;
+}
+
+.print-table tr.status-row-run > td {
+  background: rgba(34, 197, 94, 0.28) !important;
+}
 
 .empty-state {
   padding: 30px;

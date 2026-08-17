@@ -12,6 +12,7 @@ const error = ref('')
 
 let timer: number | undefined
 let isLoadingNotifications = false
+let pollingDelay = 15_000
 
 const notificationTypeMeta: Record<string, { icon: string; tone: string }> = {
   engine_on_alert: { icon: 'pi pi-key', tone: 'success' },
@@ -57,7 +58,9 @@ async function loadNotifications() {
     loading.value = true
     error.value = ''
     notifications.value = await getRecentNotifications()
-  } catch (err) {
+    pollingDelay = 15_000
+  } catch (err: any) {
+    updatePollingDelay(err)
     error.value = t('notificationLoadFailed')
   } finally {
     loading.value = false
@@ -72,7 +75,9 @@ async function autoLoadNotifications() {
     auto_loading.value = true
     error.value = ''
     notifications.value = await getRecentNotifications()
-  } catch (err) {
+    pollingDelay = 15_000
+  } catch (err: any) {
+    updatePollingDelay(err)
     error.value = t('notificationLoadFailed')
   } finally {
     auto_loading.value = false
@@ -80,16 +85,31 @@ async function autoLoadNotifications() {
   }
 }
 
+function updatePollingDelay(error: any) {
+  if (error?.response?.status !== 429) return
+
+  pollingDelay = Math.max(
+      60_000,
+      Number(error?.response?.headers?.['retry-after'] ?? 0) * 1000,
+  )
+}
+
+function scheduleNotifications() {
+  if (timer) window.clearTimeout(timer)
+
+  timer = window.setTimeout(async () => {
+    await autoLoadNotifications()
+    scheduleNotifications()
+  }, pollingDelay)
+}
+
 onMounted(async () => {
   await loadNotifications()
-
-  timer = window.setInterval(() => {
-    void autoLoadNotifications()
-  }, 5000)
+  scheduleNotifications()
 })
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer)
+  if (timer) clearTimeout(timer)
 })
 </script>
 

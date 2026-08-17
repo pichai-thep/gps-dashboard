@@ -84,8 +84,7 @@ class DashboardController extends Controller
 
             $driverStatus = $this->resolveDriverStatus($row);
             $isDltSynched = (int) ($row->dlt_synch ?? 0) === 1;
-            $hasDltCardReader = (int) ($row->dlt_card_reader ?? 0) === 1;
-            $speed = (float) ($row->speed ?? 0);
+            $isAccOn = $this->resolveAcc($row);
             $hasDriverCard = trim((string) ($row->track3 ?? '')) !== '';
             $hasDriverCardData =
                 trim((string) ($row->track1 ?? '')) !== '' ||
@@ -109,8 +108,7 @@ class DashboardController extends Controller
 
             if (
                 $isDltSynched &&
-                $hasDltCardReader &&
-                $speed > 5 &&
+                $isAccOn &&
                 !$hasDriverCard
             ) {
                 $drivingWithoutCard++;
@@ -193,14 +191,17 @@ class DashboardController extends Controller
     private function resolveDriverStatus($row): string
     {
         $dltSynch = (int) ($row->dlt_synch ?? 0);
-        $dltCardReader = (int) ($row->dlt_card_reader ?? 0);
         $track3 = trim((string) ($row->track3 ?? ''));
 
-        if ($dltSynch !== 1 || $dltCardReader !== 1) {
+        if ($dltSynch !== 1) {
             return 'hide';
         }
 
-        return $track3 !== '' ? 'ok' : 'missing';
+        if ($track3 !== '') {
+            return 'ok';
+        }
+
+        return $this->resolveAcc($row) ? 'missing' : 'hide';
     }
 
     private function resolveStatus($row): string
