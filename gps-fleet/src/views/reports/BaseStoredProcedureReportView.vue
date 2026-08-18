@@ -620,7 +620,8 @@ function shouldLinkMap(row: Record<string, unknown>, column: ReportColumn) {
 
 function isStatusColumn(column: ReportColumn) {
   return (definition.value.key === 'status-detail' && column.field === 'status')
-    || (definition.value.key === 'fuel' && column.field === 'vehicle_status')
+    || (['fuel', 'temperature'].includes(definition.value.key)
+      && column.field === 'vehicle_status')
 }
 
 function isTemperatureStatusColumn(column: ReportColumn) {
