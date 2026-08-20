@@ -8,35 +8,77 @@ use Illuminate\Support\Facades\DB;
 /*
 test:
 php artisan gps:migrate-forbidden-zones --dry-run
+php artisan gps:migrate-forbidden-zones "CUSTOMER NAME" --dry-run
 
 real:
 php artisan gps:migrate-forbidden-zones
+php artisan gps:migrate-forbidden-zones "CUSTOMER NAME"
 */
 
 class MigrateForbiddenZones extends Command
 {
-    protected $signature = 'gps:migrate-forbidden-zones {--dry-run}';
+    protected $signature = 'gps:migrate-forbidden-zones
+                            {customer_name? : Exact customer name}
+                            {--server= : GPS server, e.g. gps5, server5, or 5}
+                            {--dry-run : Preview without changing data}';
 
     protected $description = 'Migrate forbidden_zone to forbidden_zones';
 
     public function handle(): int
     {
-        $dbConnection = 'gps5';
+        $dbConnection = $this->resolveServer('gps5');
+        if ($dbConnection === null) {
+            return self::FAILURE;
+        }
 
         $dryRun = $this->option('dry-run');
 
         $conn = DB::connection($dbConnection);
+        $customerName = $this->argument('customer_name');
+        $customerId = null;
 
-        $rows = $conn->table('forbidden_zone')
+        if ($customerName !== null) {
+            $customers = $conn->table('customer')
+                ->where('customer_name', $customerName)
+                ->get(['customer_id']);
+
+            if ($customers->isEmpty()) {
+                $this->error("Customer not found: {$customerName}");
+                return self::FAILURE;
+            }
+
+            if ($customers->count() > 1) {
+                $this->error("More than one customer found with name: {$customerName}");
+                return self::FAILURE;
+            }
+
+            $customerId = $customers->first()->customer_id;
+            $this->info("Customer: {$customerName} (ID: {$customerId})");
+        }
+
+        $query = $conn->table('forbidden_zone')
             ->select([
                 '*',
                 DB::raw('ST_AsText(polygon) AS polygon_wkt'),
-            ])
-            ->get();
+            ]);
+
+        if ($customerId !== null) {
+            $query->where('customer_id', $customerId);
+        }
+
+        $rows = $query->get();
 
         $this->info("Found {$rows->count()} rows");
 
-        $conn->table('forbidden_zones')->truncate();
+        if (!$dryRun) {
+            if ($customerId === null) {
+                $conn->table('forbidden_zones')->truncate();
+            } else {
+                $conn->table('forbidden_zones')
+                    ->where('customer_id', $customerId)
+                    ->delete();
+            }
+        }
         foreach ($rows as $row) {
 
             try {
@@ -84,6 +126,29 @@ Failed ID {$row->id}
         $this->info('DONE');
 
         return self::SUCCESS;
+    }
+
+    private function resolveServer(string $default): ?string
+    {
+        $server = $this->option('server');
+        if ($server === null || $server === '') {
+            return $default;
+        }
+
+        $connection = strtolower(trim((string) $server));
+        $connection = preg_replace('/^server/', 'gps', $connection);
+        if (ctype_digit($connection)) {
+            $connection = 'gps' . $connection;
+        }
+
+        if (!preg_match('/^gps\d+$/', $connection) ||
+            !array_key_exists($connection, config('database.connections', []))) {
+            $this->error("Invalid GPS server: {$server}");
+            return null;
+        }
+
+        $this->info("Server: {$connection}");
+        return $connection;
     }
 
     private function normalizePolygonWkt(string $wkt): string

@@ -1,0 +1,17 @@
+ระบุทั้ง server และ customer:
+php artisan gps:migrate-stations "ชื่อลูกค้า" --server=gps5
+php artisan gps:migrate-pois "ชื่อลูกค้า" --server=gps10
+php artisan gps:migrate-forbidden-zones "ชื่อลูกค้า" --server=gps13
+
+เวอร์ชัน MySQL 8:
+php artisan gps:migrate-stations-mysql8 "ชื่อลูกค้า" --server=gps21
+php artisan gps:migrate-pois-mysql8 "ชื่อลูกค้า" --server=gps21
+php artisan gps:migrate-forbidden-zones-mysql8 "ชื่อลูกค้า" --server=gps21
+
+ใช้เลข server อย่างเดียวก็ได้:
+php artisan gps:migrate-stations "ชื่อลูกค้า" --server=5 --dry-run
+
+หากไม่ระบุ customer จะทำทั้งหมดบน server ที่เลือก:
+php artisan gps:migrate-stations --server=gps10
+
+หากไม่ระบุ --server จะใช้ค่าเดิมของแต่ละ command ตรวจ syntax

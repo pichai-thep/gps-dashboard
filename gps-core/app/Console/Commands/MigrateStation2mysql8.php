@@ -8,33 +8,75 @@ use Illuminate\Support\Facades\DB;
 /*
 test:
 php artisan gps:migrate-stations-mysql8 --dry-run
+php artisan gps:migrate-stations-mysql8 "CUSTOMER NAME" --dry-run
 
 real:
 php artisan gps:migrate-stations-mysql8
+php artisan gps:migrate-stations-mysql8 "CUSTOMER NAME"
 */
 
 class MigrateStation2mysql8 extends Command
 {
-    protected $signature = 'gps:migrate-stations-mysql8 {--dry-run}';
+    protected $signature = 'gps:migrate-stations-mysql8
+                            {customer_name? : Exact customer name}
+                            {--server= : GPS server, e.g. gps21, server21, or 21}
+                            {--dry-run : Preview without changing data}';
     protected $description = 'Migrate old station polygons to stations table';
 
     public function handle(): int
     {
-        $dbConnection = 'gps21';
+        $dbConnection = $this->resolveServer('gps21');
+        if ($dbConnection === null) {
+            return self::FAILURE;
+        }
         $dryRun = $this->option('dry-run');
         $conn = DB::connection($dbConnection);
+        $customerName = $this->argument('customer_name');
+        $customerId = null;
 
-        $rows = $conn->table('station')
+        if ($customerName !== null) {
+            $customers = $conn->table('customer')
+                ->where('customer_name', $customerName)
+                ->get(['customer_id', 'customer_name']);
+
+            if ($customers->isEmpty()) {
+                $this->error("Customer not found: {$customerName}");
+                return self::FAILURE;
+            }
+
+            if ($customers->count() > 1) {
+                $this->error("More than one customer found with name: {$customerName}");
+                return self::FAILURE;
+            }
+
+            $customerId = $customers->first()->customer_id;
+            $this->info("Customer: {$customerName} (ID: {$customerId})");
+        }
+
+        $query = $conn->table('station')
             ->select([
                 '*',
                 DB::raw('ST_AsText(station_polygon) AS polygon_wkt'),
                 DB::raw('ST_AsText(station_point) AS point_wkt'),
-            ])
-            ->get();
+            ]);
+
+        if ($customerId !== null) {
+            $query->where('customer_customer_id', $customerId);
+        }
+
+        $rows = $query->get();
 
         $this->info("Found {$rows->count()} rows");
 
-        $conn->table('stations')->truncate();
+        if (!$dryRun) {
+            if ($customerId === null) {
+                $conn->table('stations')->truncate();
+            } else {
+                $conn->table('stations')
+                    ->where('customer_customer_id', $customerId)
+                    ->delete();
+            }
+        }
         foreach ($rows as $row) {
             try {
                 $fixedPolygon = null;
@@ -99,6 +141,29 @@ class MigrateStation2mysql8 extends Command
         }
         $this->info('DONE');
         return self::SUCCESS;
+    }
+
+    private function resolveServer(string $default): ?string
+    {
+        $server = $this->option('server');
+        if ($server === null || $server === '') {
+            return $default;
+        }
+
+        $connection = strtolower(trim((string) $server));
+        $connection = preg_replace('/^server/', 'gps', $connection);
+        if (ctype_digit($connection)) {
+            $connection = 'gps' . $connection;
+        }
+
+        if (!preg_match('/^gps\d+$/', $connection) ||
+            !array_key_exists($connection, config('database.connections', []))) {
+            $this->error("Invalid GPS server: {$server}");
+            return null;
+        }
+
+        $this->info("Server: {$connection}");
+        return $connection;
     }
 
     private function normalizePointWkt(string $wkt): string
