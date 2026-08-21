@@ -31,6 +31,11 @@ export function renderReportPrintWindow(
         period: string
         headers: string[]
         rows: Array<Array<ReportPrintCell | StyledReportPrintCell>>
+        criteria?: Array<{ label: string; value: ReportPrintCell }>
+        summary?: Array<{ label: string; value: ReportPrintCell }>
+        criteriaTitle?: string
+        summaryTitle?: string
+        dataTitle?: string
         wide?: boolean
     }
 ) {
@@ -53,6 +58,11 @@ export function renderReportPrintWindow(
             </tr>
         `)
         .join('')
+    const criteriaHtml = printInfoSection(options.criteriaTitle, options.criteria)
+    const summaryHtml = printInfoSection(options.summaryTitle, options.summary)
+    const dataTitleHtml = options.dataTitle
+        ? `<h2 class="section-title">${escapeHtml(options.dataTitle)}</h2>`
+        : ''
 
     target.document.open()
     target.document.write(`
@@ -74,7 +84,22 @@ export function renderReportPrintWindow(
               .report-heading { min-width: 0; }
               .report-logo { width: auto; max-width: 180px; height: 56px; object-fit: contain; }
               h1 { margin: 0 0 4px; font-size: 20px; }
+              .section-title { margin: 12px 0 7px; font-size: 13px; }
               .period { color: #475569; font-size: 11px; }
+              .info-grid {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 6px;
+                margin-bottom: 10px;
+              }
+              .info-item {
+                padding: 6px 8px;
+                border: 1px solid #cbd5e1;
+                border-radius: 4px;
+                break-inside: avoid;
+              }
+              .info-label { display: block; color: #64748b; font-size: 9px; }
+              .info-value { display: block; margin-top: 2px; font-size: 11px; }
               table { width: 100%; border-collapse: collapse; }
               thead { display: table-header-group; }
               th, td {
@@ -107,6 +132,9 @@ export function renderReportPrintWindow(
                 onerror="this.onerror=null;this.src='${escapeHtml(fallbackLogoUrl)}'"
               >
             </div>
+            ${criteriaHtml}
+            ${summaryHtml}
+            ${dataTitleHtml}
             <table>
               <thead><tr>${headerHtml}</tr></thead>
               <tbody>${rowHtml}</tbody>
@@ -123,6 +151,25 @@ export function renderReportPrintWindow(
         </html>
     `)
     target.document.close()
+}
+
+function printInfoSection(
+    title: string | undefined,
+    items: Array<{ label: string; value: ReportPrintCell }> | undefined,
+) {
+    if (!items?.length) return ''
+
+    const itemHtml = items.map((item) => `
+        <div class="info-item">
+          <span class="info-label">${escapeHtml(item.label)}</span>
+          <strong class="info-value">${escapeHtml(item.value)}</strong>
+        </div>
+    `).join('')
+
+    return `
+      ${title ? `<h2 class="section-title">${escapeHtml(title)}</h2>` : ''}
+      <div class="info-grid">${itemHtml}</div>
+    `
 }
 
 function escapeHtml(value: ReportPrintCell) {

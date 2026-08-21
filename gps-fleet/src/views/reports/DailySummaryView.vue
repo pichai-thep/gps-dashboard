@@ -10,6 +10,14 @@
             @click="exportCsv"
         />
         <Button
+            :label="t('saveXlsx')"
+            icon="pi pi-file-excel"
+            severity="secondary"
+            :loading="xlsxLoading"
+            :disabled="totalRows === 0"
+            @click="saveXlsx"
+        />
+        <Button
             :label="t('savePdf')"
             icon="pi pi-file-pdf"
             severity="secondary"
@@ -93,7 +101,11 @@ import {
 } from '@/services/report'
 import { useI18n } from '@/i18n'
 import { formatReportDuration } from '@/utils/reportDurationFormat'
-import { downloadReportCsv } from '@/utils/reportExport'
+import {
+  downloadReportCsv,
+  downloadReportExcelSheet,
+  type ReportExcelSheetRow,
+} from '@/utils/reportExport'
 import { formatDistanceKmFromMeters, formatReportInteger } from '@/utils/reportNumberFormat'
 import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
 
@@ -107,6 +119,7 @@ const vehicleOptions = ref<any[]>([])
 
 const loading = ref(false)
 const filtersLoading = ref(false)
+const xlsxLoading = ref(false)
 
 // const dateFrom = ref<Date | null>(new Date())
 // const dateTo = ref<Date | null>(new Date())
@@ -153,11 +166,13 @@ const summary = ref({
 })
 
 const avgUrRate = computed(() => {
-  if (!rows.value.length) return 0
+  return calculateAverageUrRate(rows.value)
+})
 
+function calculateAverageUrRate(sourceRows: DailySummaryRow[]) {
   let total = 0
   let count = 0
-  for (const row of rows.value) {
+  for (const row of sourceRows) {
     const ur = Number((row as any).ur_rate)
     if (!isNaN(ur)) {
       total += ur
@@ -166,7 +181,7 @@ const avgUrRate = computed(() => {
   }
   if (count <= 0) return 0
   return total / count
-})
+}
 
 const summaryItems = computed<ReportSummaryItem[]>(() => [
   { key: 'vehicles', label: t('totalVehicles'), value: formatReportInteger(summary.value.total_vehicle) },
@@ -394,6 +409,108 @@ async function exportCsv() {
   downloadReportCsv('daily-summary.csv', header, body)
 }
 
+function selectedGroupNames() {
+  if (!selectedGroups.value.length) return t('allGroups')
+
+  return groupOptions.value
+    .filter((group) => selectedGroups.value.some((id) => String(id) === String(group.group_id)))
+    .map((group) => group.group_name)
+    .join(', ')
+}
+
+function selectedVehicleNames() {
+  if (!selectedVehicles.value.length) return t('allVehicles')
+
+  return vehicleOptions.value
+    .filter((vehicle) => selectedVehicles.value.includes(String(vehicle.imei)))
+    .map((vehicle) => vehicle.plate_no)
+    .join(', ')
+}
+
+async function saveXlsx() {
+  xlsxLoading.value = true
+
+  try {
+    const res = await getDailySummary({
+      date_from: toDateString(dateFrom.value),
+      date_to: toDateString(dateTo.value),
+      group_ids: selectedGroups.value,
+      imeis: selectedVehicles.value,
+      page: 1,
+      per_page: totalRows.value || 100000,
+      sort_by: sortField.value,
+      sort_order: sortOrder.value,
+      export: true,
+    })
+
+    const exportRows = res.data ?? []
+    const columnCount = 10
+    const sectionRow = (title: string): ReportExcelSheetRow => ({
+      cells: [title, ...Array(columnCount - 1).fill('')],
+      style: 'section',
+    })
+    const exportAverageUrRate = calculateAverageUrRate(exportRows)
+    const xlsxRows: ReportExcelSheetRow[] = [
+      sectionRow(t('xlsxCriteria')),
+      { cells: [t('reportDateStart'), toDateString(dateFrom.value)] },
+      { cells: [t('reportDateEnd'), toDateString(dateTo.value)] },
+      { cells: [t('selectGroup'), selectedGroupNames()] },
+      { cells: [t('selectVehicle'), selectedVehicleNames()] },
+      { cells: [] },
+      sectionRow(t('xlsxSummary')),
+      { cells: [t('totalRows'), formatReportInteger(res.summary?.total_rows ?? exportRows.length)] },
+      { cells: [t('totalVehicles'), formatReportInteger(res.summary?.total_vehicle ?? 0)] },
+      { cells: [t('totalDistance'), formatKm(res.summary?.distance_m ?? 0)] },
+      { cells: [t('urRateAvg'), formatPercent(exportAverageUrRate)] },
+      { cells: [`${t('running')} (dd:hh:mm)`, formatSummaryDuration(res.summary?.run_time_s ?? 0)] },
+      { cells: [`${t('idle')} (dd:hh:mm)`, formatSummaryDuration(res.summary?.idle_time_s ?? 0)] },
+      { cells: [`${t('parking')} (dd:hh:mm)`, formatSummaryDuration(res.summary?.park_time_s ?? 0)] },
+      { cells: [] },
+      sectionRow(t('xlsxData')),
+      {
+        cells: [
+          t('date'),
+          'IMEI',
+          t('plate'),
+          t('running'),
+          t('idle'),
+          t('parking'),
+          `${t('distance')} (km)`,
+          t('formula'),
+          t('urRate'),
+          t('updated'),
+        ],
+        style: 'header',
+      },
+      ...exportRows.map((row) => ({
+        cells: [
+          row.data_date,
+          row.imei,
+          row.plate_no,
+          formatDuration(row.run_time_s),
+          formatDuration(row.idle_time_s),
+          formatDuration(row.park_time_s),
+          formatDistanceKmFromMeters(row.distance_m, false),
+          row.ur_formula,
+          formatPercent(row.ur_rate),
+          row.updated_at,
+        ],
+      })),
+    ]
+    const dataHeaderRow = 17
+    const dataEndRow = dataHeaderRow + exportRows.length
+
+    await downloadReportExcelSheet(
+      `daily-summary-${toDateString(dateFrom.value)}-${toDateString(dateTo.value)}.xlsx`,
+      t('dailySummaryReport'),
+      xlsxRows,
+      `A${dataHeaderRow}:J${dataEndRow}`,
+    )
+  } finally {
+    xlsxLoading.value = false
+  }
+}
+
 async function savePdf() {
   const target = openReportPrintWindow(t('dailySummaryReport'))
   if (!target) return
@@ -410,7 +527,8 @@ async function savePdf() {
     export: true,
   })
 
-  const printRows = (res.data ?? []).map((row: any) => [
+  const exportRows = res.data ?? []
+  const printRows = exportRows.map((row: any) => [
     row.data_date,
     row.imei,
     row.plate_no,
@@ -426,6 +544,24 @@ async function savePdf() {
   renderReportPrintWindow(target, {
     title: t('dailySummaryReport'),
     period: `${t('reportPeriod')}: ${toDateString(dateFrom.value)} - ${toDateString(dateTo.value)}`,
+    criteriaTitle: t('xlsxCriteria'),
+    criteria: [
+      { label: t('reportDateStart'), value: toDateString(dateFrom.value) },
+      { label: t('reportDateEnd'), value: toDateString(dateTo.value) },
+      { label: t('selectGroup'), value: selectedGroupNames() },
+      { label: t('selectVehicle'), value: selectedVehicleNames() },
+    ],
+    summaryTitle: t('xlsxSummary'),
+    summary: [
+      { label: t('totalRows'), value: formatReportInteger(res.summary?.total_rows ?? exportRows.length) },
+      { label: t('totalVehicles'), value: formatReportInteger(res.summary?.total_vehicle ?? 0) },
+      { label: t('totalDistance'), value: formatKm(res.summary?.distance_m ?? 0) },
+      { label: t('urRateAvg'), value: formatPercent(calculateAverageUrRate(exportRows)) },
+      { label: `${t('running')} (dd:hh:mm)`, value: formatSummaryDuration(res.summary?.run_time_s ?? 0) },
+      { label: `${t('idle')} (dd:hh:mm)`, value: formatSummaryDuration(res.summary?.idle_time_s ?? 0) },
+      { label: `${t('parking')} (dd:hh:mm)`, value: formatSummaryDuration(res.summary?.park_time_s ?? 0) },
+    ],
+    dataTitle: t('xlsxData'),
     headers: [
       t('date'),
       'IMEI',

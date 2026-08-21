@@ -5,6 +5,10 @@ export interface ReportExcelRow {
   fill?: string
 }
 
+export interface ReportExcelSheetRow extends ReportExcelRow {
+  style?: 'header' | 'section'
+}
+
 export function downloadReportCsv(
   filename: string,
   headers: string[],
@@ -63,6 +67,42 @@ export async function downloadReportExcel(
   URL.revokeObjectURL(url)
 }
 
+export async function downloadReportExcelSheet(
+  filename: string,
+  sheetName: string,
+  rows: ReportExcelSheetRow[],
+  autoFilterRange?: string,
+) {
+  const { default: JSZip } = await import('jszip')
+  const zip = new JSZip()
+  const safeSheetName = (sheetName.replace(/[\\/*?:[\]]/g, ' ').trim() || 'Report').slice(0, 31)
+  const columnCount = Math.max(1, ...rows.map((row) => row.cells.length))
+  const sheetRange = `A1:${excelColumnName(columnCount)}${Math.max(1, rows.length)}`
+
+  zip.file('[Content_Types].xml', contentTypesXml)
+  zip.folder('_rels')?.file('.rels', packageRelationsXml)
+  zip.folder('docProps')?.file('app.xml', appPropertiesXml)
+  zip.folder('docProps')?.file('core.xml', corePropertiesXml)
+  zip.folder('xl')?.file('workbook.xml', workbookXml(safeSheetName))
+  zip.folder('xl')?.file('styles.xml', stylesXml)
+  zip.folder('xl')?.folder('_rels')?.file('workbook.xml.rels', workbookRelationsXml)
+  zip.folder('xl')?.folder('worksheets')?.file(
+    'sheet1.xml',
+    worksheetRowsXml(rows, columnCount, sheetRange, autoFilterRange),
+  )
+
+  const blob = await zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 function worksheetXml(headers: string[], rows: ReportExcelRow[], tableRange: string) {
   const widths = headers.map((header, index) => {
     const values = [header, ...rows.map((row) => row.cells[index])]
@@ -83,6 +123,40 @@ function worksheetXml(headers: string[], rows: ReportExcelRow[], tableRange: str
       <cols>${columns}</cols>
       <sheetData>${sheetRows}</sheetData>
       <autoFilter ref="${tableRange}"/>
+    </worksheet>
+  `)
+}
+
+function worksheetRowsXml(
+  rows: ReportExcelSheetRow[],
+  columnCount: number,
+  sheetRange: string,
+  autoFilterRange?: string,
+) {
+  const widths = Array.from({ length: columnCount }, (_, index) => {
+    const values = rows.map((row) => row.cells[index])
+    return Math.min(50, Math.max(12, Math.max(...values.map((value) => String(value ?? '').length)) + 2))
+  })
+  const columns = widths
+    .map((width, index) => `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"/>`)
+    .join('')
+  const sheetRows = rows
+    .map((row, index) => excelRowXml(
+      row.cells,
+      index + 1,
+      row.style === 'header' || row.style === 'section'
+        ? 1
+        : excelStyleIndex(row.fill),
+    ))
+    .join('')
+
+  return xmlDocument(`
+    <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+      <dimension ref="${sheetRange}"/>
+      <sheetViews><sheetView workbookViewId="0"/></sheetViews>
+      <cols>${columns}</cols>
+      <sheetData>${sheetRows}</sheetData>
+      ${autoFilterRange ? `<autoFilter ref="${autoFilterRange}"/>` : ''}
     </worksheet>
   `)
 }
