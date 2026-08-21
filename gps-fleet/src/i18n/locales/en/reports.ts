@@ -49,6 +49,7 @@ export default {
     averageFuelChart: 'Average Fuel Chart',
     averageEvery: 'Average every',
     minutes: 'minutes',
+    minimumDurationMinutes: 'Minimum duration',
     applyAverage: 'Apply average',
     fuelChartPlate: 'Plate',
     fuelChartDuration: 'Duration',

@@ -49,6 +49,7 @@ export default {
     averageFuelChart: 'กราฟน้ำมันเชื้อเพลิงเฉลี่ย',
     averageEvery: 'เฉลี่ยทุก',
     minutes: 'นาที',
+    minimumDurationMinutes: 'จำนวนนาทีขั้นต่ำ',
     applyAverage: 'ปรับค่าเฉลี่ย',
     fuelChartPlate: 'ทะเบียนรถ',
     fuelChartDuration: 'ช่วงเวลา',

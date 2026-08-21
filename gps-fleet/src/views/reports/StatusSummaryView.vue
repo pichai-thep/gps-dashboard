@@ -48,6 +48,15 @@
             showClear
           />
         </div>
+        <div class="custom-filter-field">
+          <label>{{ t('minimumDurationMinutes') }}</label>
+          <InputNumber
+            v-model="durationMinutes"
+            :min="0"
+            :maxFractionDigits="0"
+            :suffix="` ${t('minutes')}`"
+          />
+        </div>
       </template>
     </BaseReportFilters>
 
@@ -89,6 +98,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
+import InputNumber from 'primevue/inputnumber'
 import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
 import VehicleStatusBadge from '@/components/VehicleStatusBadge.vue'
 import ReportDataTable, { type ReportTableColumn } from '@/components/reports/ReportDataTable.vue'
@@ -125,6 +135,7 @@ const selectedVehicles = ref<string[]>([])
 const groupOptions = ref<any[]>([])
 const vehicleOptions = ref<any[]>([])
 const status = ref<string | null>(null)
+const durationMinutes = ref<number | null>(0)
 
 const rows = ref<StatusSummaryRow[]>([])
 const page = ref(1)
@@ -207,6 +218,7 @@ async function resetFilter() {
   selectedGroups.value = []
   selectedVehicles.value = []
   status.value = null
+  durationMinutes.value = 0
 
   const nowDate = new Date()
   const yesterdayDate = new Date()
@@ -244,6 +256,7 @@ async function loadData() {
       group_ids: selectedGroups.value,
       imeis: selectedVehicles.value,
       status: status.value || '',
+      duration_minutes: durationMinutes.value ?? 0,
       page: page.value,
       per_page: perPage.value,
       sort_by: sortField.value,
@@ -299,6 +312,7 @@ async function exportCsv() {
     group_ids: selectedGroups.value,
     imeis: selectedVehicles.value,
     status: status.value || '',
+    duration_minutes: durationMinutes.value ?? 0,
     page: 1,
     per_page: totalRows.value || 100000,
     sort_by: sortField.value,
@@ -340,6 +354,7 @@ async function savePdf() {
     group_ids: selectedGroups.value,
     imeis: selectedVehicles.value,
     status: status.value || '',
+    duration_minutes: durationMinutes.value ?? 0,
     page: 1,
     per_page: totalRows.value || 100000,
     sort_by: sortField.value,

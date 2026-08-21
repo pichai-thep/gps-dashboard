@@ -259,6 +259,7 @@ class ReportController extends Controller
         $sortOrder = $request->query('sort_order', 'desc');
 
         $status = $request->query('status', '');
+        $durationMinutes = max((int) $request->query('duration_minutes', 0), 0);
 
         $isExport = filter_var($request->query('export', false), FILTER_VALIDATE_BOOLEAN);
 
@@ -275,12 +276,13 @@ class ReportController extends Controller
 
         $pdo = DB::connection($connection)->getPdo();
 
-        $stmt = $pdo->prepare('CALL sp_report_status_summary(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('CALL sp_report_status_summary(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
             $user->login,
             $dateFrom,
             $dateTo,
             $status,
+            $durationMinutes,
             $imeiCsv,
             $groupIdCsv,
             $page,

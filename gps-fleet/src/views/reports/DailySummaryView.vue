@@ -172,9 +172,9 @@ const summaryItems = computed<ReportSummaryItem[]>(() => [
   { key: 'vehicles', label: t('totalVehicles'), value: formatReportInteger(summary.value.total_vehicle) },
   { key: 'distance', label: t('totalDistance'), value: formatKm(summary.value.distance_m) },
   { key: 'ur-rate', label: t('urRateAvg'), value: formatPercent(avgUrRate.value), className: 'ur-rate' },
-  { key: 'running', label: t('running'), value: formatDuration(summary.value.run_time_s), className: 'running' },
-  { key: 'idle', label: t('idle'), value: formatDuration(summary.value.idle_time_s), className: 'idle' },
-  { key: 'parking', label: t('parking'), value: formatDuration(summary.value.park_time_s), className: 'parking' },
+  { key: 'running', label: `${t('running')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.run_time_s), className: 'running' },
+  { key: 'idle', label: `${t('idle')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.idle_time_s), className: 'idle' },
+  { key: 'parking', label: `${t('parking')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.park_time_s), className: 'parking' },
 ])
 
 async function onPage(event: any) {
@@ -283,6 +283,17 @@ function toDateString(date: Date | null) {
 
 function formatDuration(seconds: number) {
   return formatReportDuration(seconds, 'duration_s')
+}
+
+function formatSummaryDuration(seconds: number) {
+  const totalMinutes = Math.max(0, Math.floor(Number(seconds) / 60))
+  const days = Math.floor(totalMinutes / (24 * 60))
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60)
+  const minutes = totalMinutes % 60
+
+  return [days, hours, minutes]
+    .map((value) => String(value).padStart(2, '0'))
+    .join(':')
 }
 
 function formatKm(meter: number) {

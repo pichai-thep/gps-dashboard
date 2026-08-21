@@ -114,6 +114,7 @@ export async function getStatusSummary(params: {
     group_ids?: number[]
     imeis?: string[]
     status?: string
+    duration_minutes?: number
     page?: number
     per_page?: number
     sort_by?: string

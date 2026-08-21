@@ -11,9 +11,9 @@ CALL sp_sum_gps_report_daily('2026-05-29');
 CALL sp_report_daily_summary('sae','2026-07-30','2026-07-31','','',1,100,'distance_m','desc');
 
 
-CALL sp_report_status_summary('sae','2026-05-01','2026-05-31',null,'','',1,100,'data_date','desc');
-CALL sp_report_status_summary('sae','2026-05-01','2026-05-31','run','','1,2',1,100,'data_date','desc');
-CALL sp_report_status_summary('sae','2026-05-01','2026-05-31',null,'864606041741959,864606041747246,864022083721075,860470063304947','',1,100,'data_date','desc');
+CALL sp_report_status_summary('sae','2026-05-01','2026-05-31',null,0,'','',1,100,'data_date','desc');
+CALL sp_report_status_summary('sae','2026-05-01','2026-05-31','run',5,'','1,2',1,100,'data_date','desc');
+CALL sp_report_status_summary('sae','2026-05-01','2026-05-31',null,0,'864606041741959,864606041747246,864022083721075,860470063304947','',1,100,'data_date','desc');
 
 CALL sp_report_station_summary('sae','2026-05-01','2026-05-31',0,'','',1,50,'data_date','desc');
 CALL sp_report_station_summary('sae','2026-05-01','2026-05-31',0,'864606041741959,864606041747246,864022083721075,860470063304947','1,2',1,50,'data_date','desc');
