@@ -134,7 +134,7 @@ END IF;
             g.gps_status,
             g.num_sats,
             fn_fuel_percent(t.input_fuel,t.tracker_model,g.ad,t.fuel_min_vol,t.fuel_max_vol,t.input_fuel_reverse),
-            fn_temperature(t.tracker_model, g.ad, t.input_temp),
+            fn_temperature(t.tracker_model, g.temp, t.input_temp),
             fn_input(t.tracker_model, g.state, 1, t.input_1_reverse) as in1,
 			fn_input(t.tracker_model, g.state, 2, t.input_2_reverse) as in2,
             CASE
@@ -189,7 +189,7 @@ SELECT
     g.gps_status,
     g.num_sats,
     fn_fuel_percent(t.input_fuel, t.tracker_model,g.ad,t.fuel_min_vol,t.fuel_max_vol,t.input_fuel_reverse),
-    fn_temperature(t.tracker_model, g.ad, t.input_temp),
+    fn_temperature(t.tracker_model, g.temp, t.input_temp),
     fn_input(t.tracker_model, g.state, t.input_1, t.input_1_reverse) as in1,
     fn_input(t.tracker_model, g.state, t.input_2, t.input_2_reverse) as in2	,
     CASE

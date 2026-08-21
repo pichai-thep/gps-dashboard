@@ -28,7 +28,7 @@ BEGIN
 		set temp = (select t from temp_resistance where (resistance >= r_min) and (resistance <= r_max) limit 0,1);
 		if temp is null then
 			set temp = (select t from temp_resistance order by abs(r_center-resistance) asc limit 0,1);
-end if;
+        end if;
         set temp_return =  cast(temp as decimal(5,1));
         
 	elseif p_model = 'Totemtech' then
@@ -38,11 +38,11 @@ end if;
 	elseif p_model = 'Totem-107-4G' then
 		set temp_return = cast(p_string as decimal(5,1));	
 	elseif p_model = 'Totem-109-3G' then
-		set temp_return = g.temp;
+		set temp_return = cast(p_string as decimal(5,1));
 	elseif p_model = 'Ruptela' then
 		set temp_return = cast(p_string as decimal(5,1));
 	elseif p_model = 'Teltonika' then
-		set temp_return = g.temp;
+		set temp_return = cast(p_string as decimal(5,1));
 end if;
 
 

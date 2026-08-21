@@ -71,6 +71,11 @@
           <strong>{{ popupVehicle.fuel_left ?? '' }} %</strong>
         </div>
 
+        <div class="popup-row" v-if="hasValue(popupVehicle.temperature)">
+          <span>{{ t('temperature') }}</span>
+          <strong>{{ popupVehicle.temperature }} °C</strong>
+        </div>
+
         <div
             v-if="
               showPassenger &&

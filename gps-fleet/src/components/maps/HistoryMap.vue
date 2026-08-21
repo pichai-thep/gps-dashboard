@@ -49,6 +49,14 @@
           <strong>{{ popupData.speed }} km/h</strong>
         </div>
 
+        <div
+            v-if="popupData.temperature !== null && popupData.temperature !== undefined && popupData.temperature !== ''"
+            class="popup-row"
+        >
+          <span>{{ t('temperature') }}</span>
+          <strong>{{ popupData.temperature }} °C</strong>
+        </div>
+
         <div class="popup-row" v-if="showInput1">
           <span>{{ t('input1') }}</span>
           <strong>{{ getInputText(popupData.input1) }}</strong>
@@ -216,6 +224,7 @@ type HistoryPoint = {
   track3?: string
   input1?: string | number | boolean | null
   input2?: string | number | boolean | null
+  temperature?: string | number | null
 }
 
 const props = defineProps<{
@@ -790,6 +799,7 @@ function showPopup(
     track3: point.track3,
     input1: point.input1 ?? null,
     input2: point.input2 ?? null,
+    temperature: point.temperature ?? null,
   }
 
   popupOverlay?.setPosition(coordinate)
