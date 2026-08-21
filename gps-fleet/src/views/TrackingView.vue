@@ -193,6 +193,21 @@
                 {{ slotProps.data.speed ?? 0 }} km/h
               </div>
 
+              <span
+                  v-if="isGpsUnplugged(slotProps.data)"
+                  class="gps-unplugged"
+                  v-tooltip="gpsUnpluggedTooltip(slotProps.data)"
+                  role="img"
+                  :aria-label="t('gpsUnplugged')"
+              >
+                <img
+                    src="/icons/car-battery-red.svg"
+                    class="gps-unplugged-icon"
+                    alt=""
+                    aria-hidden="true"
+                />
+              </span>
+
               <div class="fuel-badge" v-if="slotProps.data.fuel_left!=null">
                 <i class="pi pi-car"></i>
                 {{ t('fuel') }}: {{ formatFuel(slotProps.data.fuel_left) }}
@@ -884,6 +899,24 @@ function isNoDriverCard(vehicle: any): boolean {
   return dltSynch === 1
       && vehicle.acc_state === true
       && !String(vehicle.track3 ?? '').trim()
+      && vehicle.status !== 'offline'
+}
+
+function isGpsUnplugged(vehicle: Vehicle): boolean {
+  return vehicle.ext_power_status !== null
+      && vehicle.ext_power_status !== undefined
+      && Number(vehicle.ext_power_status) === 0
+}
+
+function gpsUnpluggedTooltip(vehicle: Vehicle): string {
+  if (vehicle.ext_power === null || vehicle.ext_power === undefined) {
+    return t('gpsUnplugged')
+  }
+
+  const extPower = Number(vehicle.ext_power)
+  return Number.isFinite(extPower)
+      ? `${t('gpsUnplugged')} (${extPower.toFixed(2)} V)`
+      : t('gpsUnplugged')
 }
 
 function getStatusIcon(status: VehicleStatus) {
@@ -912,7 +945,7 @@ function getStatusIconStyle(status: VehicleStatus, heading?: number | null) {
 function getDriverStatus(vehicle: any): DriverStatus {
   const dltSynch = Number(vehicle.dltSynch ?? vehicle.dlt_synch ?? 0)
 
-  if (dltSynch !== 1) {
+  if (dltSynch !== 1 || vehicle.status === 'offline') {
     return 'hide'
   }
 
@@ -1488,6 +1521,21 @@ onBeforeUnmount(() => {
   font-weight: 500;
   line-height: 2;
   white-space: nowrap;
+}
+
+.gps-unplugged {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 6px;
+  color: #ef4444;
+}
+
+.gps-unplugged-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  filter: drop-shadow(0 0 4px rgba(201, 26, 26, 0.45));
 }
 
 .fuel-badge {

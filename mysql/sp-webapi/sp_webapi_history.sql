@@ -78,6 +78,7 @@ END IF;
         event_code VARCHAR(10),
         engine_volt DECIMAL(5,2),
         ext_power DECIMAL(5,2),
+        ext_power_status TINYINT,
         state VARCHAR(1),
         speed MEDIUMINT,
         speed_limited MEDIUMINT,
@@ -110,7 +111,7 @@ END IF;
     SET v_sql = CONCAT(
         'INSERT IGNORE INTO tmp_raw (
             gpsdata_id, imei, tracker_model, plate_no, data_date, event_code,
-            engine_volt, ext_power, state, speed, speed_limited,
+            engine_volt, ext_power, ext_power_status, state, speed, speed_limited,
             lat, lng, heading, gps_status, num_sats, fuel_left,
             temperature, input1, input2, car_status, address, track1, track3
         )
@@ -123,6 +124,7 @@ END IF;
             g.event_code,
             t.engine_volt,
             g.ext_power,
+            g.ext_power_status,
             fn_acc_state(t.tracker_model, t.input_acc, g.state, g.speed),
             IFNULL(g.speed, 0),
             t.speed_limited,
@@ -164,7 +166,7 @@ DEALLOCATE PREPARE stmt;
 
 INSERT IGNORE INTO tmp_raw (
     gpsdata_id, imei, tracker_model, plate_no, data_date, event_code,
-    engine_volt, ext_power, state, speed, speed_limited,
+    engine_volt, ext_power, ext_power_status, state, speed, speed_limited,
     lat, lng, heading, gps_status, num_sats, fuel_left,
     temperature, input1, input2, car_status, address, track1, track3
 )
@@ -177,6 +179,7 @@ SELECT
     g.event_code,
     t.engine_volt,
     g.ext_power,
+    g.ext_power_status,
     fn_acc_state(t.tracker_model, t.input_acc, g.state, g.speed),
     IFNULL(g.speed, 0),
     t.speed_limited,
@@ -223,6 +226,7 @@ DROP TEMPORARY TABLE IF EXISTS tmp_state1;
         event_code VARCHAR(10),
         engine_volt DECIMAL(5,2),
         ext_power DECIMAL(5,2),
+        ext_power_status TINYINT,
         state VARCHAR(1),
         speed MEDIUMINT,
         speed_limited MEDIUMINT,
@@ -251,13 +255,13 @@ DROP TEMPORARY TABLE IF EXISTS tmp_state1;
 
 INSERT INTO tmp_state1 (
     gpsdata_id, imei, tracker_model, plate_no, data_date, event_code,
-    engine_volt, ext_power, `state`, speed, speed_limited,
+    engine_volt, ext_power, ext_power_status, `state`, speed, speed_limited,
     lat, lng, heading, gps_status, num_sats,
     fuel_left, temperature, input1, input2, car_status, address, track1, track3
 )
 SELECT
     gpsdata_id, imei, tracker_model, plate_no, data_date, event_code,
-    engine_volt, ext_power, `state`, speed, speed_limited,
+    engine_volt, ext_power, ext_power_status, `state`, speed, speed_limited,
     lat, lng, heading, gps_status, num_sats,
     fuel_left, temperature, input1, input2, car_status, address, track1, track3
 FROM tmp_raw
@@ -282,6 +286,7 @@ SELECT
     event_code,
     engine_volt,
     ext_power,
+    ext_power_status,
     `state`,
     speed,
     speed_limited,
@@ -387,6 +392,7 @@ SELECT gpsdata_id,
        event_code,
        engine_volt,
        ext_power,
+       ext_power_status,
        `state`,
        speed,
        speed_limited,

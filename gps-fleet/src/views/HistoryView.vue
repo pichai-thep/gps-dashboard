@@ -211,6 +211,7 @@
                           getHistoryDriverStatus(data) !== 'hide' ||
                           data.fuel_left !== null ||
                           data.temperature !== null ||
+                          isGpsUnplugged(data) ||
                           showInputColumn
                         "
                       class="optional-line"
@@ -264,6 +265,20 @@
                       <span>{{ t('temp') }}</span>
                       <strong>{{ data.temperature }}</strong>
                     </div>
+
+                    <span
+                        v-if="isGpsUnplugged(data)"
+                        class="history-gps-unplugged"
+                        v-tooltip="gpsUnpluggedTooltip(data)"
+                        role="img"
+                        :aria-label="t('gpsUnplugged')"
+                    >
+                      <img
+                          src="/icons/car-battery-red.svg"
+                          alt=""
+                          aria-hidden="true"
+                      />
+                    </span>
 
                   </div>
 
@@ -811,6 +826,13 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
         item.fuel ??
         null,
 
+    ext_power: item.ext_power ?? item.extPower ?? null,
+    ext_power_status:
+        item.ext_power_status ??
+        item.extPowerStatus ??
+        item.power_status ??
+        null,
+
     temperature:
         item.temperature ??
         item.temp ??
@@ -836,6 +858,23 @@ function normalizeHistoryPoint(item: any): HistoryPoint {
         null,
   }
 
+}
+
+function isGpsUnplugged(point: HistoryPoint): boolean {
+  return point.ext_power_status !== null
+      && point.ext_power_status !== undefined
+      && Number(point.ext_power_status) === 0
+}
+
+function gpsUnpluggedTooltip(point: HistoryPoint): string {
+  if (point.ext_power === null || point.ext_power === undefined) {
+    return t('gpsUnplugged')
+  }
+
+  const extPower = Number(point.ext_power)
+  return Number.isFinite(extPower)
+      ? `${t('gpsUnplugged')} (${extPower.toFixed(2)} V)`
+      : t('gpsUnplugged')
 }
 
 function getHistoryDriverStatus(data: any): 'ok' | 'missing' | 'hide' {
@@ -1500,6 +1539,24 @@ watch(datetime1, (newValue) => {
 .sensor-chip.fuel strong { color: #4ade80; }
 .sensor-chip.temp strong { color: #fb923c; }
 .sensor-chip.di strong { color: #a78bfa; }
+
+.history-gps-unplugged {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid rgba(201, 26, 26, 0.35);
+  border-radius: 10px;
+  background: rgba(201, 26, 26, 0.08);
+}
+
+.history-gps-unplugged img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  filter: drop-shadow(0 0 4px rgba(201, 26, 26, 0.45));
+}
 
 .address-text {
   color: #94a3b8;

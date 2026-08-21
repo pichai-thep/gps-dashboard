@@ -13,6 +13,7 @@ export default {
     engineCut: 'Engine cut',
     engineCutCancel: 'Cancel engine cut',
     errorTrackingLoadFailed: 'Failed to load tracking data',
+    gpsUnplugged: 'GPS tracker unplugged',
     trackingRateLimited: 'Too many requests. Tracking will retry automatically.',
     noDriverLicense: 'No driver license',
     onMapVehicles: 'vehicles on map',

@@ -85,6 +85,10 @@ class HistoryController extends Controller
         $rows = array_map(static function (array $row) use ($dltSynch, $dltCardReader): array {
             $row['dlt_synch'] = (int) ($row['dlt_synch'] ?? $dltSynch);
             $row['dlt_card_reader'] = (int) ($row['dlt_card_reader'] ?? $dltCardReader);
+            $row['ext_power_status'] = array_key_exists('ext_power_status', $row)
+                && $row['ext_power_status'] !== null
+                    ? (int) $row['ext_power_status']
+                    : null;
             return $row;
         }, $rows);
 

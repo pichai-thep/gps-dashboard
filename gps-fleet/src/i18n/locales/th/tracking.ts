@@ -13,6 +13,7 @@ export default {
     engineCut: 'ดับเครื่อง',
     engineCutCancel: 'ยกเลิกดับเครื่อง',
     errorTrackingLoadFailed: 'โหลดข้อมูลไม่ได้',
+    gpsUnplugged: 'กล่อง GPS ถูกถอดปลั๊ก',
     trackingRateLimited: 'มีการเรียกข้อมูลถี่เกินไป ระบบจะลองใหม่อัตโนมัติ',
     noDriverLicense: 'ไม่มีใบขับขี่',
     onMapVehicles: 'คันบนแผนที่',

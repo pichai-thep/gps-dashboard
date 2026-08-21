@@ -32,6 +32,8 @@ export type Vehicle = {
     track3?: string
 
     fuel_left?: number | string | null
+    ext_power?: number | null
+    ext_power_status?: number | null
     temperature?: string
     passenger_num?: number | string | null
 

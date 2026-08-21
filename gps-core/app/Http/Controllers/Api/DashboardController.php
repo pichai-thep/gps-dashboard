@@ -85,7 +85,8 @@ class DashboardController extends Controller
             $driverStatus = $this->resolveDriverStatus($row);
             $isDltSynched = (int) ($row->dlt_synch ?? 0) === 1;
             $isAccOn = $this->resolveAcc($row);
-            $hasDriverCard = trim((string) ($row->track3 ?? '')) !== '';
+            $track3 = $row->track3 ?? null;
+            $isTrack3Empty = $track3 === null || trim((string) $track3) === '';
             $hasDriverCardData =
                 trim((string) ($row->track1 ?? '')) !== '' ||
                 trim((string) ($row->track3 ?? '')) !== '';
@@ -109,7 +110,8 @@ class DashboardController extends Controller
             if (
                 $isDltSynched &&
                 $isAccOn &&
-                !$hasDriverCard
+                $isTrack3Empty &&
+                $status !== 'offline'
             ) {
                 $drivingWithoutCard++;
             }

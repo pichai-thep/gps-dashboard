@@ -42,6 +42,8 @@ export interface HistoryPoint {
     gps_status?: string
     num_sats?: number
     fuel_left?: number
+    ext_power?: number | null
+    ext_power_status?: number | null
     temperature?: string
     fuel_per?: number
     address?: string

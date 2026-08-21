@@ -267,6 +267,8 @@ class TrackingController extends Controller
 
     private function transformVehicle($row): array
     {
+        $status = $this->resolveStatus($row);
+
         return [
             'imei' => $row->imei,
             'plate_no' => $row->plate_no,
@@ -275,15 +277,19 @@ class TrackingController extends Controller
             'speed' => (float) $row->speed,
             'gps_time' => $row->date_sort,
             'received_time' => $row->received_date,
-            'status' => $this->resolveStatus($row),
+            'status' => $status,
             'heading' => (int) ($row->heading ?? 0),
             'fuel_left' => $row->fuel_left,
+            'ext_power' => isset($row->ext_power) ? (float) $row->ext_power : null,
+            'ext_power_status' => isset($row->ext_power_status)
+                ? (int) $row->ext_power_status
+                : (isset($row->power_status) ? (int) $row->power_status : null),
             'temperature' => $row->temperature,
             'icon_path' => $row->icon_path ?? '',
             'icon' => $row->icon_path ?? 'bus',
             'driver_name' => $row->driver_name ?? null,
             'driver_phone' => $row->driver_phone ?? null,
-            'driver_status' => $this->resolveDriverStatus($row),
+            'driver_status' => $this->resolveDriverStatus($row, $status),
             'acc_state' => $this->resolveAcc($row),
             'input1' => $row->input1 ?? null,
             'input2' => $row->input2 ?? null,
@@ -356,12 +362,12 @@ class TrackingController extends Controller
         ], true);
     }
 
-    private function resolveDriverStatus($row): string
+    private function resolveDriverStatus($row, ?string $status = null): string
     {
         $dltSynch = (int) ($row->dlt_synch ?? 0);
         $track3 = trim((string) ($row->track3 ?? ''));
 
-        if ($dltSynch !== 1) {
+        if ($dltSynch !== 1 || $status === 'offline') {
             return 'hide';
         }
 
@@ -376,7 +382,8 @@ class TrackingController extends Controller
     {
         return $this->isDltSynched($vehicle)
             && ($vehicle['acc_state'] ?? false) === true
-            && trim((string) ($vehicle['track3'] ?? '')) === '';
+            && trim((string) ($vehicle['track3'] ?? '')) === ''
+            && ($vehicle['status'] ?? null) !== 'offline';
     }
 
     private function isDltSynched(array $vehicle): bool
