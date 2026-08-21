@@ -223,9 +223,11 @@ class ReportController extends Controller
                 'total_rows' => $totalRows,
                 'total_vehicle' => (int) ($summary['total_vehicle'] ?? 0),
                 'run_time_s' => (int) ($summary['run_time_s'] ?? 0),
+                'run_withid_time_s' => (int) ($summary['run_withid_time_s'] ?? 0),
                 'idle_time_s' => (int) ($summary['idle_time_s'] ?? 0),
                 'park_time_s' => (int) ($summary['park_time_s'] ?? 0),
                 'distance_m' => (float) ($summary['distance_m'] ?? 0),
+                'distance_withid_m' => (float) ($summary['distance_withid_m'] ?? 0),
                 //                'ur_rate_avg' => $summary['ur_rate_avg'] !== null
                 //                    ? (float) $summary['ur_rate_avg']
                 //                    : null,

@@ -43,9 +43,11 @@ BEGIN
             WHEN 'imei'       THEN 'imei'
             WHEN 'plate_no'   THEN 'plate_no'
             WHEN 'run_time_s' THEN 'run_time_s'
+            WHEN 'run_withid_time_s' THEN 'run_withid_time_s'
             WHEN 'idle_time_s' THEN 'idle_time_s'
             WHEN 'park_time_s' THEN 'park_time_s'
             WHEN 'distance_m' THEN 'distance_m'
+            WHEN 'distance_withid_m' THEN 'distance_withid_m'
             WHEN 'ur_rate'    THEN 'ur_rate'
             WHEN 'updated_at' THEN 'updated_at'
             ELSE 'data_date'
@@ -64,9 +66,11 @@ BEGIN
         t.ur_rate_target_km,
         s.data_date,
         s.run_time_s,
+        s.run_withid_time_s,
         s.idle_time_s,
         s.park_time_s,
         s.distance_m,
+        s.distance_withid_m,
 
         CASE
             WHEN t.ur_rate_type = 'A' THEN 'A:Time-base'
@@ -167,9 +171,11 @@ BEGIN
         COUNT(*) AS total_rows,
         COUNT(DISTINCT imei) AS total_vehicle,
         COALESCE(SUM(run_time_s), 0) AS run_time_s,
+        COALESCE(SUM(run_withid_time_s), 0) AS run_withid_time_s,
         COALESCE(SUM(idle_time_s), 0) AS idle_time_s,
         COALESCE(SUM(park_time_s), 0) AS park_time_s,
         COALESCE(SUM(distance_m), 0) AS distance_m,
+        COALESCE(SUM(distance_withid_m), 0) AS distance_withid_m,
         ROUND(AVG(ur_rate), 2) AS ur_rate_avg
     FROM tmp_daily_summary_rows;
 

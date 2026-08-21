@@ -67,6 +67,7 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
     speed INT DEFAULT 0,
     g_point POINT DEFAULT NULL,
     acc_on TINYINT DEFAULT 0,
+    track3 VARCHAR(90) DEFAULT NULL,
     status_name VARCHAR(20) NOT NULL,
     PRIMARY KEY (seq),
     KEY idx_imei_seq (imei, seq),
@@ -75,7 +76,7 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
 
   SET @sql = CONCAT(
 	  'INSERT INTO tmp_day_points ',
-	  '(gpsdata_id, imei, data_date, speed, g_point, acc_on, status_name) ',
+	  '(gpsdata_id, imei, data_date, speed, g_point, acc_on, track3, status_name) ',
 	  'SELECT ',
 	  'x.gpsdata_id, ',
 	  'x.imei, ',
@@ -83,6 +84,7 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
 	  'x.speed, ',
 	  'x.g_point, ',
 	  'x.acc_on, ',
+	  'x.track3, ',
 	  'CASE ',
 	  ' WHEN x.acc_on = 1 AND x.speed >= 5 THEN ''RUN'' ',
 	  ' WHEN x.acc_on = 1 AND x.speed < 5 THEN ''IDLE'' ',
@@ -96,6 +98,7 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
 	  '  d.data_date, ',
 	  '  IFNULL(d.speed,0) AS speed, ',
 	  '  d.g_point, ',
+	  '  d.track3, ',
 	  '  IFNULL(CAST(NULLIF(fn_acc_state(t.tracker_model,t.input_acc,d.state,IFNULL(d.speed,0)), '''') AS UNSIGNED),0) AS acc_on ',
 	  ' FROM ', v_data_table, ' d ',
 	  ' INNER JOIN tracker t ON t.imei = d.box_imei ',
@@ -142,13 +145,19 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
   -- leave proc;
 
   INSERT INTO gps_sum_data (
-    imei, data_date, run_time_s, idle_time_s, park_time_s, distance_m, total_rows, updated_at
+    imei, data_date, run_time_s, run_withid_time_s, idle_time_s, park_time_s,
+    distance_m, distance_withid_m, total_rows, updated_at
   )
   SELECT
     x.imei,
     p_sum_date,
 
     SUM(CASE WHEN x.status_name = 'RUN'
+              AND x.time_diff_s BETWEEN 1 AND 300
+             THEN x.time_diff_s ELSE 0 END),
+
+    SUM(CASE WHEN x.status_name = 'RUN'
+              AND NULLIF(TRIM(x.track3), '') IS NOT NULL
               AND x.time_diff_s BETWEEN 1 AND 300
              THEN x.time_diff_s ELSE 0 END),
 
@@ -170,6 +179,19 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
         ELSE 0
       END
     )),
+
+    ROUND(SUM(
+      CASE
+        WHEN NULLIF(TRIM(x.track3), '') IS NOT NULL
+                AND (x.speed >= 5 OR x.next_speed >= 5)
+				AND x.time_diff_s BETWEEN 1 AND 300
+				AND x.distance_m <= 3000
+				AND (x.distance_m / x.time_diff_s) * 3.6 <= 180
+        THEN x.distance_m
+        ELSE 0
+      END
+    )),
+
     COUNT(x.seq),
     NOW()
   FROM (
@@ -177,6 +199,7 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
 	  a.seq,
       a.imei,
       a.status_name,
+      a.track3,
       a.speed,
       b.speed AS next_speed,
       TIMESTAMPDIFF(SECOND, a.data_date, b.data_date) AS time_diff_s,

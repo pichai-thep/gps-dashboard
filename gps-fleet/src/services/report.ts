@@ -44,9 +44,11 @@ export interface DailySummaryRow {
     plate_no: string
     data_date: string
     run_time_s: number
+    run_withid_time_s: number
     idle_time_s: number
     park_time_s: number
     distance_m: number
+    distance_withid_m: number
     ur_formula?: string
     ur_rate?: number | null
     updated_at: string
@@ -58,9 +60,11 @@ export interface DailySummaryResponse {
         total_rows: number
         total_vehicle: number
         run_time_s: number
+        run_withid_time_s: number
         idle_time_s: number
         park_time_s: number
         distance_m: number
+        distance_withid_m: number
         ur_rate_avg?: number
     }
     pagination: ReportPagination

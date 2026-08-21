@@ -43,9 +43,19 @@
       @group-change="onGroupChange"
       @search="search"
       @reset="resetFilter"
-    />
+    >
+      <template #criteria>
+        <div class="custom-filter-field driver-id-column-filter">
+          <label>{{ t('visibleColumns') }}</label>
+          <div class="checkbox-filter">
+            <Checkbox v-model="showDriverIdColumns" inputId="show-driver-id-columns" binary />
+            <label for="show-driver-id-columns">{{ t('showDriverIdColumns') }}</label>
+          </div>
+        </div>
+      </template>
+    </BaseReportFilters>
 
-    <ReportSummaryCards :items="summaryItems" :columns="6" />
+    <ReportSummaryCards :items="summaryItems" :columns="showDriverIdColumns ? 8 : 6" />
 
     <div class="table-card">
 
@@ -71,7 +81,7 @@
             :value="formatDuration(data[column.field])"
             :severity="durationSeverity(column.field)"
           />
-          <b v-else-if="column.field === 'distance_m'">{{ formatKm(data.distance_m) }}</b>
+          <b v-else-if="distanceFields.includes(column.field)">{{ formatKm(data[column.field]) }}</b>
           <Tag v-else-if="column.field === 'ur_formula'" :value="data.ur_formula" severity="secondary" />
           <Tag
             v-else-if="column.field === 'ur_rate'"
@@ -88,6 +98,7 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import Tag from 'primevue/tag'
 import BaseReportFilters from '@/components/reports/BaseReportFilters.vue'
 import ReportDataTable, { type ReportTableColumn } from '@/components/reports/ReportDataTable.vue'
@@ -141,27 +152,40 @@ const totalRows = ref(0)
 const totalPages = ref(0)
 const sortField = ref('data_date')
 const sortOrder = ref<'asc' | 'desc'>('desc')
-const durationFields = ['run_time_s', 'idle_time_s', 'park_time_s']
+const showDriverIdColumns = ref(false)
+const durationFields = ['run_time_s', 'run_withid_time_s', 'idle_time_s', 'park_time_s']
+const distanceFields = ['distance_m', 'distance_withid_m']
+const driverIdFields = ['run_withid_time_s', 'distance_withid_m']
 
-const tableColumns = computed<ReportTableColumn[]>(() => [
-  { field: 'data_date', label: t('date'), width: '170px', minWidth: '170px', whiteSpace: 'nowrap' },
-  { field: 'plate_no', label: t('plate') },
-  { field: 'run_time_s', label: t('running'), width: '120px' },
-  { field: 'idle_time_s', label: t('idle'), width: '120px' },
-  { field: 'park_time_s', label: t('parking'), width: '120px' },
-  { field: 'distance_m', label: t('distance'), width: '150px' },
-  { field: 'ur_formula', label: t('formula'), sortable: false, width: '170px' },
-  { field: 'ur_rate', label: t('urRate'), width: '120px' },
-  { field: 'updated_at', label: t('updated'), width: '200px' },
-])
+const tableColumns = computed<ReportTableColumn[]>(() => {
+  const columns: ReportTableColumn[] = [
+    { field: 'data_date', label: t('date'), width: '120px', minWidth: '120px', whiteSpace: 'nowrap' },
+    { field: 'plate_no', label: t('plate') },
+    { field: 'run_time_s', label: t('running'), width: '100px', minWidth: '100px' },
+    { field: 'run_withid_time_s', label: t('runningWithId'), width: '100px', minWidth: '100px' },
+    { field: 'idle_time_s', label: t('idle'), width: '100px', minWidth: '100px' },
+    { field: 'park_time_s', label: t('parking'), width: '100px', minWidth: '100px' },
+    { field: 'distance_m', label: t('distance'), width: '100px', minWidth: '100px' },
+    { field: 'distance_withid_m', label: t('distanceWithId'), width: '100px', minWidth: '100px' },
+    { field: 'ur_formula', label: t('formula'), sortable: false, width: '100px', minWidth: '100px' },
+    { field: 'ur_rate', label: t('urRate'), width: '100px', minWidth: '100px' },
+    { field: 'updated_at', label: t('updated'), width: '140px', minWidth: '140px' },
+  ]
+
+  return showDriverIdColumns.value
+    ? columns
+    : columns.filter((column) => !driverIdFields.includes(column.field))
+})
 
 const summary = ref({
   total_rows: 0,
   total_vehicle: 0,
   run_time_s: 0,
+  run_withid_time_s: 0,
   idle_time_s: 0,
   park_time_s: 0,
   distance_m: 0,
+  distance_withid_m: 0,
   ur_rate_avg: 0,
 })
 
@@ -183,14 +207,22 @@ function calculateAverageUrRate(sourceRows: DailySummaryRow[]) {
   return total / count
 }
 
-const summaryItems = computed<ReportSummaryItem[]>(() => [
-  { key: 'vehicles', label: t('totalVehicles'), value: formatReportInteger(summary.value.total_vehicle) },
-  { key: 'distance', label: t('totalDistance'), value: formatKm(summary.value.distance_m) },
-  { key: 'ur-rate', label: t('urRateAvg'), value: formatPercent(avgUrRate.value), className: 'ur-rate' },
-  { key: 'running', label: `${t('running')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.run_time_s), className: 'running' },
-  { key: 'idle', label: `${t('idle')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.idle_time_s), className: 'idle' },
-  { key: 'parking', label: `${t('parking')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.park_time_s), className: 'parking' },
-])
+const summaryItems = computed<ReportSummaryItem[]>(() => {
+  const items: ReportSummaryItem[] = [
+    { key: 'vehicles', label: t('totalVehicles'), value: formatReportInteger(summary.value.total_vehicle) },
+    { key: 'distance', label: t('totalDistance'), value: formatKm(summary.value.distance_m) },
+    { key: 'distance-with-id', label: t('totalDistanceWithId'), value: formatKm(summary.value.distance_withid_m) },
+    { key: 'ur-rate', label: t('urRateAvg'), value: formatPercent(avgUrRate.value), className: 'ur-rate' },
+    { key: 'running', label: `${t('running')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.run_time_s), className: 'running' },
+    { key: 'running-with-id', label: `${t('runningWithId')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.run_withid_time_s), className: 'running' },
+    { key: 'idle', label: `${t('idle')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.idle_time_s), className: 'idle' },
+    { key: 'parking', label: `${t('parking')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.park_time_s), className: 'parking' },
+  ]
+
+  return showDriverIdColumns.value
+    ? items
+    : items.filter((item) => !['distance-with-id', 'running-with-id'].includes(item.key))
+})
 
 async function onPage(event: any) {
   perPage.value = event.rows
@@ -214,6 +246,7 @@ async function onSort(event: any) {
 async function resetFilter() {
   selectedGroups.value = []
   selectedVehicles.value = []
+  showDriverIdColumns.value = false
 
   const nowDate = new Date()
   const yesterdayDate = new Date()
@@ -236,9 +269,11 @@ async function resetFilter() {
     total_rows: 0,
     total_vehicle: 0,
     run_time_s: 0,
+    run_withid_time_s: 0,
     idle_time_s: 0,
     park_time_s: 0,
     distance_m: 0,
+    distance_withid_m: 0,
     ur_rate_avg: 0,
   }
 
@@ -316,7 +351,7 @@ function formatKm(meter: number) {
 }
 
 function durationSeverity(field: string) {
-  if (field === 'run_time_s') return 'success'
+  if (field === 'run_time_s' || field === 'run_withid_time_s') return 'success'
   if (field === 'idle_time_s') return 'warning'
   return 'info'
 }
@@ -343,9 +378,11 @@ async function loadData() {
       total_rows: res.summary?.total_rows ?? 0,
       total_vehicle: res.summary?.total_vehicle ?? 0,
       run_time_s: res.summary?.run_time_s ?? 0,
+      run_withid_time_s: res.summary?.run_withid_time_s ?? 0,
       idle_time_s: res.summary?.idle_time_s ?? 0,
       park_time_s: res.summary?.park_time_s ?? 0,
       distance_m: res.summary?.distance_m ?? 0,
+      distance_withid_m: res.summary?.distance_withid_m ?? 0,
       ur_rate_avg: res.summary?.ur_rate_avg ?? 0,
     }
 
@@ -385,9 +422,11 @@ async function exportCsv() {
     'imei',
     'plate_no',
     'running',
+    ...(showDriverIdColumns.value ? ['running_with_driver_id'] : []),
     'idle',
     'parking',
     'distance_km',
+    ...(showDriverIdColumns.value ? ['distance_with_driver_id_km'] : []),
     'ur_formula',
     'ur_rate',
     'updated_at',
@@ -398,9 +437,11 @@ async function exportCsv() {
     r.imei,
     r.plate_no,
     formatDuration(r.run_time_s),
+    ...(showDriverIdColumns.value ? [formatDuration(r.run_withid_time_s)] : []),
     formatDuration(r.idle_time_s),
     formatDuration(r.park_time_s),
     formatDistanceKmFromMeters(r.distance_m, false),
+    ...(showDriverIdColumns.value ? [formatDistanceKmFromMeters(r.distance_withid_m, false)] : []),
     r.ur_formula,
     formatPercent(r.ur_rate),
     r.updated_at,
@@ -444,7 +485,7 @@ async function saveXlsx() {
     })
 
     const exportRows = res.data ?? []
-    const columnCount = 10
+    const columnCount = showDriverIdColumns.value ? 12 : 10
     const sectionRow = (title: string): ReportExcelSheetRow => ({
       cells: [title, ...Array(columnCount - 1).fill('')],
       style: 'section',
@@ -461,8 +502,14 @@ async function saveXlsx() {
       { cells: [t('totalRows'), formatReportInteger(res.summary?.total_rows ?? exportRows.length)] },
       { cells: [t('totalVehicles'), formatReportInteger(res.summary?.total_vehicle ?? 0)] },
       { cells: [t('totalDistance'), formatKm(res.summary?.distance_m ?? 0)] },
+      ...(showDriverIdColumns.value
+        ? [{ cells: [t('totalDistanceWithId'), formatKm(res.summary?.distance_withid_m ?? 0)] }]
+        : []),
       { cells: [t('urRateAvg'), formatPercent(exportAverageUrRate)] },
       { cells: [`${t('running')} (dd:hh:mm)`, formatSummaryDuration(res.summary?.run_time_s ?? 0)] },
+      ...(showDriverIdColumns.value
+        ? [{ cells: [`${t('runningWithId')} (dd:hh:mm)`, formatSummaryDuration(res.summary?.run_withid_time_s ?? 0)] }]
+        : []),
       { cells: [`${t('idle')} (dd:hh:mm)`, formatSummaryDuration(res.summary?.idle_time_s ?? 0)] },
       { cells: [`${t('parking')} (dd:hh:mm)`, formatSummaryDuration(res.summary?.park_time_s ?? 0)] },
       { cells: [] },
@@ -473,9 +520,11 @@ async function saveXlsx() {
           'IMEI',
           t('plate'),
           t('running'),
+          ...(showDriverIdColumns.value ? [t('runningWithId')] : []),
           t('idle'),
           t('parking'),
           `${t('distance')} (km)`,
+          ...(showDriverIdColumns.value ? [`${t('distanceWithId')} (km)`] : []),
           t('formula'),
           t('urRate'),
           t('updated'),
@@ -488,23 +537,26 @@ async function saveXlsx() {
           row.imei,
           row.plate_no,
           formatDuration(row.run_time_s),
+          ...(showDriverIdColumns.value ? [formatDuration(row.run_withid_time_s)] : []),
           formatDuration(row.idle_time_s),
           formatDuration(row.park_time_s),
           formatDistanceKmFromMeters(row.distance_m, false),
+          ...(showDriverIdColumns.value ? [formatDistanceKmFromMeters(row.distance_withid_m, false)] : []),
           row.ur_formula,
           formatPercent(row.ur_rate),
           row.updated_at,
         ],
       })),
     ]
-    const dataHeaderRow = 17
+    const dataHeaderRow = showDriverIdColumns.value ? 19 : 17
     const dataEndRow = dataHeaderRow + exportRows.length
+    const dataEndColumn = showDriverIdColumns.value ? 'L' : 'J'
 
     await downloadReportExcelSheet(
       `daily-summary-${toDateString(dateFrom.value)}-${toDateString(dateTo.value)}.xlsx`,
       t('dailySummaryReport'),
       xlsxRows,
-      `A${dataHeaderRow}:J${dataEndRow}`,
+      `A${dataHeaderRow}:${dataEndColumn}${dataEndRow}`,
     )
   } finally {
     xlsxLoading.value = false
@@ -533,9 +585,11 @@ async function savePdf() {
     row.imei,
     row.plate_no,
     formatDuration(row.run_time_s),
+    ...(showDriverIdColumns.value ? [formatDuration(row.run_withid_time_s)] : []),
     formatDuration(row.idle_time_s),
     formatDuration(row.park_time_s),
     formatDistanceKmFromMeters(row.distance_m, false),
+    ...(showDriverIdColumns.value ? [formatDistanceKmFromMeters(row.distance_withid_m, false)] : []),
     row.ur_formula,
     formatPercent(row.ur_rate),
     row.updated_at,
@@ -556,8 +610,14 @@ async function savePdf() {
       { label: t('totalRows'), value: formatReportInteger(res.summary?.total_rows ?? exportRows.length) },
       { label: t('totalVehicles'), value: formatReportInteger(res.summary?.total_vehicle ?? 0) },
       { label: t('totalDistance'), value: formatKm(res.summary?.distance_m ?? 0) },
+      ...(showDriverIdColumns.value
+        ? [{ label: t('totalDistanceWithId'), value: formatKm(res.summary?.distance_withid_m ?? 0) }]
+        : []),
       { label: t('urRateAvg'), value: formatPercent(calculateAverageUrRate(exportRows)) },
       { label: `${t('running')} (dd:hh:mm)`, value: formatSummaryDuration(res.summary?.run_time_s ?? 0) },
+      ...(showDriverIdColumns.value
+        ? [{ label: `${t('runningWithId')} (dd:hh:mm)`, value: formatSummaryDuration(res.summary?.run_withid_time_s ?? 0) }]
+        : []),
       { label: `${t('idle')} (dd:hh:mm)`, value: formatSummaryDuration(res.summary?.idle_time_s ?? 0) },
       { label: `${t('parking')} (dd:hh:mm)`, value: formatSummaryDuration(res.summary?.park_time_s ?? 0) },
     ],
@@ -567,9 +627,11 @@ async function savePdf() {
       'IMEI',
       t('plate'),
       t('running'),
+      ...(showDriverIdColumns.value ? [t('runningWithId')] : []),
       t('idle'),
       t('parking'),
       t('distance'),
+      ...(showDriverIdColumns.value ? [t('distanceWithId')] : []),
       t('formula'),
       t('urRate'),
       t('updated'),
@@ -605,6 +667,19 @@ onMounted(async () => {
 
 .summary-card.ur-rate strong {
   color: #c084fc;
+}
+
+.checkbox-filter {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  gap: 8px;
+}
+
+.checkbox-filter label {
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 </style>
