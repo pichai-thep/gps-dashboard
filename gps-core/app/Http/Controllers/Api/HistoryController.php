@@ -190,7 +190,6 @@ class HistoryController extends Controller
             'Longitude',
             'Fuel_left',
             'Temperature',
-            'Address',
         ];
 
         foreach ($rows as $index => $row) {
@@ -205,7 +204,6 @@ class HistoryController extends Controller
                 $row['lng'] ?? '',
                 $row['fuel_left'] ?? '',
                 $row['temperature'] ?? '',
-                $row['address'] ?? '',
             ];
         }
 
