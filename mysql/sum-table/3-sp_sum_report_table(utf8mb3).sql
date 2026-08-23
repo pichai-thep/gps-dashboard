@@ -3,34 +3,47 @@ DELIMITER $$
 DROP PROCEDURE IF EXISTS sp_sum_report_table $$
 CREATE PROCEDURE sp_sum_report_table(
   IN p_table_no INT,
-  IN p_sum_date DATE
+  IN p_sum_date DATE,
+  IN p_customer_id INT
 )
 proc: BEGIN
 
   DECLARE v_data_table VARCHAR(64) CHARACTER SET utf8 COLLATE utf8_general_ci;
-  DECLARE v_station_table VARCHAR(64) CHARACTER SET utf8 COLLATE utf8_general_ci;
   DECLARE v_log_id BIGINT DEFAULT 0;
+  DECLARE v_sqlstate CHAR(5) DEFAULT '00000';
+  DECLARE v_mysql_errno INT DEFAULT 0;
+  DECLARE v_error_message TEXT;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
+    GET DIAGNOSTICS CONDITION 1
+      v_sqlstate = RETURNED_SQLSTATE,
+      v_mysql_errno = MYSQL_ERRNO,
+      v_error_message = MESSAGE_TEXT;
+
     UPDATE gps_sum_log
     SET end_time = NOW(),
         status = 'ERROR',
-        error_message = 'SQL Exception'
+        error_message = CONCAT(
+          'customer_id=', COALESCE(CAST(p_customer_id AS CHAR), 'ALL'),
+          ', table=', COALESCE(v_data_table, CONCAT('table_no:', p_table_no)),
+          ', date=', COALESCE(CAST(p_sum_date AS CHAR), 'NULL'),
+          ', SQLSTATE=', v_sqlstate,
+          ', errno=', v_mysql_errno,
+          ', message=', COALESCE(v_error_message, 'Unknown SQL exception')
+        )
     WHERE id = v_log_id;
-    
-DROP TEMPORARY TABLE IF EXISTS tmp_day_points;
-DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
+
+    DROP TEMPORARY TABLE IF EXISTS tmp_day_points;
+    DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
 
     RESIGNAL;
   END;
 
   IF p_table_no = 0 THEN
     SET v_data_table = 'data_report';
-    SET v_station_table = 'station_data';
   ELSE
     SET v_data_table = CONCAT('data_report_', p_table_no);
-    SET v_station_table = CONCAT('station_data_', p_table_no);
   END IF;
 
   INSERT INTO gps_sum_log (process_date, table_no, start_time, status)
@@ -42,19 +55,31 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
   FROM gps_sum_data s
   INNER JOIN tracker t ON t.imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
   WHERE s.data_date = p_sum_date
-    AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci;
+    AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci
+    AND (
+      p_customer_id IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM customer_tracker ct
+        WHERE ct.tracker_imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
+          AND ct.customer_customer_id = p_customer_id
+      )
+    );
 
   DELETE s
   FROM gps_sum_status s
   INNER JOIN tracker t ON t.imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
   WHERE s.data_date = p_sum_date
-    AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci;
-
-  DELETE s
-  FROM gps_sum_station s
-  INNER JOIN tracker t ON t.imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
-  WHERE s.data_date = p_sum_date
-    AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci;
+    AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci
+    AND (
+      p_customer_id IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM customer_tracker ct
+        WHERE ct.tracker_imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
+          AND ct.customer_customer_id = p_customer_id
+      )
+    );
 
   DROP TEMPORARY TABLE IF EXISTS tmp_day_points;
   DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
@@ -125,6 +150,7 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
 	  '   INNER JOIN customer c ON c.customer_id = ct.customer_customer_id ',
 	  '   WHERE ct.tracker_imei COLLATE utf8_general_ci = t.imei COLLATE utf8_general_ci ',
 	  '     AND c.summary_report = 1 ',
+	  '     AND (? IS NULL OR ct.customer_customer_id = ?) ',
 	  ' ) ',
 	  ') x ',
 	  'ORDER BY x.imei, x.data_date, x.gpsdata_id'
@@ -133,9 +159,11 @@ DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
   SET @p_report_table = v_data_table;
   SET @p_date1 = p_sum_date;
   SET @p_date2 = p_sum_date;
+  SET @p_customer_id1 = p_customer_id;
+  SET @p_customer_id2 = p_customer_id;
 
   PREPARE stmt FROM @sql;
-  EXECUTE stmt USING @p_report_table, @p_date1, @p_date2;
+  EXECUTE stmt USING @p_report_table, @p_date1, @p_date2, @p_customer_id1, @p_customer_id2;
   DEALLOCATE PREPARE stmt;
 
   CREATE TEMPORARY TABLE tmp_day_points_next LIKE tmp_day_points;
@@ -289,7 +317,7 @@ BEGIN
   DECLARE v_table_no INT DEFAULT 0;
 
   WHILE v_table_no <= 50 DO
-    CALL sp_sum_report_table(v_table_no, p_sum_date);
+    CALL sp_sum_report_table(v_table_no, p_sum_date, NULL);
     SET v_table_no = v_table_no + 1;
   END WHILE;
 END $$

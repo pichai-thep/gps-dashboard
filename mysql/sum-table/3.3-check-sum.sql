@@ -1,12 +1,14 @@
 SELECT *
 FROM gps_sum_log
-WHERE process_date = curdate()-interval 1 day
+WHERE process_date = '2026-04-01'
+-- WHERE process_date = curdate()-interval 1 day
 ORDER BY start_time;
 
 SELECT *
 FROM gps_sum_data
-WHERE data_date = curdate()-interval 1 day
-	and imei='864022081185976'
+WHERE data_date = '2026-04-30'
+-- WHERE data_date = curdate()-interval 1 day
+	-- and imei='864022081185976'
 LIMIT 200;
 
 SELECT *

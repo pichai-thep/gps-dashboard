@@ -3,9 +3,10 @@ CALL sp_webapi_history('864606041741959','2026-05-29','2026-05-29','00:00','23:5
 
 CALL sp_move_gps_data_to_report(5000);
     
-CALL sp_sum_report_table(0,'2026-05-25');	-- execute report by report-table-index
+CALL sp_sum_report_table(0,'2026-05-25',NULL);	-- execute report by report-table-index
 CALL sp_sum_gps_report_daily(DATE_SUB(CURDATE(), INTERVAL 1 DAY));
 CALL sp_sum_gps_report_daily('2026-05-29');
+CALL sp_run_summary_report_by_customer(123, '2026-08-01', '2026-08-07');
 
 
 CALL sp_report_daily_summary('sae','2026-07-30','2026-07-31','','',1,100,'distance_m','desc');
