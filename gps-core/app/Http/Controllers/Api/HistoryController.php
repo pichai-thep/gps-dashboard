@@ -90,11 +90,14 @@ class HistoryController extends Controller
                     ? (int) $row['ext_power_status']
                     : null;
             $temperature = $row['temperature'] ?? null;
-            $row['temperature'] = $temperature !== null
-                && $temperature !== ''
-                && is_numeric($temperature)
+            if ($temperature !== null) {
+                $temperature = trim((string) $temperature);
+            }
+            $row['temperature'] = $temperature === null || $temperature === ''
+                ? null
+                : (is_numeric($temperature)
                     ? number_format((float) $temperature, 1, '.', '')
-                    : null;
+                    : $temperature);
             return $row;
         }, $rows);
 

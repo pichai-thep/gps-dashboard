@@ -6,7 +6,7 @@ CREATE FUNCTION `fn_temperature`(
     p_string varchar(24),
     p_temp_input tinyint
 
-) RETURNS decimal(5,1)
+) RETURNS varchar(12)
     DETERMINISTIC
 BEGIN
 
@@ -14,7 +14,7 @@ BEGIN
 	declare ad_dec int;
 	declare resistance decimal(8,4);
 	declare temp int;
-    declare temp_return decimal(5,1);
+    declare temp_return varchar(12);
 
 	if p_temp_input is null OR p_temp_input = -1 then		
 		return null;
@@ -38,7 +38,9 @@ BEGIN
 	elseif p_model = 'Totem-107-4G' then
 		set temp_return = cast(p_string as decimal(5,1));	
 	elseif p_model = 'Totem-109-3G' then
-		set temp_return = cast(p_string as decimal(5,1));
+
+		set temp_return = p_string;
+
 	elseif p_model = 'Ruptela' then
 		set temp_return = cast(p_string as decimal(5,1));
 	elseif p_model = 'Teltonika' then
