@@ -243,6 +243,10 @@ class TrackingController extends Controller
         int $offset,
         int $perPage
     ): array {
+//        $stmt = $pdo->prepare("
+//            CALL sp_webapi_current_track_passenger(?, ?, ?, ?, ?, ?, ?, ?, ?)
+//        ");
+
         $stmt = $pdo->prepare("
             CALL sp_api_current_track_passenger(?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
