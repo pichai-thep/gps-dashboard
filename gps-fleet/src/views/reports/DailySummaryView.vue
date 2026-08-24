@@ -687,7 +687,6 @@ async function savePdf() {
   const exportRows = res.data ?? []
   const printRows = exportRows.map((row: any) => [
     row.data_date,
-    row.imei,
     row.plate_no,
     formatDuration(row.run_time_s),
     ...(showDriverIdColumns.value ? [formatDuration(row.run_withid_time_s)] : []),
@@ -702,7 +701,6 @@ async function savePdf() {
     formatReportInteger(row.speed_over_cloud_count),
     formatReportInteger(row.speed_over_device_count),
     ...(showUrRateColumns.value ? [row.ur_formula, formatPercent(row.ur_rate)] : []),
-    row.updated_at,
   ])
 
   renderReportPrintWindow(target, {
@@ -740,9 +738,12 @@ async function savePdf() {
       { label: t('parkCount'), value: formatReportInteger(res.summary?.park_count ?? 0) },
     ],
     dataTitle: t('xlsxData'),
+    columnWidths: [
+      undefined, undefined, undefined, undefined, undefined,
+      '5%', '5%', '6%', '6%', '6%', '5%', '5%',
+    ],
     headers: [
       t('date'),
-      'IMEI',
       t('plate'),
       t('running'),
       ...(showDriverIdColumns.value ? [t('runningWithId')] : []),
@@ -757,7 +758,6 @@ async function savePdf() {
       t('speedOverCloudCount'),
       t('speedOverDeviceCount'),
       ...(showUrRateColumns.value ? [t('formula'), t('urRate')] : []),
-      t('updated'),
     ],
     rows: printRows,
   })

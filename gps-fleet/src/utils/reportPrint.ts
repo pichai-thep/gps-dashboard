@@ -37,6 +37,7 @@ export function renderReportPrintWindow(
         summaryTitle?: string
         dataTitle?: string
         wide?: boolean
+        columnWidths?: Array<string | undefined>
     }
 ) {
     const logoUrl = new URL(
@@ -47,6 +48,12 @@ export function renderReportPrintWindow(
     const headerHtml = options.headers
         .map((header) => `<th>${escapeHtml(header)}</th>`)
         .join('')
+    const columnGroupHtml = options.columnWidths?.length
+        ? `<colgroup>${options.headers.map((_, index) => {
+            const width = options.columnWidths?.[index]
+            return width ? `<col style="width:${escapeHtml(width)}">` : '<col>'
+        }).join('')}</colgroup>`
+        : ''
     const rowHtml = options.rows
         .map((row) => `
             <tr>
@@ -136,6 +143,7 @@ export function renderReportPrintWindow(
             ${summaryHtml}
             ${dataTitleHtml}
             <table>
+              ${columnGroupHtml}
               <thead><tr>${headerHtml}</tr></thead>
               <tbody>${rowHtml}</tbody>
             </table>
