@@ -1,10 +1,12 @@
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_sum_report_table $$
-CREATE PROCEDURE sp_sum_report_table(
+DROP PROCEDURE IF EXISTS sp_sum_report_table_core $$
+CREATE PROCEDURE sp_sum_report_table_core(
   IN p_table_no INT,
   IN p_sum_date DATE,
-  IN p_customer_id INT
+  IN p_customer_id INT,
+  IN p_imei VARCHAR(20) CHARACTER SET utf8 COLLATE utf8_general_ci
 )
 proc: BEGIN
 
@@ -26,6 +28,7 @@ proc: BEGIN
         status = 'ERROR',
         error_message = CONCAT(
           'customer_id=', COALESCE(CAST(p_customer_id AS CHAR), 'ALL'),
+          ', imei=', COALESCE(p_imei, 'ALL'),
           ', table=', COALESCE(v_data_table, CONCAT('table_no:', p_table_no)),
           ', date=', COALESCE(CAST(p_sum_date AS CHAR), 'NULL'),
           ', SQLSTATE=', v_sqlstate,
@@ -56,6 +59,7 @@ proc: BEGIN
   INNER JOIN tracker t ON t.imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
   WHERE s.data_date = p_sum_date
     AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci
+    AND (p_imei IS NULL OR s.imei COLLATE utf8_general_ci = p_imei COLLATE utf8_general_ci)
     AND (
       p_customer_id IS NULL
       OR EXISTS (
@@ -71,6 +75,7 @@ proc: BEGIN
   INNER JOIN tracker t ON t.imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
   WHERE s.data_date = p_sum_date
     AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci
+    AND (p_imei IS NULL OR s.imei COLLATE utf8_general_ci = p_imei COLLATE utf8_general_ci)
     AND (
       p_customer_id IS NULL
       OR EXISTS (
@@ -130,6 +135,7 @@ proc: BEGIN
 	  ' WHERE t.report_table = ? ',
 	  ' AND date_add(d.data_date, interval 7 hour) >= ? AND date_add(d.data_date, interval 7 hour) < DATE_ADD(?, INTERVAL 1 DAY) ',
 	  ' AND d.g_point IS NOT NULL ',
+	  ' AND (? IS NULL OR t.imei = ?) ',
 
 	  -- filter event_code ตาม tracker_model
 	  ' AND (NULLIF(TRIM(d.track3), '''') IS NOT NULL OR ( ',
@@ -159,11 +165,13 @@ proc: BEGIN
   SET @p_report_table = v_data_table;
   SET @p_date1 = p_sum_date;
   SET @p_date2 = p_sum_date;
+  SET @p_imei1 = p_imei;
+  SET @p_imei2 = p_imei;
   SET @p_customer_id1 = p_customer_id;
   SET @p_customer_id2 = p_customer_id;
 
   PREPARE stmt FROM @sql;
-  EXECUTE stmt USING @p_report_table, @p_date1, @p_date2, @p_customer_id1, @p_customer_id2;
+  EXECUTE stmt USING @p_report_table, @p_date1, @p_date2, @p_imei1, @p_imei2, @p_customer_id1, @p_customer_id2;
   DEALLOCATE PREPARE stmt;
 
   CREATE TEMPORARY TABLE tmp_day_points_next LIKE tmp_day_points;
@@ -319,6 +327,7 @@ proc: BEGIN
     s.park_count = COALESCE(status_count.park_count, 0),
     s.idle_over_5m_count = COALESCE(status_count.idle_over_5m_count, 0)
   WHERE s.data_date = p_sum_date
+    AND (p_imei IS NULL OR s.imei COLLATE utf8_general_ci = p_imei COLLATE utf8_general_ci)
     AND EXISTS (
       SELECT 1
       FROM tracker t
@@ -344,6 +353,16 @@ proc: BEGIN
 DROP TEMPORARY TABLE IF EXISTS tmp_day_points;
 DROP TEMPORARY TABLE IF EXISTS tmp_day_points_next;
 
+END $$
+
+
+CREATE PROCEDURE sp_sum_report_table(
+  IN p_table_no INT,
+  IN p_sum_date DATE,
+  IN p_customer_id INT
+)
+BEGIN
+  CALL sp_sum_report_table_core(p_table_no, p_sum_date, p_customer_id, NULL);
 END $$
 
 

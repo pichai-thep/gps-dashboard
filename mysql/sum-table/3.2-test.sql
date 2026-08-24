@@ -1,12 +1,19 @@
 CALL sp_sum_gps_report_daily(curdate()-interval 1 day);
 CALL sp_sum_gps_report_daily('2026-08-02');
-CALL sp_sum_report_table(1,'2026-08-03',NULL);
-CALL sp_sum_report_table(1,'2026-08-03',239);
+
+CALL sp_sum_report_table_core(10,'2026-08-23',239,null);
+CALL sp_sum_report_table_core(10,'2026-08-23',239,'864507032363409');
 
 CALL sp_run_summary_report_by_customer(
     239,          -- customer_id
     '2026-04-20', -- date_from
     '2026-05-31'  -- date_to
+);
+
+CALL sp_run_summary_report_by_imei(
+  '864606041741959',
+  '2026-08-01',
+  '2026-08-07'
 );
 
 CALL sp_sum_station_daily(curdate()-interval 1 day);

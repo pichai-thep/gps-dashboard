@@ -45,15 +45,17 @@
       @reset="resetFilter"
     >
       <template #criteria>
-        <div class="custom-filter-field driver-id-column-filter">
+        <div class="custom-filter-field visibility-options-field">
           <label>{{ t('visibleColumns') }}</label>
-          <div class="checkbox-filter">
-            <Checkbox v-model="showDriverIdColumns" inputId="show-driver-id-columns" binary />
-            <label for="show-driver-id-columns">{{ t('showDriverIdColumns') }}</label>
-          </div>
-          <div class="checkbox-filter">
-            <Checkbox v-model="showUrRateColumns" inputId="show-ur-rate-columns" binary />
-            <label for="show-ur-rate-columns">{{ t('showUrRateColumns') }}</label>
+          <div class="visibility-options-row">
+            <div class="checkbox-filter">
+              <Checkbox v-model="showDriverIdColumns" inputId="show-driver-id-columns" binary />
+              <label for="show-driver-id-columns">{{ t('showDriverIdColumns') }}</label>
+            </div>
+            <div class="checkbox-filter">
+              <Checkbox v-model="showUrRateColumns" inputId="show-ur-rate-columns" binary />
+              <label for="show-ur-rate-columns">{{ t('showUrRateColumns') }}</label>
+            </div>
           </div>
         </div>
       </template>
@@ -86,7 +88,11 @@
             :severity="durationSeverity(column.field)"
           />
           <b v-else-if="distanceFields.includes(column.field)">{{ formatKm(data[column.field]) }}</b>
-          <b v-else-if="countFields.includes(column.field)">{{ formatReportInteger(data[column.field]) }}</b>
+          <Tag
+            v-else-if="countFields.includes(column.field)"
+            :value="formatReportInteger(data[column.field])"
+            :severity="countSeverity(column.field)"
+          />
           <Tag v-else-if="column.field === 'ur_formula'" :value="data.ur_formula" severity="secondary" />
           <Tag
             v-else-if="column.field === 'ur_rate'"
@@ -309,7 +315,7 @@ function urRateSeverity(value?: number | null) {
   if (value == null) return 'secondary'
 
   if (value >= 80) return 'success'
-  if (value >= 50) return 'warning'
+  if (value >= 50) return 'warn'
 
   return 'danger'
 }
@@ -383,8 +389,13 @@ function excelColumnName(columnNumber: number) {
 
 function durationSeverity(field: string) {
   if (field === 'run_time_s' || field === 'run_withid_time_s') return 'success'
-  if (field === 'idle_time_s') return 'warning'
-  return 'info'
+  if (field === 'idle_time_s') return 'warn'
+  return 'danger'
+}
+
+function countSeverity(field: string) {
+  if (field === 'idle_over_5m_count') return 'warn'
+  return 'danger'
 }
 
 async function loadData() {
@@ -725,6 +736,17 @@ onMounted(async () => {
   align-items: center;
   min-height: 42px;
   gap: 8px;
+}
+
+.visibility-options-field {
+  grid-column: 1 / -1;
+}
+
+.visibility-options-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 24px;
 }
 
 .checkbox-filter label {
