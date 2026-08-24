@@ -357,7 +357,8 @@ proc: BEGIN
   LEFT JOIN (
     SELECT
       so.imei,
-      COUNT(*) AS speed_over_count
+      SUM(CASE WHEN so.over_type = 'cloud' THEN 1 ELSE 0 END) AS speed_over_cloud_count,
+      SUM(CASE WHEN so.over_type = 'device' THEN 1 ELSE 0 END) AS speed_over_device_count
     FROM gps_speed_over so
     INNER JOIN tracker speed_tracker
       ON BINARY speed_tracker.imei = BINARY so.imei
@@ -366,7 +367,7 @@ proc: BEGIN
         DATE_ADD(CAST(p_sum_date AS DATETIME), INTERVAL 1 DAY),
         INTERVAL 7 HOUR
       )
-      AND so.over_type = 'cloud'
+      AND so.over_type IN ('cloud', 'device')
       AND BINARY speed_tracker.report_table = BINARY v_data_table
       AND (p_imei IS NULL OR BINARY so.imei = BINARY p_imei)
       AND (
@@ -384,7 +385,9 @@ proc: BEGIN
   SET
     s.avg_speed_kph = COALESCE(speed_stats.avg_speed_kph, 0),
     s.max_speed_kph = COALESCE(speed_stats.max_speed_kph, 0),
-    s.speed_over_count = COALESCE(speed_over.speed_over_count, 0)
+    s.speed_over_count = COALESCE(speed_over.speed_over_cloud_count, 0),
+    s.speed_over_cloud_count = COALESCE(speed_over.speed_over_cloud_count, 0),
+    s.speed_over_device_count = COALESCE(speed_over.speed_over_device_count, 0)
   WHERE s.data_date = p_sum_date
     AND (p_imei IS NULL OR BINARY s.imei = BINARY p_imei)
     AND EXISTS (

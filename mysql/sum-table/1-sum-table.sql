@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS gps_sum_data (
   avg_speed_kph decimal(6,2) NOT NULL DEFAULT 0,
   max_speed_kph int NOT NULL DEFAULT 0,
   speed_over_count int NOT NULL DEFAULT 0,
+  speed_over_cloud_count int NOT NULL DEFAULT 0,
+  speed_over_device_count int NOT NULL DEFAULT 0,
   total_rows int NOT NULL default 0,
   updated_at datetime NOT NULL,
   PRIMARY KEY (imei, data_date),

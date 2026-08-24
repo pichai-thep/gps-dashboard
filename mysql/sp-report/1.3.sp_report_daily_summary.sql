@@ -53,6 +53,8 @@ BEGIN
             WHEN 'avg_speed_kph' THEN 'avg_speed_kph'
             WHEN 'max_speed_kph' THEN 'max_speed_kph'
             WHEN 'speed_over_count' THEN 'speed_over_count'
+            WHEN 'speed_over_cloud_count' THEN 'speed_over_cloud_count'
+            WHEN 'speed_over_device_count' THEN 'speed_over_device_count'
             WHEN 'ur_rate'    THEN 'ur_rate'
             WHEN 'updated_at' THEN 'updated_at'
             ELSE 'data_date'
@@ -81,6 +83,8 @@ BEGIN
         s.avg_speed_kph,
         s.max_speed_kph,
         s.speed_over_count,
+        s.speed_over_cloud_count,
+        s.speed_over_device_count,
 
         CASE
             WHEN t.ur_rate_type = 'A' THEN 'A:Time-base'
@@ -191,6 +195,8 @@ BEGIN
         COALESCE(ROUND(AVG(NULLIF(avg_speed_kph, 0)), 2), 0) AS avg_speed_kph,
         COALESCE(MAX(max_speed_kph), 0) AS max_speed_kph,
         COALESCE(SUM(speed_over_count), 0) AS speed_over_count,
+        COALESCE(SUM(speed_over_cloud_count), 0) AS speed_over_cloud_count,
+        COALESCE(SUM(speed_over_device_count), 0) AS speed_over_device_count,
         ROUND(AVG(ur_rate), 2) AS ur_rate_avg
     FROM tmp_daily_summary_rows;
 

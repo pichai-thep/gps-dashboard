@@ -233,6 +233,8 @@ class ReportController extends Controller
                 'avg_speed_kph' => (float) ($summary['avg_speed_kph'] ?? 0),
                 'max_speed_kph' => (int) ($summary['max_speed_kph'] ?? 0),
                 'speed_over_count' => (int) ($summary['speed_over_count'] ?? 0),
+                'speed_over_cloud_count' => (int) ($summary['speed_over_cloud_count'] ?? 0),
+                'speed_over_device_count' => (int) ($summary['speed_over_device_count'] ?? 0),
                 //                'ur_rate_avg' => $summary['ur_rate_avg'] !== null
                 //                    ? (float) $summary['ur_rate_avg']
                 //                    : null,

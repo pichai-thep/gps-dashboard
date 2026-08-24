@@ -53,7 +53,9 @@ export interface DailySummaryRow {
     distance_withid_m: number
     avg_speed_kph: number
     max_speed_kph: number
-    speed_over_count: number
+    speed_over_count?: number
+    speed_over_cloud_count: number
+    speed_over_device_count: number
     ur_formula?: string
     ur_rate?: number | null
     updated_at: string
@@ -74,7 +76,9 @@ export interface DailySummaryResponse {
         distance_withid_m: number
         avg_speed_kph: number
         max_speed_kph: number
-        speed_over_count: number
+        speed_over_count?: number
+        speed_over_cloud_count: number
+        speed_over_device_count: number
         ur_rate_avg?: number
     }
     pagination: ReportPagination
