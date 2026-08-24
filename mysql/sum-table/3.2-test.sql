@@ -1,6 +1,13 @@
 CALL sp_sum_gps_report_daily(curdate()-interval 1 day);
 CALL sp_sum_gps_report_daily('2026-08-02');
 
+-- CREATE PROCEDURE sp_sum_report_table(
+--     IN p_table_no INT,
+--     IN p_sum_date DATE,
+--     IN p_customer_id INT
+-- )
+CALL sp_sum_report_table(10,'2026-08-23',239);
+
 CALL sp_sum_report_table_core(10,'2026-08-23',239,null);
 CALL sp_sum_report_table_core(10,'2026-08-23',239,'864507032363409');
 
