@@ -230,6 +230,9 @@ class ReportController extends Controller
                 'park_count' => (int) ($summary['park_count'] ?? 0),
                 'distance_m' => (float) ($summary['distance_m'] ?? 0),
                 'distance_withid_m' => (float) ($summary['distance_withid_m'] ?? 0),
+                'avg_speed_kph' => (float) ($summary['avg_speed_kph'] ?? 0),
+                'max_speed_kph' => (int) ($summary['max_speed_kph'] ?? 0),
+                'speed_over_count' => (int) ($summary['speed_over_count'] ?? 0),
                 //                'ur_rate_avg' => $summary['ur_rate_avg'] !== null
                 //                    ? (float) $summary['ur_rate_avg']
                 //                    : null,

@@ -50,6 +50,9 @@ BEGIN
             WHEN 'park_count' THEN 'park_count'
             WHEN 'distance_m' THEN 'distance_m'
             WHEN 'distance_withid_m' THEN 'distance_withid_m'
+            WHEN 'avg_speed_kph' THEN 'avg_speed_kph'
+            WHEN 'max_speed_kph' THEN 'max_speed_kph'
+            WHEN 'speed_over_count' THEN 'speed_over_count'
             WHEN 'ur_rate'    THEN 'ur_rate'
             WHEN 'updated_at' THEN 'updated_at'
             ELSE 'data_date'
@@ -75,6 +78,9 @@ BEGIN
         s.park_count,
         s.distance_m,
         s.distance_withid_m,
+        s.avg_speed_kph,
+        s.max_speed_kph,
+        s.speed_over_count,
 
         CASE
             WHEN t.ur_rate_type = 'A' THEN 'A:Time-base'
@@ -182,6 +188,9 @@ BEGIN
         COALESCE(SUM(park_count), 0) AS park_count,
         COALESCE(SUM(distance_m), 0) AS distance_m,
         COALESCE(SUM(distance_withid_m), 0) AS distance_withid_m,
+        COALESCE(ROUND(AVG(NULLIF(avg_speed_kph, 0)), 2), 0) AS avg_speed_kph,
+        COALESCE(MAX(max_speed_kph), 0) AS max_speed_kph,
+        COALESCE(SUM(speed_over_count), 0) AS speed_over_count,
         ROUND(AVG(ur_rate), 2) AS ur_rate_avg
     FROM tmp_daily_summary_rows;
 

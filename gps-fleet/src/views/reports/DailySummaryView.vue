@@ -88,6 +88,7 @@
             :severity="durationSeverity(column.field)"
           />
           <b v-else-if="distanceFields.includes(column.field)">{{ formatKm(data[column.field]) }}</b>
+          <b v-else-if="speedFields.includes(column.field)">{{ formatSpeed(data[column.field], column.field) }}</b>
           <Tag
             v-else-if="countFields.includes(column.field)"
             :value="formatReportInteger(data[column.field])"
@@ -167,7 +168,8 @@ const showDriverIdColumns = ref(false)
 const showUrRateColumns = ref(false)
 const durationFields = ['run_time_s', 'run_withid_time_s', 'idle_time_s', 'park_time_s']
 const distanceFields = ['distance_m', 'distance_withid_m']
-const countFields = ['idle_over_5m_count', 'park_count']
+const speedFields = ['avg_speed_kph', 'max_speed_kph']
+const countFields = ['idle_over_5m_count', 'park_count', 'speed_over_count']
 const driverIdFields = ['run_withid_time_s', 'distance_withid_m']
 const urRateFields = ['ur_formula', 'ur_rate']
 
@@ -183,6 +185,9 @@ const tableColumns = computed<ReportTableColumn[]>(() => {
     { field: 'park_count', label: t('parkCount'), width: '120px', minWidth: '120px' },
     { field: 'distance_m', label: t('distance'), width: '100px', minWidth: '100px' },
     { field: 'distance_withid_m', label: t('distanceWithId'), width: '100px', minWidth: '100px' },
+    { field: 'avg_speed_kph', label: `${t('averageSpeed')} (km/h)`, width: '120px', minWidth: '120px' },
+    { field: 'max_speed_kph', label: `${t('maximumSpeed')} (km/h)`, width: '120px', minWidth: '120px' },
+    { field: 'speed_over_count', label: t('speedOverCount'), width: '120px', minWidth: '120px' },
     { field: 'ur_formula', label: t('formula'), sortable: false, width: '100px', minWidth: '100px' },
     { field: 'ur_rate', label: t('urRate'), width: '100px', minWidth: '100px' },
   ]
@@ -205,6 +210,9 @@ const summary = ref({
   park_count: 0,
   distance_m: 0,
   distance_withid_m: 0,
+  avg_speed_kph: 0,
+  max_speed_kph: 0,
+  speed_over_count: 0,
   ur_rate_avg: 0,
 })
 
@@ -231,6 +239,9 @@ const summaryItems = computed<ReportSummaryItem[]>(() => {
     { key: 'vehicles', label: t('totalVehicles'), value: formatReportInteger(summary.value.total_vehicle) },
     { key: 'distance', label: t('totalDistance'), value: formatKm(summary.value.distance_m) },
     { key: 'distance-with-id', label: t('totalDistanceWithId'), value: formatKm(summary.value.distance_withid_m) },
+    { key: 'average-speed', label: t('averageSpeed'), value: formatSpeed(summary.value.avg_speed_kph, 'avg_speed_kph') },
+    { key: 'maximum-speed', label: t('maximumSpeed'), value: formatSpeed(summary.value.max_speed_kph, 'max_speed_kph') },
+    { key: 'speed-over-count', label: t('speedOverCount'), value: formatReportInteger(summary.value.speed_over_count) },
     { key: 'ur-rate', label: t('urRateAvg'), value: formatPercent(avgUrRate.value), className: 'ur-rate' },
     { key: 'running', label: `${t('running')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.run_time_s), className: 'running' },
     { key: 'running-with-id', label: `${t('runningWithId')} (dd:hh:mm)`, value: formatSummaryDuration(summary.value.run_withid_time_s), className: 'running' },
@@ -300,6 +311,9 @@ async function resetFilter() {
     park_count: 0,
     distance_m: 0,
     distance_withid_m: 0,
+    avg_speed_kph: 0,
+    max_speed_kph: 0,
+    speed_over_count: 0,
     ur_rate_avg: 0,
   }
 
@@ -376,6 +390,12 @@ function formatKm(meter: number) {
   return formatDistanceKmFromMeters(meter)
 }
 
+function formatSpeed(value: unknown, field: string) {
+  const speed = Number(value || 0)
+  const digits = field === 'avg_speed_kph' ? 1 : 0
+  return `${speed.toFixed(digits)} km/h`
+}
+
 function excelColumnName(columnNumber: number) {
   let result = ''
   let value = columnNumber
@@ -427,6 +447,9 @@ async function loadData() {
       park_count: res.summary?.park_count ?? 0,
       distance_m: res.summary?.distance_m ?? 0,
       distance_withid_m: res.summary?.distance_withid_m ?? 0,
+      avg_speed_kph: res.summary?.avg_speed_kph ?? 0,
+      max_speed_kph: res.summary?.max_speed_kph ?? 0,
+      speed_over_count: res.summary?.speed_over_count ?? 0,
       ur_rate_avg: res.summary?.ur_rate_avg ?? 0,
     }
 
@@ -473,6 +496,9 @@ async function exportCsv() {
     'engine_off_count',
     'distance_km',
     ...(showDriverIdColumns.value ? ['distance_with_driver_id_km'] : []),
+    'average_speed_kph',
+    'maximum_speed_kph',
+    'speed_over_count',
     ...(showUrRateColumns.value ? ['ur_formula', 'ur_rate'] : []),
     'updated_at',
   ]
@@ -489,6 +515,9 @@ async function exportCsv() {
     formatReportInteger(r.park_count),
     formatDistanceKmFromMeters(r.distance_m, false),
     ...(showDriverIdColumns.value ? [formatDistanceKmFromMeters(r.distance_withid_m, false)] : []),
+    Number(r.avg_speed_kph || 0).toFixed(1),
+    Number(r.max_speed_kph || 0).toFixed(0),
+    formatReportInteger(r.speed_over_count),
     ...(showUrRateColumns.value ? [r.ur_formula, formatPercent(r.ur_rate)] : []),
     r.updated_at,
   ])
@@ -531,7 +560,7 @@ async function saveXlsx() {
     })
 
     const exportRows = res.data ?? []
-    const columnCount = 10
+    const columnCount = 13
       + (showDriverIdColumns.value ? 2 : 0)
       + (showUrRateColumns.value ? 2 : 0)
     const sectionRow = (title: string): ReportExcelSheetRow => ({
@@ -553,6 +582,9 @@ async function saveXlsx() {
       ...(showDriverIdColumns.value
         ? [{ cells: [t('totalDistanceWithId'), formatKm(res.summary?.distance_withid_m ?? 0)] }]
         : []),
+      { cells: [t('averageSpeed'), formatSpeed(res.summary?.avg_speed_kph ?? 0, 'avg_speed_kph')] },
+      { cells: [t('maximumSpeed'), formatSpeed(res.summary?.max_speed_kph ?? 0, 'max_speed_kph')] },
+      { cells: [t('speedOverCount'), formatReportInteger(res.summary?.speed_over_count ?? 0)] },
       ...(showUrRateColumns.value
         ? [{ cells: [t('urRateAvg'), formatPercent(exportAverageUrRate)] }]
         : []),
@@ -579,6 +611,9 @@ async function saveXlsx() {
           t('parkCount'),
           `${t('distance')} (km)`,
           ...(showDriverIdColumns.value ? [`${t('distanceWithId')} (km)`] : []),
+          `${t('averageSpeed')} (km/h)`,
+          `${t('maximumSpeed')} (km/h)`,
+          t('speedOverCount'),
           ...(showUrRateColumns.value ? [t('formula'), t('urRate')] : []),
           t('updated'),
         ],
@@ -597,12 +632,15 @@ async function saveXlsx() {
           formatReportInteger(row.park_count),
           formatDistanceKmFromMeters(row.distance_m, false),
           ...(showDriverIdColumns.value ? [formatDistanceKmFromMeters(row.distance_withid_m, false)] : []),
+          Number(row.avg_speed_kph || 0).toFixed(1),
+          Number(row.max_speed_kph || 0).toFixed(0),
+          formatReportInteger(row.speed_over_count),
           ...(showUrRateColumns.value ? [row.ur_formula, formatPercent(row.ur_rate)] : []),
           row.updated_at,
         ],
       })),
     ]
-    const dataHeaderRow = 18
+    const dataHeaderRow = 21
       + (showDriverIdColumns.value ? 2 : 0)
       + (showUrRateColumns.value ? 1 : 0)
     const dataEndRow = dataHeaderRow + exportRows.length
@@ -648,6 +686,9 @@ async function savePdf() {
     formatReportInteger(row.park_count),
     formatDistanceKmFromMeters(row.distance_m, false),
     ...(showDriverIdColumns.value ? [formatDistanceKmFromMeters(row.distance_withid_m, false)] : []),
+    Number(row.avg_speed_kph || 0).toFixed(1),
+    Number(row.max_speed_kph || 0).toFixed(0),
+    formatReportInteger(row.speed_over_count),
     ...(showUrRateColumns.value ? [row.ur_formula, formatPercent(row.ur_rate)] : []),
     row.updated_at,
   ])
@@ -670,6 +711,9 @@ async function savePdf() {
       ...(showDriverIdColumns.value
         ? [{ label: t('totalDistanceWithId'), value: formatKm(res.summary?.distance_withid_m ?? 0) }]
         : []),
+      { label: t('averageSpeed'), value: formatSpeed(res.summary?.avg_speed_kph ?? 0, 'avg_speed_kph') },
+      { label: t('maximumSpeed'), value: formatSpeed(res.summary?.max_speed_kph ?? 0, 'max_speed_kph') },
+      { label: t('speedOverCount'), value: formatReportInteger(res.summary?.speed_over_count ?? 0) },
       ...(showUrRateColumns.value
         ? [{ label: t('urRateAvg'), value: formatPercent(calculateAverageUrRate(exportRows)) }]
         : []),
@@ -695,6 +739,9 @@ async function savePdf() {
       t('parkCount'),
       t('distance'),
       ...(showDriverIdColumns.value ? [t('distanceWithId')] : []),
+      `${t('averageSpeed')} (km/h)`,
+      `${t('maximumSpeed')} (km/h)`,
+      t('speedOverCount'),
       ...(showUrRateColumns.value ? [t('formula'), t('urRate')] : []),
       t('updated'),
     ],

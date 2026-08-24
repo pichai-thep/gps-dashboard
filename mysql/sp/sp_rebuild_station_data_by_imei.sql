@@ -1,11 +1,14 @@
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_rebuild_station_data_by_imei $$
+DROP PROCEDURE IF EXISTS sp_rebuild_station_data_by_imei_core $$
 
-CREATE PROCEDURE sp_rebuild_station_data_by_imei(
+CREATE PROCEDURE sp_rebuild_station_data_by_imei_core(
     IN p_imei VARCHAR(20) CHARACTER SET utf8 COLLATE utf8_general_ci,
     IN p_date_from DATE,
-    IN p_date_to DATE
+    IN p_date_to DATE,
+    IN p_emit_result TINYINT,
+    IN p_fail_if_empty TINYINT
 )
 proc: BEGIN
     DECLARE v_report_table VARCHAR(64) CHARACTER SET utf8 COLLATE utf8_general_ci;
@@ -124,8 +127,14 @@ proc: BEGIN
     FROM tmp_station_rebuild_gps;
 
     IF v_source_count = 0 THEN
-        SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'no GPS data found for the requested IMEI and date range';
+        DROP TEMPORARY TABLE IF EXISTS tmp_station_rebuild_gps;
+
+        IF IFNULL(p_fail_if_empty, 0) = 1 THEN
+            SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'no GPS data found for the requested IMEI and date range';
+        END IF;
+
+        LEAVE proc;
     END IF;
 
     START TRANSACTION;
@@ -184,15 +193,32 @@ proc: BEGIN
 
     DROP TEMPORARY TABLE IF EXISTS tmp_station_rebuild_gps;
 
-    SELECT
-        TRIM(p_imei) AS imei,
-        p_date_from AS date_from,
-        p_date_to AS date_to,
-        v_report_table AS source_table,
-        v_station_table AS station_table,
-        v_source_count AS source_points,
-        v_deleted_count AS deleted_station_points,
-        v_inserted_count AS inserted_station_points;
+    IF IFNULL(p_emit_result, 0) = 1 THEN
+        SELECT
+            TRIM(p_imei) AS imei,
+            p_date_from AS date_from,
+            p_date_to AS date_to,
+            v_report_table AS source_table,
+            v_station_table AS station_table,
+            v_source_count AS source_points,
+            v_deleted_count AS deleted_station_points,
+            v_inserted_count AS inserted_station_points;
+    END IF;
+END $$
+
+CREATE PROCEDURE sp_rebuild_station_data_by_imei(
+    IN p_imei VARCHAR(20) CHARACTER SET utf8 COLLATE utf8_general_ci,
+    IN p_date_from DATE,
+    IN p_date_to DATE
+)
+BEGIN
+    CALL sp_rebuild_station_data_by_imei_core(
+        p_imei,
+        p_date_from,
+        p_date_to,
+        1,
+        1
+    );
 END $$
 
 DELIMITER ;

@@ -10,7 +10,7 @@ const definition: ReportDefinition = {
   key: 'speed-over',
   title: {th: 'รายงานความเร็วเกินกำหนด', en: 'Speed Over Report'},
   subtitle: {th: 'รายละเอียดช่วงเวลาที่รถใช้ความเร็วเกินกำหนด', en: 'Detailed speed violation events'},
-  maxRangeDays: 7,
+  maxRangeDays: 31,
   enableTimeStart: true,
   enableTimeEnd: true,
   timeStartRequired: true,

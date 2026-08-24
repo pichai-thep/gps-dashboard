@@ -56,7 +56,7 @@ proc: BEGIN
     END AS table_no
   FROM customer_tracker ct
   INNER JOIN tracker t
-    ON t.imei COLLATE utf8_general_ci = ct.tracker_imei COLLATE utf8_general_ci
+    ON BINARY t.imei = BINARY ct.tracker_imei
   WHERE ct.customer_customer_id = p_customer_id
     AND (
       TRIM(t.report_table) = 'data_report'

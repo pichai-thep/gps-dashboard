@@ -56,32 +56,32 @@ proc: BEGIN
 
   DELETE s
   FROM gps_sum_data s
-  INNER JOIN tracker t ON t.imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
+  INNER JOIN tracker t ON BINARY t.imei = BINARY s.imei
   WHERE s.data_date = p_sum_date
-    AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci
-    AND (p_imei IS NULL OR s.imei COLLATE utf8_general_ci = p_imei COLLATE utf8_general_ci)
+    AND BINARY t.report_table = BINARY v_data_table
+    AND (p_imei IS NULL OR BINARY s.imei = BINARY p_imei)
     AND (
       p_customer_id IS NULL
       OR EXISTS (
         SELECT 1
         FROM customer_tracker ct
-        WHERE ct.tracker_imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
+        WHERE BINARY ct.tracker_imei = BINARY s.imei
           AND ct.customer_customer_id = p_customer_id
       )
     );
 
   DELETE s
   FROM gps_sum_status s
-  INNER JOIN tracker t ON t.imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
+  INNER JOIN tracker t ON BINARY t.imei = BINARY s.imei
   WHERE s.data_date = p_sum_date
-    AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci
-    AND (p_imei IS NULL OR s.imei COLLATE utf8_general_ci = p_imei COLLATE utf8_general_ci)
+    AND BINARY t.report_table = BINARY v_data_table
+    AND (p_imei IS NULL OR BINARY s.imei = BINARY p_imei)
     AND (
       p_customer_id IS NULL
       OR EXISTS (
         SELECT 1
         FROM customer_tracker ct
-        WHERE ct.tracker_imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
+        WHERE BINARY ct.tracker_imei = BINARY s.imei
           AND ct.customer_customer_id = p_customer_id
       )
     );
@@ -154,7 +154,7 @@ proc: BEGIN
 	  '   SELECT 1 ',
 	  '   FROM customer_tracker ct ',
 	  '   INNER JOIN customer c ON c.customer_id = ct.customer_customer_id ',
-	  '   WHERE ct.tracker_imei COLLATE utf8_general_ci = t.imei COLLATE utf8_general_ci ',
+	  '   WHERE BINARY ct.tracker_imei = BINARY t.imei ',
 	  '     AND c.summary_report = 1 ',
 	  '     AND (? IS NULL OR ct.customer_customer_id = ?) ',
 	  ' ) ',
@@ -327,19 +327,78 @@ proc: BEGIN
     s.park_count = COALESCE(status_count.park_count, 0),
     s.idle_over_5m_count = COALESCE(status_count.idle_over_5m_count, 0)
   WHERE s.data_date = p_sum_date
-    AND (p_imei IS NULL OR s.imei COLLATE utf8_general_ci = p_imei COLLATE utf8_general_ci)
+    AND (p_imei IS NULL OR BINARY s.imei = BINARY p_imei)
     AND EXISTS (
       SELECT 1
       FROM tracker t
-      WHERE t.imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
-        AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci
+      WHERE BINARY t.imei = BINARY s.imei
+        AND BINARY t.report_table = BINARY v_data_table
     )
     AND (
       p_customer_id IS NULL
       OR EXISTS (
         SELECT 1
         FROM customer_tracker ct
-        WHERE ct.tracker_imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
+        WHERE BINARY ct.tracker_imei = BINARY s.imei
+          AND ct.customer_customer_id = p_customer_id
+      )
+    );
+
+  UPDATE gps_sum_data s
+  LEFT JOIN (
+    SELECT
+      imei,
+      ROUND(AVG(CASE WHEN status_name = 'RUN' THEN speed END), 2) AS avg_speed_kph,
+      MAX(speed) AS max_speed_kph
+    FROM tmp_day_points
+    GROUP BY imei
+  ) speed_stats
+    ON BINARY speed_stats.imei = BINARY s.imei
+  LEFT JOIN (
+    SELECT
+      so.imei,
+      COUNT(*) AS speed_over_count
+    FROM gps_speed_over so
+    INNER JOIN tracker speed_tracker
+      ON BINARY speed_tracker.imei = BINARY so.imei
+    WHERE so.event_time >= DATE_SUB(CAST(p_sum_date AS DATETIME), INTERVAL 7 HOUR)
+      AND so.event_time < DATE_SUB(
+        DATE_ADD(CAST(p_sum_date AS DATETIME), INTERVAL 1 DAY),
+        INTERVAL 7 HOUR
+      )
+      AND so.over_type = 'cloud'
+      AND BINARY speed_tracker.report_table = BINARY v_data_table
+      AND (p_imei IS NULL OR BINARY so.imei = BINARY p_imei)
+      AND (
+        p_customer_id IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM customer_tracker ct
+          WHERE BINARY ct.tracker_imei = BINARY so.imei
+            AND ct.customer_customer_id = p_customer_id
+        )
+      )
+    GROUP BY so.imei
+  ) speed_over
+    ON BINARY speed_over.imei = BINARY s.imei
+  SET
+    s.avg_speed_kph = COALESCE(speed_stats.avg_speed_kph, 0),
+    s.max_speed_kph = COALESCE(speed_stats.max_speed_kph, 0),
+    s.speed_over_count = COALESCE(speed_over.speed_over_count, 0)
+  WHERE s.data_date = p_sum_date
+    AND (p_imei IS NULL OR BINARY s.imei = BINARY p_imei)
+    AND EXISTS (
+      SELECT 1
+      FROM tracker t
+      WHERE BINARY t.imei = BINARY s.imei
+        AND BINARY t.report_table = BINARY v_data_table
+    )
+    AND (
+      p_customer_id IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM customer_tracker ct
+        WHERE BINARY ct.tracker_imei = BINARY s.imei
           AND ct.customer_customer_id = p_customer_id
       )
     );
