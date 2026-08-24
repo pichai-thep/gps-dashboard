@@ -24,7 +24,7 @@ DECLARE tCursor CURSOR FOR
 									inner join customer_tracker ct on c.customer_id=ct.customer_customer_id
 									inner join tracker t on ct.tracker_imei=t.imei
 							where 	t.imei=_imei and (s.station_type='circle' or s.station_type is null)
-									AND fn_distance(_y,_x, st_x(s.station_point), st_y(s.station_point))*1000 <= s.radius
+									AND fn_distance(_x,_y, st_y(s.station_point), st_x(s.station_point))*1000 <= s.radius
                                     
 							union all
                             

@@ -62,6 +62,9 @@ const previewSource = new VectorSource()
 const shouldFocusAfterMapReady = ref(false)
 const navigationLat = ref<number | null>(null)
 const navigationLng = ref<number | null>(null)
+const navigationCoordinates = ref('')
+const polygonCoordinatesEl = ref<HTMLTextAreaElement | null>(null)
+const polygonCoordinatesInput = ref('')
 
 const baseMapRef = ref<InstanceType<typeof BaseMap> | null>(null)
 
@@ -214,8 +217,7 @@ function onMapReady(payload: { map: Map }) {
 
     form.lat = Number(lat.toFixed(8))
     form.lng = Number(lng.toFixed(8))
-    navigationLat.value = form.lat
-    navigationLng.value = form.lng
+    setNavigationCoordinates(form.lat, form.lng)
 
     renderPreview()
     focusToCurrentShape()
@@ -245,8 +247,7 @@ async function openCreate(location?: { lat: number; lng: number }) {
   if (location) {
     form.lat = location.lat
     form.lng = location.lng
-    navigationLat.value = location.lat
-    navigationLng.value = location.lng
+    setNavigationCoordinates(location.lat, location.lng)
   }
 
   dialogVisible.value = true
@@ -272,6 +273,78 @@ function isValidLatLng(lat: any, lng: any) {
       nLng >= -180 &&
       nLng <= 180
   )
+}
+
+function parseCoordinatePair(text: string) {
+  const values = text.trim().match(/[-+]?(?:\d+(?:\.\d*)?|\.\d+)/g)
+  if (!values || values.length < 2) return null
+
+  let lat = Number(values[0])
+  let lng = Number(values[1])
+
+  if (!isValidLatLng(lat, lng) && isValidLatLng(lng, lat)) {
+    [lat, lng] = [lng, lat]
+  }
+
+  return isValidLatLng(lat, lng) ? { lat, lng } : null
+}
+
+function setNavigationCoordinates(lat: number | null, lng: number | null) {
+  if (!isValidLatLng(lat, lng)) {
+    navigationLat.value = null
+    navigationLng.value = null
+    navigationCoordinates.value = ''
+    return
+  }
+
+  navigationLat.value = Number(Number(lat).toFixed(8))
+  navigationLng.value = Number(Number(lng).toFixed(8))
+  navigationCoordinates.value = `${navigationLat.value.toFixed(8)}, ${navigationLng.value.toFixed(8)}`
+}
+
+function formatPolygonCoordinates(points: Array<{ lat: number; lng: number }>) {
+  return points
+      .filter((point) => isValidLatLng(point.lat, point.lng))
+      .map((point) => `${Number(point.lat).toFixed(8)} ${Number(point.lng).toFixed(8)}`)
+      .join(', ')
+}
+
+function syncPolygonCoordinatesInput() {
+  polygonCoordinatesInput.value = formatPolygonCoordinates(form.polygon)
+}
+
+function parsePolygonCoordinates(text: string) {
+  const values = text.match(/[-+]?(?:\d+(?:\.\d*)?|\.\d+)/g)?.map(Number) ?? []
+  const points: Array<{ lat: number; lng: number }> = []
+
+  for (let index = 0; index + 1 < values.length; index += 2) {
+    const lat = values[index]
+    const lng = values[index + 1]
+    if (isValidLatLng(lat, lng)) points.push({ lat, lng })
+  }
+
+  return points
+}
+
+function updatePolygonFromCoordinatesInput(showError = false) {
+  const points = parsePolygonCoordinates(polygonCoordinatesInput.value)
+
+  if (points.length < 3) {
+    form.polygon = []
+    if (showError) {
+      toast.add({
+        severity: 'warn',
+        summary: t('stationPolygonRequired'),
+        life: 2500,
+      })
+    }
+    return false
+  }
+
+  form.polygon = points
+  const polygonCenter = getPointsCenter(points)
+  if (polygonCenter) setNavigationCoordinates(polygonCenter.lat, polygonCenter.lng)
+  return true
 }
 
 function safeFitExtent(extent: any, retry = 0) {
@@ -321,10 +394,13 @@ async function openEdit(row: Station) {
   form.radius = Number.isFinite(radius) && radius > 0 ? radius : 300
 
   form.polygon = parsePolygonWkt(row.polygon_wkt)
+  syncPolygonCoordinatesInput()
 
   const polygonCenter = getPointsCenter(form.polygon)
-  navigationLat.value = form.lat ?? polygonCenter?.lat ?? null
-  navigationLng.value = form.lng ?? polygonCenter?.lng ?? null
+  setNavigationCoordinates(
+      form.lat ?? polygonCenter?.lat ?? null,
+      form.lng ?? polygonCenter?.lng ?? null,
+  )
 
   dialogVisible.value = true
 
@@ -344,8 +420,8 @@ function resetForm() {
   form.lng = null
   form.radius = 300
   form.polygon = []
-  navigationLat.value = null
-  navigationLng.value = null
+  polygonCoordinatesInput.value = ''
+  setNavigationCoordinates(null, null)
   previewSource.clear()
 }
 
@@ -417,8 +493,7 @@ function syncActiveCircleGeometry() {
   form.lat = Number(lat.toFixed(8))
   form.lng = Number(lng.toFixed(8))
   form.radius = Number(activeCircleGeometry.getRadius().toFixed(1))
-  navigationLat.value = form.lat
-  navigationLng.value = form.lng
+  setNavigationCoordinates(form.lat, form.lng)
 
   const centerFeature = previewSource
       .getFeatures()
@@ -455,6 +530,7 @@ function startDrawPolygon() {
   if (!map || form.station_type !== 'polygon') return
 
   form.polygon = []
+  polygonCoordinatesInput.value = ''
   form.lat = null
   form.lng = null
   form.radius = null
@@ -480,10 +556,12 @@ function startDrawPolygon() {
         lat: Number(lat.toFixed(8)),
       }
     })
+    syncPolygonCoordinatesInput()
 
     const polygonCenter = getPointsCenter(form.polygon)
-    navigationLat.value = polygonCenter?.lat ?? navigationLat.value
-    navigationLng.value = polygonCenter?.lng ?? navigationLng.value
+    if (polygonCenter) {
+      setNavigationCoordinates(polygonCenter.lat, polygonCenter.lng)
+    }
 
     clearDraw()
     setTimeout(() => {
@@ -498,10 +576,10 @@ function clearShape() {
   form.lng = null
   form.radius = form.station_type === 'circle' ? 300 : null
   form.polygon = []
+  polygonCoordinatesInput.value = ''
 
   if (form.station_type === 'circle') {
-    navigationLat.value = null
-    navigationLng.value = null
+    setNavigationCoordinates(null, null)
   }
 
   clearDraw()
@@ -526,7 +604,17 @@ function getPointsCenter(points: Array<{ lat: number; lng: number }>) {
 }
 
 function goToCoordinates() {
-  if (!isValidLatLng(navigationLat.value, navigationLng.value)) {
+  if (form.station_type === 'polygon') {
+    if (!updatePolygonFromCoordinatesInput(true)) return
+    renderPreview()
+    initMap()
+    focusToCurrentShape()
+    return
+  }
+
+  const coordinates = parseCoordinatePair(navigationCoordinates.value)
+
+  if (!coordinates) {
     toast.add({
       severity: 'warn',
       summary: t('invalidMapCoordinates'),
@@ -535,8 +623,7 @@ function goToCoordinates() {
     return
   }
 
-  navigationLat.value = Number(Number(navigationLat.value).toFixed(8))
-  navigationLng.value = Number(Number(navigationLng.value).toFixed(8))
+  setNavigationCoordinates(coordinates.lat, coordinates.lng)
 
   if (form.station_type === 'circle') {
     form.lat = navigationLat.value
@@ -557,22 +644,32 @@ function goToCoordinates() {
 
 function handleCoordinatePaste(event: ClipboardEvent) {
   const text = event.clipboardData?.getData('text')?.trim()
-  const values = text?.match(/[-+]?(?:\d+(?:\.\d*)?|\.\d+)/g)
+  const coordinates = parseCoordinatePair(text || '')
 
-  if (!values || values.length < 2) return
-
-  let lat = Number(values[0])
-  let lng = Number(values[1])
-
-  if (!isValidLatLng(lat, lng) && isValidLatLng(lng, lat)) {
-    [lat, lng] = [lng, lat]
-  }
+  if (!coordinates) return
 
   event.preventDefault()
-
-  navigationLat.value = lat
-  navigationLng.value = lng
+  setNavigationCoordinates(coordinates.lat, coordinates.lng)
   nextTick(goToCoordinates)
+}
+
+async function copyPolygonCoordinates() {
+  const text = polygonCoordinatesInput.value.trim()
+  if (!text) return
+
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    polygonCoordinatesEl.value?.focus()
+    polygonCoordinatesEl.value?.select()
+    document.execCommand('copy')
+  }
+
+  toast.add({
+    severity: 'success',
+    summary: t('polygonCoordinatesCopied'),
+    life: 2000,
+  })
 }
 
 function renderPreview() {
@@ -685,6 +782,10 @@ async function saveStation() {
     return
   }
 
+  if (form.station_type === 'polygon') {
+    updatePolygonFromCoordinatesInput()
+  }
+
   if (form.station_type === 'polygon' && form.polygon.length < 3) {
     toast.add({
       severity: 'warn',
@@ -773,6 +874,7 @@ function onTypeChange() {
 
   if (form.station_type === 'circle') {
     form.polygon = []
+    polygonCoordinatesInput.value = ''
     if (!form.radius) form.radius = 300
 
     if (isValidLatLng(navigationLat.value, navigationLng.value)) {
@@ -931,40 +1033,38 @@ function onTypeChange() {
             <div class="coords">
               {{ t('pointsCount') }}: {{ form.polygon.length }}
             </div>
+
+            <div class="polygon-coordinates-field">
+              <label for="station-polygon-coordinates">{{ t('polygonCoordinates') }}</label>
+              <textarea
+                  id="station-polygon-coordinates"
+                  ref="polygonCoordinatesEl"
+                  v-model="polygonCoordinatesInput"
+                  :placeholder="t('drawPolygonHint')"
+                  rows="5"
+                  @keyup.ctrl.enter="goToCoordinates"
+              ></textarea>
+              <Button
+                  :label="t('copyCoordinates')"
+                  icon="pi pi-copy"
+                  severity="secondary"
+                  outlined
+                  :disabled="!polygonCoordinatesInput.trim()"
+                  @click="copyPolygonCoordinates"
+              />
+            </div>
           </template>
 
-          <div class="coordinate-fields">
-            <div class="coordinate-field">
-              <label for="station-latitude">{{ t('latitude') }}</label>
-              <InputNumber
-                  inputId="station-latitude"
-                  v-model="navigationLat"
-                  class="w-full"
-                  :min="-90"
-                  :max="90"
-                  :maxFractionDigits="8"
-                  :useGrouping="false"
-                  placeholder="13.75630000"
-                  @paste="handleCoordinatePaste"
-                  @keyup.enter="goToCoordinates"
-              />
-            </div>
-
-            <div class="coordinate-field">
-              <label for="station-longitude">{{ t('longitude') }}</label>
-              <InputNumber
-                  inputId="station-longitude"
-                  v-model="navigationLng"
-                  class="w-full"
-                  :min="-180"
-                  :max="180"
-                  :maxFractionDigits="8"
-                  :useGrouping="false"
-                  placeholder="100.50180000"
-                  @paste="handleCoordinatePaste"
-                  @keyup.enter="goToCoordinates"
-              />
-            </div>
+          <div v-if="form.station_type === 'circle'" class="coordinate-field">
+            <label for="station-coordinates">{{ t('coordinates') }}</label>
+            <InputText
+                id="station-coordinates"
+                v-model="navigationCoordinates"
+                class="w-full"
+                placeholder="13.75630000, 100.50180000"
+                @paste="handleCoordinatePaste"
+                @keyup.enter="goToCoordinates"
+            />
           </div>
 
           <div class="tool-buttons">
@@ -1205,17 +1305,40 @@ function onTypeChange() {
   line-height: 1.5;
 }
 
+.polygon-coordinates-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.polygon-coordinates-field textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  background: var(--surface-50);
+  color: var(--text-color);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.polygon-coordinates-field textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.polygon-coordinates-field .p-button {
+  align-self: flex-start;
+}
+
 .tool-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 6px;
-}
-
-.coordinate-fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
 }
 
 .coordinate-field {

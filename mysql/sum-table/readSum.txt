@@ -1,0 +1,56 @@
+ระบบเว็บใหม่ fleet สิ่งที่ต่างจากเดิม
+
+1. station, poi, forbiddenZone ใช้คนละชุดกัน เว็บ  fleet ใช้ stations, pois, forbiddenZones
+2. Summary report ใช้อีกชุด
+   2.1 รายงานสรุปรายวัน table: gps_sum_data
+   2.2 รายงานไทม์ไลน์สภานะ table: gps_sum_status
+   2.3 รายงานเข้าออกสถานี table: gps_sum_station
+
+3. Batch ในการ run summary ใช้่คนละตัวกันกับตัวเก่า
+   3.1 รัน manual ระบุวัน
+       CALL sp_sum_gps_report_daily('2026-08-02');
+
+   3.1 -- รัน manual โดยระบุเป็น customer_id
+       CALL sp_run_summary_report_by_customer(
+           239,          -- customer_id
+           '2026-04-20', -- date_from
+           '2026-05-31'  -- date_to
+       );
+
+   3.2 -- รัน manual โดยระบุเป็น imei
+       CALL sp_run_summary_report_by_imei(
+         '864606041741959',
+         '2026-08-01',
+         '2026-08-07'
+       );
+
+4. Sum Station
+    4.1 -- รัน manual ระบุ table_no, date
+        CALL sp_sum_station_report_table(19, '2026-08-03');
+
+    4.2 -- รัน manual โดยระบุเป็น customer_id
+        CALL sp_run_station_summary_report_by_customer(
+          123,
+          '2026-08-01',
+          '2026-08-07'
+        );
+
+    4.3 -- รัน manual โดยระบุเป็น imei
+        CALL sp_run_station_summary_report_by_imei(
+          '864606041741959',
+          '2026-08-01',
+          '2026-08-07'
+        );
+
+    4.4 -- สร้าง station_data ย้อนหลังใหม่ หลังแก้ logic ตรวจเข้าออกสถานี
+        CALL sp_rebuild_station_data_by_imei(
+          '864507034513654',
+          '2026-08-24',
+          '2026-08-24'
+        );
+
+        CALL sp_run_station_summary_report_by_imei(
+          '864507034513654',
+          '2026-08-24',
+          '2026-08-24'
+        );

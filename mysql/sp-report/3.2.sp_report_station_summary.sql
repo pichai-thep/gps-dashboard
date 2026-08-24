@@ -48,6 +48,7 @@ BEGIN
             WHEN 'start_time' THEN 'start_time'
             WHEN 'end_time'   THEN 'end_time'
             WHEN 'duration_s' THEN 'duration_s'
+            WHEN 'distance_from_previous_m' THEN 'distance_from_previous_m'
             WHEN 'updated_at' THEN 'updated_at'
             ELSE 'data_date'
         END;
@@ -65,6 +66,7 @@ BEGIN
         s.start_time,
         s.end_time,
         s.duration_s,
+        s.distance_from_previous_m,
         s.updated_at
     FROM gps_sum_station s
     INNER JOIN tracker t

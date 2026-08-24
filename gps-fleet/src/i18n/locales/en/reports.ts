@@ -12,6 +12,7 @@ export default {
     distanceWithId: 'Distance (with-id)',
     totalDistanceWithId: 'Distance (with-id)',
     totalStations: 'Total Stations',
+    distanceFromPreviousStation: 'Distance from previous station',
     urRateAvg: 'UR Rate Avg',
     running: 'RUN',
     runningWithId: 'Run (with-id)',

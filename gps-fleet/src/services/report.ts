@@ -143,8 +143,9 @@ export interface StationSummaryRow {
     data_date: string
     station_id: number
     start_time: string
-    end_time: string
+    end_time: string | null
     duration_s: number
+    distance_from_previous_m: number
     updated_at: string
 }
 

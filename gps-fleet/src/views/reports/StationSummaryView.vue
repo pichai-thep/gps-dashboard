@@ -83,6 +83,9 @@
             :value="formatDuration(data.duration_s)"
             severity="info"
           />
+          <span v-else-if="column.field === 'distance_from_previous_m'">
+            {{ formatDistanceKmFromMeters(data.distance_from_previous_m, false) }}
+          </span>
           <span v-else>{{ formattedValue }}</span>
         </template>
       </ReportDataTable>
@@ -110,7 +113,7 @@ import {
 import { useI18n } from '@/i18n'
 import { formatReportDuration } from '@/utils/reportDurationFormat'
 import { downloadReportCsv } from '@/utils/reportExport'
-import { formatReportInteger } from '@/utils/reportNumberFormat'
+import { formatDistanceKmFromMeters, formatReportInteger } from '@/utils/reportNumberFormat'
 import { openReportPrintWindow, renderReportPrintWindow } from '@/utils/reportPrint'
 
 const { t } = useI18n()
@@ -149,6 +152,11 @@ const tableColumns = computed<ReportTableColumn[]>(() => [
   { field: 'start_time', label: t('start'), width: '200px' },
   { field: 'end_time', label: t('end'), width: '200px' },
   { field: 'duration_s', label: t('duration'), width: '130px' },
+  {
+    field: 'distance_from_previous_m',
+    label: `${t('distanceFromPreviousStation')} (km)`,
+    width: '190px',
+  },
   { field: 'updated_at', label: t('updated'), width: '200px' },
 ])
 
@@ -325,6 +333,7 @@ async function exportCsv() {
     'start_time',
     'end_time',
     'duration',
+    'distance_from_previous_station_km',
     'updated_at',
   ]
 
@@ -336,6 +345,7 @@ async function exportCsv() {
     r.start_time,
     r.end_time,
     formatDuration(r.duration_s),
+    formatDistanceKmFromMeters(r.distance_from_previous_m, false),
     r.updated_at,
   ])
 
@@ -371,6 +381,7 @@ async function savePdf() {
     row.start_time,
     row.end_time,
     formatDuration(row.duration_s),
+    formatDistanceKmFromMeters(row.distance_from_previous_m, false),
     row.updated_at,
   ])
 
@@ -385,6 +396,7 @@ async function savePdf() {
       t('start'),
       t('end'),
       t('duration'),
+      `${t('distanceFromPreviousStation')} (km)`,
       t('updated'),
     ],
     rows: printRows,

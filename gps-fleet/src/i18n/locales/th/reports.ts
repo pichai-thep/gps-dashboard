@@ -12,6 +12,7 @@ export default {
     distanceWithId: 'ระยะทาง (รูดบัตร)',
     totalDistanceWithId: 'ระยะทาง (รูดบัตร)',
     totalStations: 'จำนวนสถานีทั้งหมด',
+    distanceFromPreviousStation: 'ระยะทางจากสถานีก่อนหน้า',
     urRateAvg: 'ค่าเฉลี่ย UR Rate',
     running: 'วิ่ง',
     runningWithId: 'วิ่ง (รูดบัตร)',

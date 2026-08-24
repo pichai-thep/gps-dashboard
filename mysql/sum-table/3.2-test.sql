@@ -1,3 +1,4 @@
+-- รันโดย event เป็น batch ตอนกลางคืน
 CALL sp_sum_gps_report_daily(curdate()-interval 1 day);
 CALL sp_sum_gps_report_daily('2026-08-02');
 
@@ -11,12 +12,14 @@ CALL sp_sum_report_table(10,'2026-08-23',239);
 CALL sp_sum_report_table_core(10,'2026-08-23',239,null);
 CALL sp_sum_report_table_core(10,'2026-08-23',239,'864507032363409');
 
+-- รัน manual โดยระบุเป็น customer_id
 CALL sp_run_summary_report_by_customer(
-    239,          -- customer_id
-    '2026-04-20', -- date_from
-    '2026-05-31'  -- date_to
+    178,          -- customer_id
+    '2026-08-24', -- date_from
+    '2026-08-24'  -- date_to
 );
 
+-- รัน manual โดยระบุเป็น imei
 CALL sp_run_summary_report_by_imei(
   '864606041741959',
   '2026-08-01',
@@ -25,7 +28,21 @@ CALL sp_run_summary_report_by_imei(
 
 CALL sp_sum_station_daily(curdate()-interval 1 day);
 CALL sp_sum_station_daily('2026-06-07');
-CALL sp_sum_station_report_table(19, '2026-08-03');
+CALL sp_sum_station_report_table(44, '2026-08-24');
+
+-- รัน manual โดยระบุเป็น customer_id
+CALL sp_run_station_summary_report_by_customer(
+          178,
+          '2026-08-24',
+          '2026-08-24'
+        );
+
+-- รัน manual โดยระบุเป็น imei
+CALL sp_run_station_summary_report_by_imei(
+          '864507034513654',
+          '2026-08-24',
+          '2026-08-24'
+        );
 
 
 SHOW FULL COLUMNS FROM tracker LIKE 'imei';
