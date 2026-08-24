@@ -1,6 +1,6 @@
 -- รันโดย event เป็น batch ตอนกลางคืน
 CALL sp_sum_gps_report_daily(curdate()-interval 1 day);
-CALL sp_sum_gps_report_daily('2026-08-02');
+CALL sp_sum_gps_report_daily('2026-08-24');
 
 -- CREATE PROCEDURE sp_sum_report_table(
 --     IN p_table_no INT,
@@ -21,13 +21,24 @@ CALL sp_run_summary_report_by_customer(
 
 -- รัน manual โดยระบุเป็น imei
 CALL sp_run_summary_report_by_imei(
-  '864606041741959',
-  '2026-08-01',
-  '2026-08-07'
+  '864606042989664',
+  '2026-08-23',
+  '2026-08-23'
 );
 
+SELECT
+  imei,
+  data_date,
+  speed_over_count,
+  speed_over_cloud_count,
+  speed_over_device_count,
+  updated_at
+FROM gps_sum_data
+WHERE imei = '864606042989664'
+  AND data_date = '2026-08-23';
+
 CALL sp_sum_station_daily(curdate()-interval 1 day);
-CALL sp_sum_station_daily('2026-06-07');
+CALL sp_sum_station_daily('2026-08-24');
 CALL sp_sum_station_report_table(44, '2026-08-24');
 
 -- รัน manual โดยระบุเป็น customer_id

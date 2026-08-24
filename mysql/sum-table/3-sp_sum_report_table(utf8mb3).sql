@@ -385,7 +385,8 @@ proc: BEGIN
   SET
     s.avg_speed_kph = COALESCE(speed_stats.avg_speed_kph, 0),
     s.max_speed_kph = COALESCE(speed_stats.max_speed_kph, 0),
-    s.speed_over_count = COALESCE(speed_over.speed_over_cloud_count, 0),
+    s.speed_over_count = COALESCE(speed_over.speed_over_cloud_count, 0)
+      + COALESCE(speed_over.speed_over_device_count, 0),
     s.speed_over_cloud_count = COALESCE(speed_over.speed_over_cloud_count, 0),
     s.speed_over_device_count = COALESCE(speed_over.speed_over_device_count, 0)
   WHERE s.data_date = p_sum_date

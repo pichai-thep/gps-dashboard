@@ -191,6 +191,7 @@ const tableColumns = computed<ReportTableColumn[]>(() => {
     { field: 'speed_over_device_count', label: t('speedOverDeviceCount'), width: '140px', minWidth: '140px' },
     { field: 'ur_formula', label: t('formula'), sortable: false, width: '100px', minWidth: '100px' },
     { field: 'ur_rate', label: t('urRate'), width: '100px', minWidth: '100px' },
+    { field: 'updated_at', label: t('updated'), width: '200px', minWidth: '200px', whiteSpace: 'nowrap' },
   ]
 
   return columns.filter((column) => {

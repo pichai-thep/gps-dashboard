@@ -10,6 +10,6 @@ class SpeedOverController extends StoredProcedureReportController
     {
         $c = $this->context($request, 7);
 
-        return $this->report($c, 'speed-over', 'sp_rpt_speed_over_time', [$c['group_id'], (string) ($c['criteria']['over_type'] ?? ''), $c['login'], $c['imei'], $c['datetime_from'], $c['datetime_to']]);
+        return $this->report($c, 'speed-over', 'sp_rpt_speed_over_endtime', [$c['group_id'], (string) ($c['criteria']['over_type'] ?? ''), $c['login'], $c['imei'], $c['datetime_from'], $c['datetime_to']]);
     }
 }
