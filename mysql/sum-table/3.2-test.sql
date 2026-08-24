@@ -5,7 +5,7 @@ CALL sp_sum_report_table(1,'2026-08-03',239);
 
 CALL sp_run_summary_report_by_customer(
     239,          -- customer_id
-    '2026-05-01', -- date_from
+    '2026-04-20', -- date_from
     '2026-05-31'  -- date_to
 );
 

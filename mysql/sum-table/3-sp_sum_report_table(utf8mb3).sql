@@ -132,7 +132,7 @@ proc: BEGIN
 	  ' AND d.g_point IS NOT NULL ',
 
 	  -- filter event_code ตาม tracker_model
-	  ' AND ( ',
+	  ' AND (NULLIF(TRIM(d.track3), '''') IS NOT NULL OR ( ',
 	  '   CASE ',
 	  '     WHEN t.tracker_model IN (''T1'', ''T333'') THEN FIND_IN_SET(d.event_code, ''35,3,11'') ',
 	  '     WHEN t.tracker_model LIKE ''Totem%'' THEN FIND_IN_SET(d.event_code, ''AA,21,22,02,03'') ',
@@ -142,7 +142,7 @@ proc: BEGIN
 	  '     WHEN t.tracker_model = ''iStartek'' THEN FIND_IN_SET(d.event_code, ''0'') ',
 	  '     ELSE 1 ',
 	  '   END ',
-	  ' ) > 0 ',
+	  ' ) > 0) ',
 
 	  ' AND EXISTS ( ',
 	  '   SELECT 1 ',
@@ -185,7 +185,8 @@ proc: BEGIN
              THEN x.time_diff_s ELSE 0 END),
 
     SUM(CASE WHEN x.status_name = 'RUN'
-              AND NULLIF(TRIM(x.track3), '') IS NOT NULL
+              AND (NULLIF(TRIM(x.track3), '') IS NOT NULL
+                   OR NULLIF(TRIM(x.next_track3), '') IS NOT NULL)
               AND x.time_diff_s BETWEEN 1 AND 300
              THEN x.time_diff_s ELSE 0 END),
 
@@ -210,7 +211,8 @@ proc: BEGIN
 
     ROUND(SUM(
       CASE
-        WHEN NULLIF(TRIM(x.track3), '') IS NOT NULL
+        WHEN (NULLIF(TRIM(x.track3), '') IS NOT NULL
+              OR NULLIF(TRIM(x.next_track3), '') IS NOT NULL)
                 AND (x.speed >= 5 OR x.next_speed >= 5)
 				AND x.time_diff_s BETWEEN 1 AND 300
 				AND x.distance_m <= 3000
@@ -228,6 +230,7 @@ proc: BEGIN
       a.imei,
       a.status_name,
       a.track3,
+      b.track3 AS next_track3,
       a.speed,
       b.speed AS next_speed,
       TIMESTAMPDIFF(SECOND, a.data_date, b.data_date) AS time_diff_s,
@@ -263,12 +266,14 @@ proc: BEGIN
 		@grp := IF(
 		  @prev_imei = y.imei
 		  AND @prev_status = y.status_name
+		  AND @prev_next_time = y.data_date
 		  AND y.time_diff_s <= y.max_gap_s,
 		  @grp,
 		  @grp + 1
 		) AS grp,
 		@prev_imei := y.imei,
-		@prev_status := y.status_name
+		@prev_status := y.status_name,
+		@prev_next_time := y.next_time
 	  FROM (
 		SELECT
 		  a.imei,
@@ -292,10 +297,43 @@ proc: BEGIN
 		ORDER BY a.imei, a.data_date, a.gpsdata_id
 	  ) y
 	  CROSS JOIN (
-		SELECT @grp := 0, @prev_imei := '', @prev_status := ''
+		SELECT @grp := 0, @prev_imei := '', @prev_status := '', @prev_next_time := NULL
 	  ) vars
 	) z
 	GROUP BY z.imei, z.status_name, z.grp;
+
+  UPDATE gps_sum_data s
+  LEFT JOIN (
+    SELECT
+      imei,
+      SUM(CASE WHEN gps_status = 'PARK' THEN 1 ELSE 0 END) AS park_count,
+      SUM(CASE
+            WHEN gps_status = 'IDLE' AND duration_s > 300 THEN 1
+            ELSE 0
+          END) AS idle_over_5m_count
+    FROM gps_sum_status
+    WHERE data_date = p_sum_date
+    GROUP BY imei
+  ) status_count ON status_count.imei = s.imei
+  SET
+    s.park_count = COALESCE(status_count.park_count, 0),
+    s.idle_over_5m_count = COALESCE(status_count.idle_over_5m_count, 0)
+  WHERE s.data_date = p_sum_date
+    AND EXISTS (
+      SELECT 1
+      FROM tracker t
+      WHERE t.imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
+        AND t.report_table COLLATE utf8_general_ci = v_data_table COLLATE utf8_general_ci
+    )
+    AND (
+      p_customer_id IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM customer_tracker ct
+        WHERE ct.tracker_imei COLLATE utf8_general_ci = s.imei COLLATE utf8_general_ci
+          AND ct.customer_customer_id = p_customer_id
+      )
+    );
   
   UPDATE gps_sum_log
   SET end_time = NOW(),

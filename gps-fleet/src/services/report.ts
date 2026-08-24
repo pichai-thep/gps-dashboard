@@ -46,7 +46,9 @@ export interface DailySummaryRow {
     run_time_s: number
     run_withid_time_s: number
     idle_time_s: number
+    idle_over_5m_count: number
     park_time_s: number
+    park_count: number
     distance_m: number
     distance_withid_m: number
     ur_formula?: string
@@ -62,7 +64,9 @@ export interface DailySummaryResponse {
         run_time_s: number
         run_withid_time_s: number
         idle_time_s: number
+        idle_over_5m_count: number
         park_time_s: number
+        park_count: number
         distance_m: number
         distance_withid_m: number
         ur_rate_avg?: number
