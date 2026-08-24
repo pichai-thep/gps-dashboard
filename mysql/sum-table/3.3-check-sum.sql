@@ -1,6 +1,7 @@
 SELECT *
 FROM gps_sum_log
-WHERE process_date = '2026-04-01'
+	where date(start_time) = '2026-08-24'
+-- WHERE process_date = '2026-08-24'
 -- WHERE process_date = curdate()-interval 1 day
 ORDER BY start_time;
 
