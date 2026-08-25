@@ -21,9 +21,9 @@ CALL sp_run_summary_report_by_customer(
 
 -- รัน manual โดยระบุเป็น imei
 CALL sp_run_summary_report_by_imei(
-  '864606041741959',
-  '2026-08-01',
-  '2026-08-07'
+  '864606042987817',
+  '2026-08-24',
+  '2026-08-24'
 );
 
 CALL sp_sum_station_daily(curdate()-interval 1 day);
