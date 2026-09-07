@@ -17,17 +17,29 @@ class VehicleManagementController extends Controller
     {
         $gpsUserCustomer = $request->attributes->get('gpsUserCustomer');
 
-        if (!$gpsUserCustomer || empty($gpsUserCustomer->customer_id)) {
+        if (! $gpsUserCustomer || empty($gpsUserCustomer->customer_id)) {
             abort(403, 'Missing customer_id');
         }
 
         return (int) $gpsUserCustomer->customer_id;
     }
 
+    private function userId(Request $request): int
+    {
+        $gpsUserCustomer = $request->attributes->get('gpsUserCustomer');
+
+        if (! $gpsUserCustomer || empty($gpsUserCustomer->user_id)) {
+            abort(403, 'Missing user_id');
+        }
+
+        return (int) $gpsUserCustomer->user_id;
+    }
+
     public function index(Request $request)
     {
         $conn = $this->conn($request);
         $customerId = $this->customerId($request);
+        $userId = $this->userId($request);
 
         $keyword = trim($request->query('keyword', ''));
         $groupId = $request->query('group_id');
@@ -35,6 +47,10 @@ class VehicleManagementController extends Controller
         $query = DB::connection($conn)
             ->table('customer_tracker as ct')
             ->join('tracker as t', 't.imei', '=', 'ct.tracker_imei')
+            ->join('user_tracker as ut', function ($join) use ($userId) {
+                $join->on('ut.tracker_imei', '=', 't.imei')
+                    ->where('ut.user_user_id', $userId);
+            })
             ->leftJoin('customer_group_tracker as cgt', function ($join) use ($customerId) {
                 $join->on('ct.tracker_imei', '=', 'cgt.imei')
                     ->whereExists(function ($q) use ($customerId) {
@@ -97,14 +113,17 @@ class VehicleManagementController extends Controller
     {
         $conn = $this->conn($request);
         $customerId = $this->customerId($request);
+        $userId = $this->userId($request);
 
         $allowed = DB::connection($conn)
-            ->table('customer_tracker')
-            ->where('customer_customer_id', $customerId)
-            ->where('tracker_imei', $imei)
+            ->table('customer_tracker as ct')
+            ->join('user_tracker as ut', 'ut.tracker_imei', '=', 'ct.tracker_imei')
+            ->where('ct.customer_customer_id', $customerId)
+            ->where('ct.tracker_imei', $imei)
+            ->where('ut.user_user_id', $userId)
             ->exists();
 
-        if (!$allowed) {
+        if (! $allowed) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vehicle not found or permission denied',
@@ -150,7 +169,7 @@ class VehicleManagementController extends Controller
             ->where('t.imei', $imei)
             ->first();
 
-        if (!$vehicle) {
+        if (! $vehicle) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vehicle not found',
@@ -167,15 +186,18 @@ class VehicleManagementController extends Controller
     {
         $conn = $this->conn($request);
         $customerId = $this->customerId($request);
+        $userId = $this->userId($request);
         $user = $request->attributes->get('auth_user');
 
         $allowed = DB::connection($conn)
-            ->table('customer_tracker')
-            ->where('customer_customer_id', $customerId)
-            ->where('tracker_imei', $imei)
+            ->table('customer_tracker as ct')
+            ->join('user_tracker as ut', 'ut.tracker_imei', '=', 'ct.tracker_imei')
+            ->where('ct.customer_customer_id', $customerId)
+            ->where('ct.tracker_imei', $imei)
+            ->where('ut.user_user_id', $userId)
             ->exists();
 
-        if (!$allowed) {
+        if (! $allowed) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vehicle not found or permission denied',
@@ -203,7 +225,7 @@ class VehicleManagementController extends Controller
             'fuel_price' => ['nullable', 'numeric'],
 
             'fuel_mont' => ['nullable', 'boolean'],
-//            'remark' => ['nullable', 'string', 'max:100'],
+            //            'remark' => ['nullable', 'string', 'max:100'],
             'remark2' => ['nullable', 'string'],
 
             'ur_rate_type' => ['nullable', 'in:A,B,C'],
@@ -216,19 +238,19 @@ class VehicleManagementController extends Controller
 
         // normalize boolean -> tinyint
         $data['input_fuel_reverse'] =
-            !empty($data['input_fuel_reverse']) ? 1 : 0;
+            ! empty($data['input_fuel_reverse']) ? 1 : 0;
 
         $data['fuel_mont'] =
-            !empty($data['fuel_mont']) ? 1 : 0;
+            ! empty($data['fuel_mont']) ? 1 : 0;
 
         $data['ur_rate_saturday'] =
-            !empty($data['ur_rate_saturday']) ? 1 : 0;
+            ! empty($data['ur_rate_saturday']) ? 1 : 0;
 
         $data['ur_rate_sunday'] =
-            !empty($data['ur_rate_sunday']) ? 1 : 0;
+            ! empty($data['ur_rate_sunday']) ? 1 : 0;
 
         $data['export_to_active'] =
-            !empty($data['export_to_active']) ? 1 : 0;
+            ! empty($data['export_to_active']) ? 1 : 0;
 
         // audit
         $data['changed_date'] = now();
@@ -249,15 +271,18 @@ class VehicleManagementController extends Controller
     {
         $conn = $this->conn($request);
         $customerId = $this->customerId($request);
+        $userId = $this->userId($request);
         $user = $request->attributes->get('auth_user');
 
         $allowed = DB::connection($conn)
-            ->table('customer_tracker')
-            ->where('customer_customer_id', $customerId)
-            ->where('tracker_imei', $imei)
+            ->table('customer_tracker as ct')
+            ->join('user_tracker as ut', 'ut.tracker_imei', '=', 'ct.tracker_imei')
+            ->where('ct.customer_customer_id', $customerId)
+            ->where('ct.tracker_imei', $imei)
+            ->where('ut.user_user_id', $userId)
             ->exists();
 
-        if (!$allowed) {
+        if (! $allowed) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vehicle not found or permission denied',
@@ -350,7 +375,7 @@ class VehicleManagementController extends Controller
             ->where('customer_id', $customerId)
             ->delete();
 
-        if (!$deleted) {
+        if (! $deleted) {
             return response()->json([
                 'success' => false,
                 'message' => 'Group not found or permission denied',
@@ -367,6 +392,7 @@ class VehicleManagementController extends Controller
     {
         $conn = $this->conn($request);
         $customerId = $this->customerId($request);
+        $userId = $this->userId($request);
 
         $data = $request->validate([
             'imeis' => ['required', 'array', 'min:1'],
@@ -380,7 +406,7 @@ class VehicleManagementController extends Controller
             ->where('customer_id', $customerId)
             ->exists();
 
-        if (!$groupExists) {
+        if (! $groupExists) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid group',
@@ -388,10 +414,13 @@ class VehicleManagementController extends Controller
         }
 
         $allowedImeis = DB::connection($conn)
-            ->table('customer_tracker')
-            ->where('customer_customer_id', $customerId)
-            ->whereIn('tracker_imei', $data['imeis'])
-            ->pluck('tracker_imei')
+            ->table('customer_tracker as ct')
+            ->join('user_tracker as ut', 'ut.tracker_imei', '=', 'ct.tracker_imei')
+            ->where('ct.customer_customer_id', $customerId)
+            ->where('ut.user_user_id', $userId)
+            ->whereIn('ct.tracker_imei', $data['imeis'])
+            ->distinct()
+            ->pluck('ct.tracker_imei')
             ->toArray();
 
         if (count($allowedImeis) !== count($data['imeis'])) {
