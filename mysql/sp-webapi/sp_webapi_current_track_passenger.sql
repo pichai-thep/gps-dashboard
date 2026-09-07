@@ -33,8 +33,8 @@ from
         inner join customer_tracker ct on ct.tracker_imei=t.imei
         inner join customer c on c.customer_id=ct.customer_customer_id
         inner join customer_user cu on cu.customer_customer_id=c.customer_id
-        inner join user_tracker ut on t.imei=ut.tracker_imei
-        inner join user u on ut.user_user_id=u.user_id
+        inner join user u on cu.user_user_id=u.user_id		
+		inner join user_tracker ut on t.imei=ut.tracker_imei and u.user_id=ut.user_user_id
         left join customer_group_tracker cgt on t.imei=cgt.imei
         left join customer_group cg on cgt.customer_group_id=cg.customer_group_id
 
