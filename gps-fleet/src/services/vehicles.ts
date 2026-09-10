@@ -1,6 +1,5 @@
-import api from './api'
-// import { useAuthStore } from '@/stores/auth'
-import { useAuthStore } from '../stores/auth'
+import { getReportVehicles as fetchVehicleOptions } from './report'
+
 export interface VehicleItem {
     vehicle_id: number | string
     plate_no: string
@@ -8,43 +7,24 @@ export interface VehicleItem {
     group_id?: number | string
 }
 
-export async function getReportVehicles(params?: {
-    group_ids?: number[]
-}) {
-    const res = await api.get('/reports/options/vehicles', {
-        params,
-    })
+export const getReportVehicles = fetchVehicleOptions
 
-    return res.data.data
-}
 export async function getVehiclesByGroup(groupId: number | string) {
-    const response = await api.get('/tracking/current', {
-        params: {
-            group_id: groupId,
-            limit: 1000,
-        },
-    })
-
-    return response.data
+    return getVehicles(groupId)
 }
 
 export async function getVehicles(groupId: string | number | null = null) {
-    const auth = useAuthStore()
-
-    const customerId =
-        auth.customer?.id ??
-        auth.user?.customer_id ??
-        auth.config?.customer_id ??
-        localStorage.getItem('gps_fleet_customer_id')
-
-    const response = await api.get('/tracking/current', {
-        params: {
-            customer_id: customerId,
-            group_id: groupId || -1,
-            limit: 1000,
-            per_page: 1000,
-        },
+    // The shared options endpoint returns every permitted vehicle without
+    // Tracking's 100-row pagination cap or the cost of fetching live telemetry.
+    const id = Number(groupId)
+    const options = await fetchVehicleOptions({
+        group_ids: id > 0 ? [id] : undefined,
     })
 
-    return response.data
+    return {
+        vehicles: options.map((vehicle) => ({
+            ...vehicle,
+            vehicle_id: vehicle.imei,
+        })),
+    }
 }

@@ -111,6 +111,10 @@ class ReportController extends Controller
         $query = DB::connection($dbConnection)
             ->table('customer_tracker as ct')
             ->join('tracker as t', 't.imei', '=', 'ct.tracker_imei')
+            ->join('user_tracker as ut', 'ut.tracker_imei', '=', 't.imei')
+            ->join('user as u', 'u.user_id', '=', 'ut.user_user_id')
+            // Match Tracking: customer membership alone does not grant vehicle access.
+            ->whereRaw('TRIM(u.login) = ?', [trim((string) $request->attributes->get('auth_user')->login)])
             ->where('ct.customer_customer_id', $customerId)
             ->select([
                 't.imei',
