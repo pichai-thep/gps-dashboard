@@ -29,6 +29,7 @@ export interface ReportDefinition {
   enableExportCsv?: boolean
   exportFormat?: 'csv' | 'excel'
   enablePdf?: boolean
+  enableVehicle?: boolean
   vehicleRequired?: boolean
   graph?: boolean | 'fuel' | 'speed' | 'temperature'
   serverPagination?: boolean

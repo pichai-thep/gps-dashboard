@@ -1,26 +1,26 @@
 <template>
   <section class="base-report-filters">
-    <div v-if="enableDateStart" class="filter-field">
+    <div v-if="enableDateStart" class="filter-field date-start-field">
       <label>{{ t(monthly ? 'reportMonth' : 'reportDateStart') }}</label>
       <Calendar v-model="dateFrom" :dateFormat="monthly ? 'mm/yy' : 'yy-mm-dd'" :view="monthly ? 'month' : 'date'" showIcon />
     </div>
 
-    <div v-if="enableDateEnd" class="filter-field">
+    <div v-if="enableDateEnd" class="filter-field date-end-field">
       <label>{{ t('reportDateEnd') }}</label>
       <Calendar v-model="dateTo" dateFormat="yy-mm-dd" showIcon />
     </div>
 
-    <div v-if="timeStartEnabled" class="filter-field">
+    <div v-if="timeStartEnabled" class="filter-field time-field time-start-field">
       <label>{{ t('reportTimeStart') }}<span v-if="timeStartRequired" class="required-mark"> *</span></label>
       <InputText v-model="timeStart" type="time" :invalid="timeStartRequired && !timeStart" />
     </div>
 
-    <div v-if="timeEndEnabled" class="filter-field">
+    <div v-if="timeEndEnabled" class="filter-field time-field time-end-field">
       <label>{{ t('reportTimeEnd') }}<span v-if="timeEndRequired" class="required-mark"> *</span></label>
       <InputText v-model="timeEnd" type="time" :invalid="timeEndRequired && !timeEnd" />
     </div>
 
-    <div v-if="enableGroup" class="filter-field">
+    <div v-if="enableGroup" class="filter-field group-field">
       <label>{{ t('selectGroup') }}</label>
       <MultiSelect
         v-if="multiple"

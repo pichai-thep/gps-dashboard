@@ -58,6 +58,7 @@
       :enableTimeEnd="definition.enableTimeEnd"
       :timeStartRequired="definition.timeStartRequired"
       :timeEndRequired="definition.timeEndRequired"
+      :enableVehicle="definition.enableVehicle"
       :vehicleRequired="definition.vehicleRequired"
       :enableExportCsv="definition.enableExportCsv"
       :exportLabel="definition.exportFormat === 'excel' ? t('exportExcel') : t('exportCsv')"
@@ -76,6 +77,7 @@
           v-for="criterion in definition.criteria"
           :key="criterion.key"
           class="custom-filter-field"
+          :data-criterion="criterion.key"
         >
           <label>{{ typeof criterion.label === 'string' ? criterion.label : localized(criterion.label) }}</label>
           <InputNumber
@@ -411,7 +413,7 @@ async function loadTemperatureChart() {
       date_to: toDateString(filters.dateTo),
       time_from: filters.timeStart,
       time_to: filters.timeEnd,
-      imei: filters.imei,
+      imei: definition.value.enableVehicle === false ? undefined : filters.imei,
       sensor_no: temperatureSensorNo.value,
     })
     graphRows.value = response.data ?? []
@@ -428,7 +430,7 @@ async function loadOptions() {
   try {
     const [groups, vehicles] = await Promise.all([
       getReportGroups(),
-      getReportVehicles(),
+      definition.value.enableVehicle === false ? Promise.resolve([]) : getReportVehicles(),
     ])
     groupOptions.value = groups
     vehicleOptions.value = vehicles
@@ -439,6 +441,7 @@ async function loadOptions() {
 
 async function loadVehicles() {
   filters.imei = null
+  if (definition.value.enableVehicle === false) return
   filtersLoading.value = true
   try {
     vehicleOptions.value = await getReportVehicles({
@@ -470,7 +473,7 @@ async function search(resetPage = true) {
       time_from: filters.timeStart,
       time_to: filters.timeEnd,
       group_id: filters.groupId,
-      imei: filters.imei,
+      imei: definition.value.enableVehicle === false ? undefined : filters.imei,
       criteria: { ...criteria },
       offset: definition.value.serverPagination ? pageOffset.value : undefined,
       size: definition.value.serverPagination ? perPage.value : undefined,

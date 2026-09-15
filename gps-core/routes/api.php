@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Reports\Drive4hController;
 use App\Http\Controllers\Api\Reports\Drive4hSummaryController;
 use App\Http\Controllers\Api\Reports\EventReportController;
+use App\Http\Controllers\Api\Reports\RiskEventReportController;
 use App\Http\Controllers\Api\Reports\ForbiddenInsideController;
 use App\Http\Controllers\Api\Reports\FuelReportController;
 use App\Http\Controllers\Api\Reports\PassengerReportController;
@@ -110,6 +111,7 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
         Route::get('/speed-over', SpeedOverController::class);
         Route::get('/speed', SpeedReportController::class);
         Route::get('/events', EventReportController::class);
+        Route::get('/risk-events', RiskEventReportController::class);
         Route::get('/fuel', FuelReportController::class);
         Route::get('/temperature', TemperatureReportController::class);
         Route::get('/temperature/chart', TemperatureChartController::class);
