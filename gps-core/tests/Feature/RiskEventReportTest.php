@@ -73,7 +73,10 @@ class RiskEventReportTest extends TestCase
         {
             protected function report(array $context, string $report, string $procedure, array $arguments, ?callable $rowFilter = null)
             {
-                return response()->json(compact('report', 'procedure', 'arguments'));
+                $rows = [['imei' => 'allowed'], ['imei' => 'another-allowed']];
+                $data = $rowFilter ? array_values(array_filter($rows, $rowFilter)) : $rows;
+
+                return response()->json(compact('report', 'procedure', 'arguments', 'data'));
             }
         };
 
@@ -111,17 +114,25 @@ class RiskEventReportTest extends TestCase
         }
     }
 
-    public function test_ignores_legacy_vehicle_filter(): void
+    public function test_filters_events_by_selected_vehicle_with_or_without_group(): void
     {
-        $this->assertSame($this->report(), $this->report([
-            'imei' => 'other-customer',
-        ]));
+        foreach ([-1, 5] as $groupId) {
+            $result = $this->report(['imei' => 'allowed', 'group_id' => $groupId]);
+            $this->assertSame([['imei' => 'allowed']], $result['data']);
+        }
+    }
+
+    public function test_returns_all_events_when_vehicle_filter_is_empty(): void
+    {
+        $this->assertCount(2, $this->report()['data']);
+        $this->assertSame($this->report(), $this->report(['imei' => '']));
     }
 
     public function test_rejects_unauthorized_access_and_invalid_filters(): void
     {
         foreach ([
             [['customer_id' => 20], 403],
+            [['imei' => 'other-customer'], 403],
             [['group_id' => 6], 403],
             [['date_to' => '2026-09-21'], 422],
             [['time_from' => '24:00'], 422],

@@ -16,7 +16,7 @@ const definition = computed<ReportDefinition>(() => ({
   title: { th: 'รายงานเหตุการณ์พื้นที่และเส้นทางเสี่ยง', en: 'Risk Area and Route Event Report' },
   subtitle: { th: 'เหตุการณ์เข้าใกล้ เข้า อยู่ภายใน และออกจากพื้นที่หรือเส้นทางเสี่ยง', en: 'Near, entry, inside and exit events for risk areas and routes' },
   maxRangeDays: 7,
-  enableVehicle: false,
+  enableVehicle: true,
   enableTimeStart: false,
   enableTimeEnd: false,
   criteria: [
@@ -53,9 +53,9 @@ const definition = computed<ReportDefinition>(() => ({
 
 <style scoped>
 .risk-event-report :deep(.base-report-filters) {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   grid-template-areas:
-    "date-start date-end group risk-object risk-type";
+    "date-start date-end group vehicle risk-object risk-type";
   gap: 16px 12px;
   align-items: end;
 }
@@ -63,6 +63,7 @@ const definition = computed<ReportDefinition>(() => ({
 .risk-event-report :deep(.date-start-field) { grid-area: date-start; }
 .risk-event-report :deep(.date-end-field) { grid-area: date-end; }
 .risk-event-report :deep(.group-field) { grid-area: group; }
+.risk-event-report :deep(.vehicle-field) { grid-area: vehicle; }
 .risk-event-report :deep([data-criterion="risk_obj"]) { grid-area: risk-object; }
 .risk-event-report :deep([data-criterion="risk_type"]) { grid-area: risk-type; }
 
@@ -84,7 +85,7 @@ const definition = computed<ReportDefinition>(() => ({
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
       "date-start date-end"
-      "group group"
+      "group vehicle"
       "risk-object risk-type";
   }
 }
@@ -96,6 +97,7 @@ const definition = computed<ReportDefinition>(() => ({
       "date-start"
       "date-end"
       "group"
+      "vehicle"
       "risk-object"
       "risk-type";
   }
