@@ -51,6 +51,8 @@ export interface DailySummaryRow {
     park_count: number
     distance_m: number
     distance_withid_m: number
+    fuel_litre: number | null
+    fuel_money: number | null
     avg_speed_kph: number
     max_speed_kph: number
     speed_over_count?: number
@@ -74,6 +76,8 @@ export interface DailySummaryResponse {
         park_count: number
         distance_m: number
         distance_withid_m: number
+        fuel_litre: number | null
+        fuel_money: number | null
         avg_speed_kph: number
         max_speed_kph: number
         speed_over_count?: number

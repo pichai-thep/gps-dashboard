@@ -50,6 +50,8 @@ BEGIN
             WHEN 'park_count' THEN 'park_count'
             WHEN 'distance_m' THEN 'distance_m'
             WHEN 'distance_withid_m' THEN 'distance_withid_m'
+            WHEN 'fuel_litre' THEN 'fuel_litre'
+            WHEN 'fuel_money' THEN 'fuel_money'
             WHEN 'avg_speed_kph' THEN 'avg_speed_kph'
             WHEN 'max_speed_kph' THEN 'max_speed_kph'
             WHEN 'speed_over_count' THEN 'speed_over_count'
@@ -80,6 +82,8 @@ BEGIN
         s.park_count,
         s.distance_m,
         s.distance_withid_m,
+        s.fuel_litre,
+        s.fuel_money,
         s.avg_speed_kph,
         s.max_speed_kph,
         s.speed_over_count,
@@ -192,6 +196,8 @@ BEGIN
         COALESCE(SUM(park_count), 0) AS park_count,
         COALESCE(SUM(distance_m), 0) AS distance_m,
         COALESCE(SUM(distance_withid_m), 0) AS distance_withid_m,
+        SUM(fuel_litre) AS fuel_litre,
+        SUM(fuel_money) AS fuel_money,
         COALESCE(ROUND(AVG(NULLIF(avg_speed_kph, 0)), 2), 0) AS avg_speed_kph,
         COALESCE(MAX(max_speed_kph), 0) AS max_speed_kph,
         COALESCE(SUM(speed_over_count), 0) AS speed_over_count,

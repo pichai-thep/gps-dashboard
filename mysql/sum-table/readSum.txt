@@ -61,3 +61,14 @@
           '2026-08-01',
           '2026-08-07'
         );
+
+5. เพิ่มข้อมูลน้ำมันใน gps_sum_data
+   5.1 ฐานข้อมูลเดิม: รัน 1.7-sum-table-alter-fuel.sql ก่อนอัปเดต procedure
+   5.2 รัน 3-sp_sum_report_table.sql หรือรุ่น (utf8mb3) ตามฐานข้อมูลที่ใช้งาน
+   5.3 คำนวณเมื่อ distance_m > 0, tracker.fuel_kmpl > 0 และ tracker.fuel_price > 0
+       fuel_litre = (distance_m / 1000) / fuel_kmpl
+       fuel_money = ((distance_m / 1000) / fuel_kmpl) * fuel_price
+       ปัดผลลัพธ์แต่ละฟิลด์เป็นทศนิยม 2 ตำแหน่ง; ไม่เข้าเงื่อนไขให้เก็บ NULL
+   5.4 ข้อมูลเดิมจะเป็น NULL จนกว่าจะรัน summary ของวันที่ต้องการใหม่ตามข้อ 3
+   5.5 อัปเดตรายงานด้วย ../sp-report/1.3.sp_report_daily_summary.sql เพื่อส่ง fuel_litre/fuel_money
+       พร้อมยอดรวมตามตัวกรองและรองรับการเรียงลำดับ ทั้งหน้าเว็บและไฟล์ส่งออก

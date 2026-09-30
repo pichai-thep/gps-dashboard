@@ -88,6 +88,7 @@
             :severity="durationSeverity(column.field)"
           />
           <b v-else-if="distanceFields.includes(column.field)">{{ formatKm(data[column.field]) }}</b>
+          <b v-else-if="fuelFields.includes(column.field)">{{ formatFuel(data[column.field]) }}</b>
           <b v-else-if="speedFields.includes(column.field)">{{ formatSpeed(data[column.field], column.field) }}</b>
           <Tag
             v-else-if="countFields.includes(column.field)"
@@ -168,6 +169,7 @@ const showDriverIdColumns = ref(false)
 const showUrRateColumns = ref(false)
 const durationFields = ['run_time_s', 'run_withid_time_s', 'idle_time_s', 'park_time_s']
 const distanceFields = ['distance_m', 'distance_withid_m']
+const fuelFields = ['fuel_litre', 'fuel_money']
 const speedFields = ['avg_speed_kph', 'max_speed_kph']
 const countFields = ['idle_over_5m_count', 'park_count', 'speed_over_cloud_count', 'speed_over_device_count']
 const driverIdFields = ['run_withid_time_s', 'distance_withid_m']
@@ -185,6 +187,8 @@ const tableColumns = computed<ReportTableColumn[]>(() => {
     { field: 'park_count', label: t('parkCount'), width: '120px', minWidth: '120px' },
     { field: 'distance_m', label: t('distance'), width: '100px', minWidth: '100px' },
     { field: 'distance_withid_m', label: t('distanceWithId'), width: '100px', minWidth: '100px' },
+    { field: 'fuel_litre', label: t('dailyFuelLitre'), width: '150px', minWidth: '150px' },
+    { field: 'fuel_money', label: t('dailyFuelMoney'), width: '170px', minWidth: '170px' },
     { field: 'avg_speed_kph', label: `${t('averageSpeed')} (km/h)`, width: '120px', minWidth: '120px' },
     { field: 'max_speed_kph', label: `${t('maximumSpeed')} (km/h)`, width: '120px', minWidth: '120px' },
     { field: 'speed_over_cloud_count', label: t('speedOverCloudCount'), width: '140px', minWidth: '140px' },
@@ -212,6 +216,8 @@ const summary = ref({
   park_count: 0,
   distance_m: 0,
   distance_withid_m: 0,
+  fuel_litre: null as number | null,
+  fuel_money: null as number | null,
   avg_speed_kph: 0,
   max_speed_kph: 0,
   speed_over_cloud_count: 0,
@@ -242,6 +248,8 @@ const summaryItems = computed<ReportSummaryItem[]>(() => {
     { key: 'vehicles', label: t('totalVehicles'), value: formatReportInteger(summary.value.total_vehicle) },
     { key: 'distance', label: t('totalDistance'), value: formatKm(summary.value.distance_m) },
     { key: 'distance-with-id', label: t('totalDistanceWithId'), value: formatKm(summary.value.distance_withid_m) },
+    { key: 'fuel-litre', label: t('dailyFuelLitre'), value: formatFuel(summary.value.fuel_litre, true) },
+    { key: 'fuel-money', label: t('dailyFuelMoney'), value: formatFuel(summary.value.fuel_money, true) },
     { key: 'average-speed', label: t('averageSpeed'), value: formatSpeed(summary.value.avg_speed_kph, 'avg_speed_kph') },
     { key: 'maximum-speed', label: t('maximumSpeed'), value: formatSpeed(summary.value.max_speed_kph, 'max_speed_kph') },
     { key: 'speed-over-cloud-count', label: t('speedOverCloudCount'), value: formatReportInteger(summary.value.speed_over_cloud_count) },
@@ -315,6 +323,8 @@ async function resetFilter() {
     park_count: 0,
     distance_m: 0,
     distance_withid_m: 0,
+    fuel_litre: null,
+    fuel_money: null,
     avg_speed_kph: 0,
     max_speed_kph: 0,
     speed_over_cloud_count: 0,
@@ -395,6 +405,15 @@ function formatKm(meter: number) {
   return formatDistanceKmFromMeters(meter)
 }
 
+function formatFuel(value: unknown, useGrouping = false) {
+  if (value === null || value === undefined || value === '') return '-'
+  const amount = Number(value)
+  if (!Number.isFinite(amount)) return '-'
+  return useGrouping
+    ? amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : amount.toFixed(2)
+}
+
 function formatSpeed(value: unknown, field: string) {
   const speed = Number(value || 0)
   const digits = field === 'avg_speed_kph' ? 1 : 0
@@ -452,6 +471,8 @@ async function loadData() {
       park_count: res.summary?.park_count ?? 0,
       distance_m: res.summary?.distance_m ?? 0,
       distance_withid_m: res.summary?.distance_withid_m ?? 0,
+      fuel_litre: res.summary?.fuel_litre ?? null,
+      fuel_money: res.summary?.fuel_money ?? null,
       avg_speed_kph: res.summary?.avg_speed_kph ?? 0,
       max_speed_kph: res.summary?.max_speed_kph ?? 0,
       speed_over_cloud_count: res.summary?.speed_over_cloud_count ?? 0,
@@ -502,6 +523,8 @@ async function exportCsv() {
     'engine_off_count',
     'distance_km',
     ...(showDriverIdColumns.value ? ['distance_with_driver_id_km'] : []),
+    'fuel_litre',
+    'fuel_money',
     'average_speed_kph',
     'maximum_speed_kph',
     'speed_over_cloud_count',
@@ -522,6 +545,8 @@ async function exportCsv() {
     formatReportInteger(r.park_count),
     formatDistanceKmFromMeters(r.distance_m, false),
     ...(showDriverIdColumns.value ? [formatDistanceKmFromMeters(r.distance_withid_m, false)] : []),
+    formatFuel(r.fuel_litre),
+    formatFuel(r.fuel_money),
     Number(r.avg_speed_kph || 0).toFixed(1),
     Number(r.max_speed_kph || 0).toFixed(0),
     formatReportInteger(r.speed_over_cloud_count),
@@ -568,7 +593,7 @@ async function saveXlsx() {
     })
 
     const exportRows = res.data ?? []
-    const columnCount = 14
+    const columnCount = 16
       + (showDriverIdColumns.value ? 2 : 0)
       + (showUrRateColumns.value ? 2 : 0)
     const sectionRow = (title: string): ReportExcelSheetRow => ({
@@ -590,6 +615,8 @@ async function saveXlsx() {
       ...(showDriverIdColumns.value
         ? [{ cells: [t('totalDistanceWithId'), formatKm(res.summary?.distance_withid_m ?? 0)] }]
         : []),
+      { cells: [t('dailyFuelLitre'), formatFuel(res.summary?.fuel_litre)] },
+      { cells: [t('dailyFuelMoney'), formatFuel(res.summary?.fuel_money)] },
       { cells: [t('averageSpeed'), formatSpeed(res.summary?.avg_speed_kph ?? 0, 'avg_speed_kph')] },
       { cells: [t('maximumSpeed'), formatSpeed(res.summary?.max_speed_kph ?? 0, 'max_speed_kph')] },
       { cells: [t('speedOverCloudCount'), formatReportInteger(res.summary?.speed_over_cloud_count ?? 0)] },
@@ -620,6 +647,8 @@ async function saveXlsx() {
           t('parkCount'),
           `${t('distance')} (km)`,
           ...(showDriverIdColumns.value ? [`${t('distanceWithId')} (km)`] : []),
+          t('dailyFuelLitre'),
+          t('dailyFuelMoney'),
           `${t('averageSpeed')} (km/h)`,
           `${t('maximumSpeed')} (km/h)`,
           t('speedOverCloudCount'),
@@ -642,6 +671,8 @@ async function saveXlsx() {
           formatReportInteger(row.park_count),
           formatDistanceKmFromMeters(row.distance_m, false),
           ...(showDriverIdColumns.value ? [formatDistanceKmFromMeters(row.distance_withid_m, false)] : []),
+          formatFuel(row.fuel_litre),
+          formatFuel(row.fuel_money),
           Number(row.avg_speed_kph || 0).toFixed(1),
           Number(row.max_speed_kph || 0).toFixed(0),
           formatReportInteger(row.speed_over_cloud_count),
@@ -651,9 +682,7 @@ async function saveXlsx() {
         ],
       })),
     ]
-    const dataHeaderRow = 22
-      + (showDriverIdColumns.value ? 2 : 0)
-      + (showUrRateColumns.value ? 1 : 0)
+    const dataHeaderRow = xlsxRows.findIndex((row) => row.style === 'header') + 1
     const dataEndRow = dataHeaderRow + exportRows.length
     const dataEndColumn = excelColumnName(columnCount)
 
@@ -696,6 +725,8 @@ async function savePdf() {
     formatReportInteger(row.park_count),
     formatDistanceKmFromMeters(row.distance_m, false),
     ...(showDriverIdColumns.value ? [formatDistanceKmFromMeters(row.distance_withid_m, false)] : []),
+    formatFuel(row.fuel_litre),
+    formatFuel(row.fuel_money),
     Number(row.avg_speed_kph || 0).toFixed(1),
     Number(row.max_speed_kph || 0).toFixed(0),
     formatReportInteger(row.speed_over_cloud_count),
@@ -721,6 +752,8 @@ async function savePdf() {
       ...(showDriverIdColumns.value
         ? [{ label: t('totalDistanceWithId'), value: formatKm(res.summary?.distance_withid_m ?? 0) }]
         : []),
+      { label: t('dailyFuelLitre'), value: formatFuel(res.summary?.fuel_litre) },
+      { label: t('dailyFuelMoney'), value: formatFuel(res.summary?.fuel_money) },
       { label: t('averageSpeed'), value: formatSpeed(res.summary?.avg_speed_kph ?? 0, 'avg_speed_kph') },
       { label: t('maximumSpeed'), value: formatSpeed(res.summary?.max_speed_kph ?? 0, 'max_speed_kph') },
       { label: t('speedOverCloudCount'), value: formatReportInteger(res.summary?.speed_over_cloud_count ?? 0) },
@@ -753,6 +786,8 @@ async function savePdf() {
       t('parkCount'),
       t('distance'),
       ...(showDriverIdColumns.value ? [t('distanceWithId')] : []),
+      t('dailyFuelLitre'),
+      t('dailyFuelMoney'),
       `${t('averageSpeed')} (km/h)`,
       `${t('maximumSpeed')} (km/h)`,
       t('speedOverCloudCount'),

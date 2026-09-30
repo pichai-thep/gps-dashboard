@@ -1,4 +1,6 @@
 export default {
+    dailyFuelLitre: 'ใช้น้ำมันไป (ลิตร)',
+    dailyFuelMoney: 'เป็นเงินค่าน้ำมัน (บาท)',
     dailySummaryReport: 'รายงานสรุปรายวัน',
     dailySummarySubtitle: 'รายงานสรุปการวิ่ง / จอด / Idle รายวัน',
     statusTimelineReport: 'รายงานช่วงเวลาสถานะ',

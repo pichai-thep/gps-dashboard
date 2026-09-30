@@ -1,4 +1,6 @@
 export default {
+    dailyFuelLitre: 'Fuel used (litres)',
+    dailyFuelMoney: 'Fuel cost (THB)',
     dailySummaryReport: 'Daily Summary Report',
     dailySummarySubtitle: 'Daily running / parking / idle summary',
     statusTimelineReport: 'Status Timeline Report',

@@ -345,6 +345,7 @@ proc: BEGIN
     );
 
   UPDATE gps_sum_data s
+  INNER JOIN tracker fuel_tracker ON BINARY fuel_tracker.imei = BINARY s.imei
   LEFT JOIN (
     SELECT
       imei,
@@ -383,6 +384,18 @@ proc: BEGIN
   ) speed_over
     ON BINARY speed_over.imei = BINARY s.imei
   SET
+    -- distance_m is metres; fuel_kmpl is kilometres per litre.
+    -- Calculate cost before rounding litres to avoid compounding rounding errors.
+    s.fuel_litre = CASE
+      WHEN s.distance_m > 0 AND fuel_tracker.fuel_kmpl > 0 AND fuel_tracker.fuel_price > 0
+      THEN ROUND((s.distance_m / 1000.0) / NULLIF(fuel_tracker.fuel_kmpl, 0), 2)
+      ELSE NULL
+    END,
+    s.fuel_money = CASE
+      WHEN s.distance_m > 0 AND fuel_tracker.fuel_kmpl > 0 AND fuel_tracker.fuel_price > 0
+      THEN ROUND(((s.distance_m / 1000.0) / NULLIF(fuel_tracker.fuel_kmpl, 0)) * fuel_tracker.fuel_price, 2)
+      ELSE NULL
+    END,
     s.avg_speed_kph = COALESCE(speed_stats.avg_speed_kph, 0),
     s.max_speed_kph = COALESCE(speed_stats.max_speed_kph, 0),
     s.speed_over_count = COALESCE(speed_over.speed_over_cloud_count, 0)

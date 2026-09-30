@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS gps_sum_data (
   park_count int NOT NULL DEFAULT 0,
   distance_m int NOT NULL DEFAULT 0,
   distance_withid_m int NOT NULL DEFAULT 0,
+  fuel_litre decimal(6,2) DEFAULT NULL,
+  fuel_money decimal(9,2) DEFAULT NULL,
   avg_speed_kph decimal(6,2) NOT NULL DEFAULT 0,
   max_speed_kph int NOT NULL DEFAULT 0,
   speed_over_count int NOT NULL DEFAULT 0,
