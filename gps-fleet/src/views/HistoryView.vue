@@ -209,8 +209,8 @@
                   <div
                       v-if="
                           getHistoryDriverStatus(data) !== 'hide' ||
-                          data.fuel_left !== null ||
-                          data.temperature !== null ||
+                          (showFuel && data.fuel_left !== null) ||
+                          (showTemperature && data.temperature !== null) ||
                           isGpsUnplugged(data) ||
                           showInputColumn
                         "
@@ -251,7 +251,7 @@
                     </div>
 
                     <div
-                        v-if="data.fuel_left !== null && data.fuel_left !== undefined"
+                        v-if="showFuel && data.fuel_left !== null && data.fuel_left !== undefined"
                         class="sensor-chip fuel"
                     >
                       <span>{{ t('fuel') }}</span>
@@ -259,7 +259,7 @@
                     </div>
 
                     <div
-                        v-if="data.temperature !== null && data.temperature !== undefined"
+                        v-if="showTemperature && data.temperature !== null && data.temperature !== undefined"
                         class="sensor-chip temp"
                     >
                       <span>{{ t('temp') }}</span>
@@ -445,6 +445,8 @@ const firstRow = computed(() => {
   return (currentPage.value - 1) * perPage.value
 })
 
+const showFuel = computed(() => Boolean(auth.features?.showFuel))
+const showTemperature = computed(() => Boolean(auth.features?.temperature))
 const showInput1 = computed(() => Boolean(auth.features?.input1))
 const showInput2 = computed(() => Boolean(auth.features?.input2))
 const showInputColumn = computed(() => showInput1.value || showInput2.value)

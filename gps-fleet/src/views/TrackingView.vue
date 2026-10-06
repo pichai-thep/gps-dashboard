@@ -208,7 +208,7 @@
                 />
               </span>
 
-              <div class="fuel-badge" v-if="slotProps.data.fuel_left!=null">
+              <div class="fuel-badge" v-if="showFuel && slotProps.data.fuel_left!=null">
                 <i class="pi pi-car"></i>
                 {{ t('fuel') }}: {{ formatFuel(slotProps.data.fuel_left) }}
               </div>
@@ -475,7 +475,7 @@ const sortOptions = computed(() => [
   { label: t('vehicle'), value: 'plate_no' },
   { label: t('gpsTime'), value: 'gps_time' },
   { label: t('speed'), value: 'speed' },
-  { label: t('fuel'), value: 'fuel_left' },
+  ...(showFuel.value ? [{ label: t('fuel'), value: 'fuel_left' }] : []),
   { label: t('status'), value: 'status' },
 ])
 
@@ -537,6 +537,7 @@ const hasActiveVehicleFilters = computed(() =>
     || search.value.trim() !== ''
 )
 const showPassenger = computed(() => Boolean(auth.features?.passenger))
+const showFuel = computed(() => Boolean(auth.features?.showFuel))
 const showTemperature = computed(() => Boolean(auth.features?.temperature))
 const showInput1 = computed(() => Boolean(auth.features?.input1))
 const showInput2 = computed(() => Boolean(auth.features?.input2))

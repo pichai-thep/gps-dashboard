@@ -50,7 +50,7 @@
         </div>
 
         <div
-            v-if="popupData.temperature !== null && popupData.temperature !== undefined && popupData.temperature !== ''"
+            v-if="showTemperature && popupData.temperature !== null && popupData.temperature !== undefined && popupData.temperature !== ''"
             class="popup-row"
         >
           <span>{{ t('temperature') }}</span>
@@ -242,6 +242,7 @@ const router = useRouter()
 const addressLoading = ref(false)
 const selectedAddress = ref<string | null>(null)
 const addressCache = ref<Record<string, string>>({})
+const showTemperature = computed(() => Boolean(auth.features?.temperature))
 const showInput1 = computed(() => Boolean(auth.features?.input1))
 const showInput2 = computed(() => Boolean(auth.features?.input2))
 

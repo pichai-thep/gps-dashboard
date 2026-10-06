@@ -44,6 +44,7 @@ export type FeatureFlags = {
 
     canbus?: boolean
     engineCut?: boolean
+    showFuel?: boolean
     fuel?: boolean
     battery?: boolean
     passenger?: boolean

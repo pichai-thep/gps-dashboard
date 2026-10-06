@@ -66,12 +66,12 @@
           </strong>
         </div>
 
-        <div class="popup-row" v-if="popupVehicle.fuel_left">
+        <div class="popup-row" v-if="showFuel && hasValue(popupVehicle.fuel_left)">
           <span>{{ t('fuelLeft') }}</span>
           <strong>{{ popupVehicle.fuel_left ?? '' }} %</strong>
         </div>
 
-        <div class="popup-row" v-if="hasValue(popupVehicle.temperature)">
+        <div class="popup-row" v-if="showTemperature && hasValue(popupVehicle.temperature)">
           <span>{{ t('temperature') }}</span>
           <strong>{{ popupVehicle.temperature }} °C</strong>
         </div>
@@ -402,6 +402,8 @@ const addressCache = ref<Record<string, string>>({})
 const clickedFromMap = ref(false)
 const vehicleFeatureMap = new globalThis.Map<string, Feature<Point>>()
 const showPassenger = computed(() => Boolean(auth.features?.passenger))
+const showFuel = computed(() => Boolean(auth.features?.showFuel))
+const showTemperature = computed(() => Boolean(auth.features?.temperature))
 const showInput1 = computed(() => Boolean(auth.features?.input1))
 const showInput2 = computed(() => Boolean(auth.features?.input2))
 const showEngineCutCommand = computed(() => Boolean(auth.features?.engineCut))

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
+use Illuminate\Support\Facades\DB;
 use App\Models\Tracker;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -11,6 +11,26 @@ use Illuminate\Support\Facades\Log;
 
 class EngineCutController extends Controller
 {
+    private function authorizeEngineCut(Request $request, string $connection): void
+    {
+        $authUser = $request->attributes->get('auth_user')
+            ?? $request->attributes->get('mobile_user');
+        if (!$authUser) {
+            throw new \Exception('Unauthenticated');
+        }
+
+        $gpsUser = DB::connection($connection)->table('user')
+            ->where('login', $authUser->login)->first();
+        if (!$gpsUser || !(bool) ($gpsUser->enable_engine_cut ?? false)) {
+            throw new \Exception('Engine cut is not enabled for this user');
+        }
+
+        $password = $gpsUser->engine_cut_pwd ?? null;
+        if ($password !== null && !hash_equals((string) $password, (string) $request->input('password', ''))) {
+            throw new \Exception('wrong password, command not authorized');
+        }
+    }
+
     private function resolveCommandServerIp(?string $dbConnection): string
     {
         $serverIp = null;
@@ -70,16 +90,9 @@ class EngineCutController extends Controller
 
         try{
             $server_ip = $this->resolveCommandServerIp($dbConnection);
-            Log::debug("Engine cut========> dbConnection=$dbConnection, server_ip=$server_ip, customer_id=$customer_id,imei=$imei,pwd=$password");
+            Log::debug("Engine cut========> dbConnection=$dbConnection, server_ip=$server_ip, customer_id=$customer_id,imei=$imei");
 
-            $engine_cut_pwd = Customer::on($dbConnection)->where('customer_id', $customer_id)->value('engine_cut_pwd');
-            Log::debug("Engine-cut Pwd: $engine_cut_pwd");
-
-            if ($engine_cut_pwd!=null){
-                if ($engine_cut_pwd != $password) {
-                    throw new \Exception("wrong password, command not authorized");
-                }
-            }
+            $this->authorizeEngineCut($request, $dbConnection);
 
             $tracker = Tracker::on($dbConnection)->where('imei','=',$imei)->first();
             if ($tracker==null){
@@ -302,16 +315,9 @@ class EngineCutController extends Controller
 
         try{
             $server_ip = $this->resolveCommandServerIp($dbConnection);
-            Log::debug("Engine cut cancel ========> dbConnection=$dbConnection, server_ip=$server_ip, customer_id=$customer_id,imei=$imei,pwd=$password");
+            Log::debug("Engine cut cancel ========> dbConnection=$dbConnection, server_ip=$server_ip, customer_id=$customer_id,imei=$imei");
 
-            $engine_cut_pwd = Customer::on($dbConnection)->where('customer_id', $customer_id)->value('engine_cut_pwd');
-            Log::debug("Engine-cut Pwd: $engine_cut_pwd");
-
-            if ($engine_cut_pwd!=null){
-                if ($engine_cut_pwd != $password) {
-                    throw new \Exception("wrong password, command not authorized");
-                }
-            }
+            $this->authorizeEngineCut($request, $dbConnection);
 
             $tracker = Tracker::on($dbConnection)->where('imei','=',$imei)->first();
             if ($tracker==null){
