@@ -2,7 +2,6 @@
 import {onMounted, onUnmounted, ref} from 'vue'
 import {getRecentNotifications, type NotificationItem,} from '../services/notification'
 import { useI18n } from '@/i18n'
-import { formatNotificationDateTime } from '@/utils/dateTime'
 
 const { t } = useI18n()
 
@@ -155,7 +154,7 @@ onUnmounted(() => {
         <div class="content">
           <div class="row">
             <h3>{{ item.msg_type || t('notification') }}</h3>
-            <span>{{ formatNotificationDateTime(item.gps_time || item.created_at) }}</span>
+            <span>{{ item.gps_time || item.created_at || '-' }}</span>
           </div>
 
           <p>{{ item.message || '-' }}</p>
