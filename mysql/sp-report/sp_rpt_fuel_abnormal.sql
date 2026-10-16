@@ -11,7 +11,7 @@ CREATE PROCEDURE `sp_rpt_fuel_abnormal`(
 proc: BEGIN
     SELECT f.id, f.imei, t.plate_no, t.tracker_model,
            DATE_ADD(f.data_date, INTERVAL 7 HOUR) AS data_date,
-           f.fuel_avg, f.fuel_last, f.fuel_max_diff,
+           f.fuel_avg, f.fuel_last, f.fuel_diff, f.fuel_max_diff,
            ST_X(f.g_point) AS lat, ST_Y(f.g_point) AS lon,
            f.created_time
     FROM abnormal_fuel f

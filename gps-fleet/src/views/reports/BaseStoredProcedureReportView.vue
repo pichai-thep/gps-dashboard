@@ -332,6 +332,20 @@ const summaryItems = computed<ReportSummaryItem[]>(() => {
     })
   }
 
+  if (definition.value.key === 'fuel-abnormal') {
+    const values = rows.value
+      .map((row) => row.fuel_max_diff)
+      .filter((value) => value !== null && value !== undefined && String(value).trim() !== '')
+      .map(Number)
+      .filter(Number.isFinite)
+    const average = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
+    items.push({
+      key: 'fuel-max-diff-avg',
+      label: locale.value === 'th' ? 'ค่าเฉลี่ยความต่างน้ำมันสูงสุด (AVG)' : 'Average maximum fuel difference (AVG)',
+      value: average === null ? '-' : formatReportNumber(average, 'fuel_max_diff', 'fuel-abnormal', 2),
+    })
+  }
+
   if (definition.value.key === 'temperature') {
     items.push(
       { key: 'sensor-a', label: 'Sensor A', value: sensorConfigText(temperatureConfig.value.sensor_a) },

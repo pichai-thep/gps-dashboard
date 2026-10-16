@@ -26,7 +26,7 @@ const definition = computed<ReportDefinition>(() => ({
     { field: 'data_date', label: label('วันที่/เวลาเกิดเหตุการณ์', 'Event date/time'), type: 'datetime' },
     { field: 'fuel_avg', label: label('ค่าน้ำมันเฉลี่ย', 'Average fuel'), type: 'number' },
     { field: 'fuel_last', label: label('ค่าน้ำมันล่าสุด', 'Last fuel'), type: 'number' },
-    { field: 'fuel_max_diff', label: label('ค่าความต่างน้ำมันสูงสุด', 'Maximum fuel difference'), type: 'number' },
+    { field: 'fuel_diff', label: label('ค่าความต่างน้ำมัน', 'Fuel difference'), type: 'number' },
     { field: 'location', label: label('พิกัด / แผนที่', 'Coordinates / Map'), type: 'location' },
     { field: 'created_time', label: label('วันที่/เวลาบันทึก', 'Created date/time'), type: 'datetime' },
   ],
