@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Reports\EventReportController;
 use App\Http\Controllers\Api\Reports\RiskEventReportController;
 use App\Http\Controllers\Api\Reports\ForbiddenInsideController;
 use App\Http\Controllers\Api\Reports\FuelReportController;
+use App\Http\Controllers\Api\Reports\FuelAbnormalReportController;
 use App\Http\Controllers\Api\Reports\PassengerReportController;
 use App\Http\Controllers\Api\Reports\PassengerSummaryController;
 use App\Http\Controllers\Api\Reports\MonthlyDistanceController;
@@ -113,6 +114,7 @@ Route::middleware(['dev.auth', 'gps'])->group(function () {
         Route::get('/events', EventReportController::class);
         Route::get('/risk-events', RiskEventReportController::class);
         Route::get('/fuel', FuelReportController::class);
+        Route::get('/fuel-abnormal', FuelAbnormalReportController::class);
         Route::get('/temperature', TemperatureReportController::class);
         Route::get('/temperature/chart', TemperatureChartController::class);
         Route::get('/swipe', SwipeReportController::class);

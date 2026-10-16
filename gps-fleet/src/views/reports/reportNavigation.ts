@@ -18,6 +18,7 @@ export const reportNavigation: ReportNavigationItem[] = [
   { key: 'event', path: '/reports/events', title: { th: 'รายงานเหตุการณ์สำคัญ', en: 'Important Event Report' }, section: 'general' },
   { key: 'risk-event', path: '/reports/risk-events', title: { th: 'รายงานเหตุการณ์พื้นที่และเส้นทางเสี่ยง', en: 'Risk Area and Route Event Report' }, section: 'general' },
   { key: 'fuel', path: '/reports/fuel', title: { th: 'รายงานน้ำมัน/เชื้อเพลิง', en: 'Fuel Report' }, section: 'general', features: ['showFuel'] },
+  { key: 'fuel-abnormal', path: '/reports/fuel-abnormal', title: { th: 'รายงานน้ำมันผิดปกติ', en: 'Abnormal Fuel Report' }, section: 'general', features: ['showFuel'] },
   { key: 'temperature', path: '/reports/temperature', title: { th: 'รายงานอุณหภูมิ', en: 'Temperature Report' }, section: 'general', features: ['temperature'] },
   { key: 'swipe', path: '/reports/swipe', title: { th: 'รายงานการรูดบัตร', en: 'Card Swipe Report' }, section: 'general' },
   { key: 'drive4h', path: '/reports/drive4h', title: { th: 'รายงานขับรถเกิน 4 ชั่วโมง', en: 'Drive Over 4 Hours Report' }, section: 'general' },

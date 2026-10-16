@@ -168,6 +168,7 @@ const router = createRouter({
                 { path: '/reports/speed', name: 'SpeedReport', component: () => import('@/views/reports/SpeedReportView.vue'), meta: { requiresAuth: true, title: 'Speed Report' } },
                 { path: '/reports/events', name: 'EventReport', component: () => import('@/views/reports/EventReportView.vue'), meta: { requiresAuth: true, title: 'Important Event Report' } },
                 { path: '/reports/risk-events', name: 'RiskEventReport', component: () => import('@/views/reports/RiskEventReportView.vue'), meta: { requiresAuth: true, title: 'Risk Area and Route Event Report' } },
+                { path: '/reports/fuel-abnormal', name: 'FuelAbnormalReport', component: () => import('@/views/reports/FuelAbnormalReportView.vue'), meta: { requiresAuth: true, title: 'Abnormal Fuel Report', features: ['showFuel'] } },
                 { path: '/reports/fuel', name: 'FuelReport', component: () => import('@/views/reports/FuelReportView.vue'), meta: { requiresAuth: true, title: 'Fuel Report', features: ['showFuel'] } },
                 { path: '/reports/temperature', name: 'TemperatureReport', component: () => import('@/views/reports/TemperatureReportView.vue'), meta: { requiresAuth: true, title: 'Temperature Report', features: ['temperature'] } },
                 { path: '/reports/swipe', name: 'SwipeReport', component: () => import('@/views/reports/SwipeReportView.vue'), meta: { requiresAuth: true, title: 'Card Swipe Report' } },
