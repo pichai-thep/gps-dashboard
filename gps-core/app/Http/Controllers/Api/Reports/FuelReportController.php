@@ -8,7 +8,7 @@ class FuelReportController extends StoredProcedureReportController
 {
     public function __invoke(Request $request)
     {
-        $c = $this->context($request, 3, true);
+        $c = $this->context($request, 30, true);
         $status = strtolower(trim((string) ($c['criteria']['status'] ?? '')));
         abort_unless(in_array($status, ['', 'park', 'idle', 'run'], true), 422, 'Invalid vehicle status');
 

@@ -13,7 +13,7 @@ const definition = computed<ReportDefinition>(() => ({
   key: 'fuel',
   title: {th: 'รายงานน้ำมัน/เชื้อเพลิง', en: 'Fuel Report'},
   subtitle: {th: 'สถานะรถ ความเร็ว และระดับเชื้อเพลิงตามเวลา', en: 'Vehicle status, speed and fuel timeline'},
-  maxRangeDays: 3,
+  maxRangeDays: 30,
   enableTimeStart: true,
   enableTimeEnd: true,
   timeStartRequired: true,
