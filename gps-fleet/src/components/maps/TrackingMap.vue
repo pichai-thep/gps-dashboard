@@ -112,7 +112,14 @@
 
         <div class="popup-row coordinate-row">
           <span>{{ t('latLon') }}</span>
-          <strong>{{ popupVehicle.lat }}, {{ popupVehicle.lng }}</strong>
+          <strong>
+            <a
+                :href="`https://www.google.com/maps/search/?api=1&query=${popupVehicle.lat},${popupVehicle.lng}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                @click.stop
+            >{{ popupVehicle.lat }}, {{ popupVehicle.lng }}</a>
+          </strong>
         </div>
 
         <div class="popup-row" v-if="popupVehicle.driver_name">
@@ -1142,6 +1149,11 @@ watch(
 
 .coordinate-row strong {
   white-space: nowrap;
+}
+
+.coordinate-row a {
+  color: #60a5fa;
+  text-decoration: underline;
 }
 
 .address-link {

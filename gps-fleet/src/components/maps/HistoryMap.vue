@@ -69,7 +69,14 @@
 
         <div class="popup-row coordinate-row">
           <span>{{ t('latLon') }}</span>
-          <strong>{{ popupData.lat }}, {{ popupData.lng }}</strong>
+          <strong>
+            <a
+                :href="`https://www.google.com/maps/search/?api=1&query=${popupData.lat},${popupData.lng}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                @click.stop
+            >{{ popupData.lat }}, {{ popupData.lng }}</a>
+          </strong>
         </div>
 
         <div class="popup-row">
@@ -1030,6 +1037,11 @@ watch(
 
 .coordinate-row strong {
   white-space: nowrap;
+}
+
+.coordinate-row a {
+  color: #60a5fa;
+  text-decoration: underline;
 }
 
 .address-link {
